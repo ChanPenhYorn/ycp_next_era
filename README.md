@@ -293,9 +293,21 @@ no-op, so use `supabase stop && supabase start`.
 
 **Before launch, on the hosted project:** turn off *Confirm email* under
 Authentication → Providers → Email, and add custom SMTP under Authentication →
-Emails. With confirmation on, `signInWithOtp` for a new address sends the *Confirm
-signup* template, which carries a link and no `{{ .Token }}`, so the app's
-six-digit field has nothing to accept.
+Emails.
+
+Then paste the two templates from `supabase/templates/` into
+Authentication → Emails — `magic_link.html` into *Magic Link*, `confirmation.html`
+into *Confirm signup*. The app asks for a six-digit code, but Supabase's stock
+templates print only `{{ .ConfirmationURL }}`: the mail reads "Your sign-in link"
+and the app's code field has nothing to accept. Both files in this repo print
+`{{ .Token }}` as well, so the rendered mail carries the code.
+
+The local stack reads the same files via `[auth.email.template.*]` in
+`supabase/config.toml`, so Mailpit on :54324 shows what the hosted mailer will
+send. Editing a template body only needs the auth container to re-read the file
+(Gotrue template reloading is on); adding or renaming a template *section* needs
+`supabase stop && supabase start`, because the CLI bakes the template URL into the
+container at creation.
 
 ### Enabling Google
 

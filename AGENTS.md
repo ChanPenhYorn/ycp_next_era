@@ -9,6 +9,9 @@ Flutter client + Supabase backend. No app server.
   commands from `app/`.
 - `supabase/migrations/` — schema, RLS, business-logic RPCs. Applied in filename order.
 - `supabase/functions/` — Edge Functions (Deno). `_shared/` is not deployed as a function.
+- `supabase/templates/` — email bodies referenced by `[auth.email.template.*]` in
+  `config.toml`. Must print `{{ .Token }}`; the app signs in with a six-digit code,
+  not a link.
 - `supabase/tests/` — standalone Postgres harness, **not part of the deployed schema**.
 
 ## Commands

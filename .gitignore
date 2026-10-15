@@ -28,3 +28,6 @@ supabase/.temp
 .vscode/*
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Wrangler local state (account ids, cache)
+.wrangler/

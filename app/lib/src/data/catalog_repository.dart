@@ -1,0 +1,221 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'models.dart';
+
+/// Read-only access to the public catalogue. Every query here maps to a
+/// `select` policy in `0002_rls.sql`; no privileged key is involved.
+class CatalogRepository {
+  CatalogRepository(this._client);
+
+  final SupabaseClient _client;
+
+  Future<PublicSettings> settings() async {
+    final row = await _client
+        .from('public_settings')
+        .select(
+          'site_name, support_telegram, support_email, usd_to_khr, order_ttl_minutes',
+        )
+        .maybeSingle();
+
+    if (row == null) return PublicSettings.fallback;
+
+    return PublicSettings(
+      siteName: row['site_name'] as String? ?? 'YCP Store',
+      usdToKhr: (row['usd_to_khr'] as num?)?.toDouble() ?? 4100,
+      orderTtlMinutes: (row['order_ttl_minutes'] as num?)?.toInt() ?? 15,
+      supportTelegram: row['support_telegram'] as String?,
+      supportEmail: row['support_email'] as String?,
+    );
+  }
+
+  Future<List<Category>> categories() async {
+    final rows = await _client
+        .from('categories')
+        .select('id, slug, name_km, name_en')
+        .order('sort_order');
+
+    return rows.map(Category.fromJson).toList();
+  }
+
+  Future<List<ProductCard>> products({
+    String? categorySlug,
+    String? search,
+    bool featuredOnly = false,
+    int limit = 48,
+  }) async {
+    var query = _client
+        .from('products')
+        .select(
+          'id, slug, name_km, name_en, image_url, kind, rating_avg, rating_count, '
+          'sold_count, category:categories ( id, slug, name_km, name_en ), '
+          'variants:product_variants ( id, price_usd, compare_at_price_usd, stock_mode )',
+        )
+        .order('sort_order')
+        .limit(limit);
+
+    if (featuredOnly) query = query.eq('is_featured', true);
+    if (categorySlug != null) query = query.eq('categories.slug', categorySlug);
+    if (search != null && search.trim().isNotEmpty) {
+      final term = search.replaceAll(RegExp(r'[%,]'), ' ').trim();
+      query = query.or(
+        'name_km.ilike.%$term%,name_en.ilike.%$term%,slug.ilike.%$term%',
+      );
+    }
+
+    final rows = await query;
+
+    final stock = await _stockFor([
+      for (final row in rows)
+        for (final v in (row['variants'] as List? ?? const []))
+          ((v as Map)['id'] as num).toInt(),
+    ]);
+
+    return rows.map((row) => _cardFrom(row, stock)).toList();
+  }
+
+  Future<ProductDetail?> productBySlug(String slug, String locale) async {
+    final row = await _client
+        .from('products')
+        .select(
+          'id, slug, name_km, name_en, summary_km, summary_en, description_km, '
+          'description_en, image_url, kind, requires_fields, rating_avg, '
+          'rating_count, sold_count, '
+          'category:categories ( id, slug, name_km, name_en ), '
+          'variants:product_variants ( id, price_usd, compare_at_price_usd, stock_mode )',
+        )
+        .eq('slug', slug)
+        .maybeSingle();
+
+    if (row == null) return null;
+
+    final variantRows = await _client
+        .from('product_variants')
+        .select(
+          'id, sku, label_km, label_en, price_usd, compare_at_price_usd, '
+          'stock_mode, min_qty, max_qty, sort_order',
+        )
+        .eq('product_id', row['id'])
+        .order('sort_order');
+
+    final stock = await _stockFor(
+      variantRows.map((v) => (v['id'] as num).toInt()).toList(),
+    );
+
+    final variants = variantRows.map((v) {
+      final mode = v['stock_mode'] as String? ?? 'stock';
+      return Variant.fromJson({
+        ...v,
+        'in_stock':
+            mode == 'unlimited' ? null : (stock[(v['id'] as num).toInt()] ?? 0),
+      });
+    }).toList();
+
+    final card = _cardFrom(row, stock, overrideVariants: variants);
+
+    final rawDescription =
+        locale == 'km' ? row['description_km'] : row['description_en'];
+    final rawSummary = locale == 'km' ? row['summary_km'] : row['summary_en'];
+
+    return ProductDetail(
+      card: card,
+      description: (rawDescription ?? rawSummary) as String?,
+      requiresFields: ((row['requires_fields'] as List?) ?? const [])
+          .map((e) => RequiredField.fromJson((e as Map).cast<String, dynamic>()))
+          .toList(),
+      variants: variants,
+    );
+  }
+
+  Future<List<Review>> reviews(int productId) async {
+    final rows = await _client
+        .from('reviews')
+        .select('id, rating, body, created_at, author:profile_names ( display_name )')
+        .eq('product_id', productId)
+        .eq('is_approved', true)
+        .order('created_at', ascending: false)
+        .limit(20);
+
+    return rows.map((row) {
+      final author = row['author'] as Map<String, dynamic>?;
+      return Review(
+        id: row['id'] as int,
+        rating: (row['rating'] as num).toInt(),
+        body: row['body'] as String?,
+        authorName: author?['display_name'] as String?,
+        createdAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+            DateTime.now(),
+      );
+    }).toList();
+  }
+
+  Future<Map<int, int>> _stockFor(List<int> variantIds) async {
+    if (variantIds.isEmpty) return {};
+
+    final rows = await _client
+        .from('variant_stock')
+        .select('variant_id, in_stock')
+        .inFilter('variant_id', variantIds);
+
+    return {
+      for (final row in rows)
+        (row['variant_id'] as num).toInt():
+            (row['in_stock'] as num?)?.toInt() ?? 0,
+    };
+  }
+
+  /// Builds a card from a product row that carries its variants inline.
+  /// [overrideVariants] is used by the detail page, which already resolved
+  /// per-variant stock.
+  ProductCard _cardFrom(
+    Map<String, dynamic> row,
+    Map<int, int> stock, {
+    List<Variant>? overrideVariants,
+  }) {
+    final rawVariants = (row['variants'] as List? ?? const [])
+        .map((v) => (v as Map).cast<String, dynamic>())
+        .toList();
+
+    final variants = overrideVariants ??
+        rawVariants.map((v) {
+          final mode = v['stock_mode'] as String? ?? 'stock';
+          return Variant.fromJson({
+            ...v,
+            'in_stock': mode == 'unlimited'
+                ? null
+                : (stock[(v['id'] as num).toInt()] ?? 0),
+          });
+        }).toList();
+
+    final prices = variants.map((v) => v.priceUsd).toList();
+    final compares = variants
+        .map((v) => v.compareAtPriceUsd)
+        .whereType<double>()
+        .toList();
+
+    // Unlimited variants mean "never sells out", so the aggregate is null.
+    final allUnlimited = variants.isNotEmpty && variants.every((v) => v.isUnlimited);
+    final totalStock = allUnlimited
+        ? null
+        : variants.fold<int>(0, (sum, v) => sum + (v.inStock ?? 0));
+
+    final categoryRow = row['category'] as Map<String, dynamic>?;
+
+    return ProductCard(
+      id: row['id'] as int,
+      slug: row['slug'] as String,
+      nameKm: row['name_km'] as String,
+      nameEn: row['name_en'] as String,
+      imageUrl: row['image_url'] as String?,
+      kind: productKindFrom(row['kind'] as String? ?? 'manual_setup'),
+      ratingAvg: (row['rating_avg'] as num?)?.toDouble() ?? 0,
+      ratingCount: (row['rating_count'] as num?)?.toInt() ?? 0,
+      soldCount: (row['sold_count'] as num?)?.toInt() ?? 0,
+      minPriceUsd: prices.isEmpty ? 0 : prices.reduce((a, b) => a < b ? a : b),
+      maxPriceUsd: prices.isEmpty ? 0 : prices.reduce((a, b) => a > b ? a : b),
+      compareAtPriceUsd:
+          compares.isEmpty ? null : compares.reduce((a, b) => a > b ? a : b),
+      totalStock: totalStock,
+      category: categoryRow == null ? null : Category.fromJson(categoryRow),
+    );
+  }
+}

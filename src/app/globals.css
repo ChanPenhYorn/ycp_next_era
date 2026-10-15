@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-ink-950: #0b0f19;
+  --color-ink-900: #101623;
+  --color-ink-850: #151c2c;
+  --color-ink-800: #1b2437;
+  --color-ink-700: #263149;
+  --color-ink-600: #384562;
+  --color-ink-400: #7b88a4;
+  --color-ink-200: #c3cbe0;
+
+  --color-brand-500: #2f6bff;
+  --color-brand-400: #5b8bff;
+  --color-brand-600: #1f52d6;
+
+  --color-accent-500: #17c07f;
+  --color-danger-500: #f0506b;
+  --color-warn-500: #f2a33c;
+
+  --font-sans: var(--font-inter), var(--font-khmer), ui-sans-serif, system-ui;
+  --font-khmer: var(--font-khmer), var(--font-inter), sans-serif;
+
+  --radius-card: 14px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(47, 107, 255, 0.18), transparent 60%),
+    radial-gradient(700px 400px at 90% 0%, rgba(23, 192, 127, 0.12), transparent 55%),
+    var(--color-ink-950);
+  color: var(--color-ink-200);
+  min-height: 100dvh;
+}
+
+[lang="km"] {
+  font-family: var(--font-khmer);
+  line-height: 1.75;
+}
+
+@utility card {
+  background: color-mix(in srgb, var(--color-ink-900) 88%, transparent);
+  border: 1px solid var(--color-ink-800);
+  border-radius: var(--radius-card);
+}
+
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-ink-700);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-ink-200);
+  white-space: nowrap;
+}
+
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  background: var(--color-brand-500);
+  color: white;
+  font-weight: 600;
+  padding: 0.625rem 1.125rem;
+  transition: background 150ms ease;
+}
+@utility btn-primary-hover {
+  background: var(--color-brand-600);
+}
+
+@utility skeleton {
+  background: var(--color-ink-850);
+  border-radius: 8px;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }

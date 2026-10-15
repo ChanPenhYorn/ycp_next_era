@@ -63,6 +63,33 @@ otp_expiry = 600
 # string here, not a number.
 max_frequency = "1s"
 
+# ---------------------------------------------------------------------------
+# Email templates.
+#
+# The app asks for a six-digit code, but Supabase's stock templates print only
+# {{ .ConfirmationURL }} — a link and no code — so a user gets "Your sign-in
+# link" and the six-digit field has nothing to accept. Both templates below
+# print {{ .Token }}.
+#
+# content_path is resolved against the repo root and the file is served to the
+# auth container over HTTP (GOTRUE_MAILER_TEMPLATES_*), so the path is
+# `./supabase/templates/...` even though this config file lives in supabase/.
+# Editing a template only needs the auth container re-read (reloading is on);
+# adding a new template section needs `supabase stop && supabase start`, since
+# the CLI bakes the URL into the container at creation.
+#
+# The hosted project does not read this file. Paste the same HTML into
+# Dashboard -> Authentication -> Emails.
+# ---------------------------------------------------------------------------
+[auth.email.template.magic_link]
+subject = "Your Chanpenh sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
+# Only sent while "Confirm email" is on, i.e. enable_confirmations = true.
+[auth.email.template.confirmation]
+subject = "Confirm your Chanpenh email"
+content_path = "./supabase/templates/confirmation.html"
+
 # Hosted projects are capped at 2 emails/hour on the built-in mailer. Locally
 # nothing leaves the machine, every message lands in Mailpit on :54324, so the
 # cap only gets in the way of testing.

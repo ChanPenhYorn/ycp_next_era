@@ -21,6 +21,15 @@ class AppColors {
   static const warn = Color(0xFFF2A33C);
 }
 
+/// One radius scale, so cards, inputs and buttons read as one family.
+class AppRadius {
+  const AppRadius._();
+
+  static const card = 16.0;
+  static const control = 14.0;
+  static const tile = 12.0;
+}
+
 class AppTheme {
   const AppTheme._();
 
@@ -50,30 +59,35 @@ class AppTheme {
         backgroundColor: AppColors.ink950,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
       ),
       cardTheme: CardThemeData(
         color: AppColors.ink900,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           side: const BorderSide(color: AppColors.ink800),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.ink900,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.control),
           borderSide: const BorderSide(color: AppColors.ink800),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.control),
           borderSide: const BorderSide(color: AppColors.ink800),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brand),
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
         ),
         hintStyle: const TextStyle(color: AppColors.ink400),
       ),
@@ -81,33 +95,68 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.brand,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(48),
+          disabledBackgroundColor: AppColors.ink700,
+          disabledForegroundColor: AppColors.ink400,
+          minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.control),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(52),
           side: const BorderSide(color: AppColors.ink700),
           foregroundColor: AppColors.ink200,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.control),
+          ),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.ink900,
+        surfaceTintColor: Colors.transparent,
+        height: 68,
+        indicatorColor: AppColors.brand.withValues(alpha: 0.18),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w600
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? Colors.white
+                : AppColors.ink400,
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 24,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.brand
+                : AppColors.ink400,
           ),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: AppColors.ink850,
+        selectedColor: AppColors.brand.withValues(alpha: 0.2),
+        checkmarkColor: AppColors.brand,
         side: const BorderSide(color: AppColors.ink700),
         labelStyle: const TextStyle(color: AppColors.ink200, fontSize: 12),
         shape: const StadiumBorder(),
       ),
       dividerTheme: const DividerThemeData(color: AppColors.ink800, space: 1),
-      snackBarTheme: const SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.ink800,
-        contentTextStyle: TextStyle(color: Colors.white),
+        contentTextStyle: const TextStyle(color: Colors.white),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+        ),
       ),
       extensions: const <ThemeExtension<dynamic>>[],
     );

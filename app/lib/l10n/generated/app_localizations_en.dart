@@ -98,6 +98,12 @@ class AppL10nEn extends AppL10n {
   String get quantity => 'Quantity';
 
   @override
+  String get remove => 'Remove';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
   String get addToCart => 'Add to cart';
 
   @override

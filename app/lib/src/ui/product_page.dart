@@ -73,133 +73,132 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           ),
         );
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
+        return Column(
           children: [
-            _Gallery(product: product),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    product.name(locale),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _Gallery(product: product),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.name(locale),
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _MetaRow(product: product, l10n: l10n),
+                  if (product.description != null) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      product.description!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.ink200,
+                        height: 1.7,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Text(
+                    l10n.deliveryTime,
                     style: const TextStyle(
-                      fontSize: 19,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1.4,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _MetaRow(product: product, l10n: l10n),
-            if (product.description != null) ...[
-              const SizedBox(height: 14),
-              Text(
-                product.description!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.ink200,
-                  height: 1.7,
-                ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Text(
-              l10n.deliveryTime,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              // Only a manual setup waits on staff. An auto top-up is fulfilled
-              // by the supplier worker within seconds, so saying "within 15
-              // minutes" undersells it and reads as a different product.
-              product.card.kind == ProductKind.manualSetup
-                  ? l10n.deliveryManual
-                  : l10n.deliveryInstant,
-              style: const TextStyle(fontSize: 12, color: AppColors.accent),
-            ),
-            if (variants.length > 1) ...[
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final variant in variants)
-                    ChoiceChip(
-                      label: Text(
-                        '${variant.label(locale)} · ${money(variant.priceUsd)}',
-                      ),
-                      selected: variant.id == selected.id,
-                      onSelected: variant.isSoldOut
-                          ? null
-                          : (_) => setState(() {
-                              _selectedVariantId = variant.id;
-                              _qty = variant.minQty;
-                            }),
+                  const SizedBox(height: 6),
+                  Text(
+                    // Only a manual setup waits on staff. An auto top-up is fulfilled
+                    // by the supplier worker within seconds, so saying "within 15
+                    // minutes" undersells it and reads as a different product.
+                    product.card.kind == ProductKind.manualSetup
+                        ? l10n.deliveryManual
+                        : l10n.deliveryInstant,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.accent,
                     ),
+                  ),
+                  if (variants.length > 1) ...[
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final variant in variants)
+                          ChoiceChip(
+                            label: Text(
+                              '${variant.label(locale)} · ${money(variant.priceUsd)}',
+                            ),
+                            selected: variant.id == selected.id,
+                            onSelected: variant.isSoldOut
+                                ? null
+                                : (_) => setState(() {
+                                    _selectedVariantId = variant.id;
+                                    _qty = variant.minQty;
+                                  }),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (product.requiresFields.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      l10n.requiredInfo,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    RequiredFieldsForm(
+                      fields: product.requiresFields,
+                      locale: locale,
+                      controllerFor: _controllerFor,
+                      errors: _fieldErrors,
+                      onChanged: (field) {
+                        if (_fieldErrors[field.key] != null) {
+                          setState(
+                            () =>
+                                _fieldErrors = {..._fieldErrors}
+                                  ..remove(field.key),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  _QuantityRow(
+                    label: l10n.quantity,
+                    variant: selected,
+                    qty: _qty,
+                    onChanged: (value) => setState(() => _qty = value),
+                  ),
+                  const SizedBox(height: 26),
+                  _Reviews(productId: product.card.id, l10n: l10n),
+                  const SizedBox(height: 30),
                 ],
               ),
-            ],
-            if (product.requiresFields.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(
-                l10n.requiredInfo,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              RequiredFieldsForm(
-                fields: product.requiresFields,
-                locale: locale,
-                controllerFor: _controllerFor,
-                errors: _fieldErrors,
-                onChanged: (field) {
-                  if (_fieldErrors[field.key] != null) {
-                    setState(
-                      () => _fieldErrors = {..._fieldErrors}..remove(field.key),
-                    );
-                  }
-                },
-              ),
-            ],
-            const SizedBox(height: 20),
-            _QuantityRow(
-              label: l10n.quantity,
-              variant: selected,
-              qty: _qty,
-              onChanged: (value) => setState(() => _qty = value),
             ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: selected.isSoldOut
-                        ? null
-                        : () => _addToCart(l10n, product, selected),
-                    icon: const Icon(Icons.add_shopping_cart, size: 18),
-                    label: Text(l10n.addToCart),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: selected.isSoldOut
-                        ? null
-                        : () => _buyNow(l10n, product, selected),
-                    child: Text(l10n.buyNow),
-                  ),
-                ),
-              ],
+            _BuyBar(
+              total: money(selected.priceUsd * _qty),
+              soldOut: selected.isSoldOut,
+              addLabel: l10n.addToCart,
+              buyLabel: l10n.buyNow,
+              onAdd: () => _addToCart(l10n, product, selected),
+              onBuy: () => _buyNow(l10n, product, selected),
             ),
-            const SizedBox(height: 26),
-            _Reviews(productId: product.card.id, l10n: l10n),
-            const SizedBox(height: 30),
           ],
         );
       },
@@ -328,12 +327,71 @@ class _QuantityRow extends StatelessWidget {
           onPressed: qty < max ? () => onChanged(qty + 1) : null,
           icon: const Icon(Icons.add, size: 18),
         ),
-        const Spacer(),
-        Text(
-          money(variant.priceUsd * qty),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
       ],
+    );
+  }
+}
+
+/// Price and both buy actions stay on screen while the description scrolls.
+class _BuyBar extends StatelessWidget {
+  const _BuyBar({
+    required this.total,
+    required this.soldOut,
+    required this.addLabel,
+    required this.buyLabel,
+    required this.onAdd,
+    required this.onBuy,
+  });
+
+  final String total;
+  final bool soldOut;
+  final String addLabel;
+  final String buyLabel;
+  final VoidCallback onAdd;
+  final VoidCallback onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: const BoxDecoration(
+        color: AppColors.ink900,
+        border: Border(top: BorderSide(color: AppColors.ink800)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                total,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton(
+              onPressed: soldOut ? null : onAdd,
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52)),
+              child: Tooltip(
+                message: addLabel,
+                child: const Icon(Icons.add_shopping_cart, size: 20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: soldOut ? null : onBuy,
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+              child: Text(buyLabel),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

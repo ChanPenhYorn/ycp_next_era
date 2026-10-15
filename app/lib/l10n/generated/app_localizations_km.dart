@@ -98,6 +98,12 @@ class AppL10nKm extends AppL10n {
   String get quantity => 'ចំនួន';
 
   @override
+  String get remove => 'លុប';
+
+  @override
+  String get cancel => 'បោះបង់';
+
+  @override
   String get addToCart => 'ដាក់ក្នុងកន្ត្រក';
 
   @override

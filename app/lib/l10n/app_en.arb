@@ -36,6 +36,8 @@
   "deliveryInstant": "Instant",
   "deliveryManual": "Manual, within 15 minutes",
   "quantity": "Quantity",
+  "remove": "Remove",
+  "cancel": "Cancel",
   "addToCart": "Add to cart",
   "requiredInfo": "Required information",
   "reviews": "Reviews",

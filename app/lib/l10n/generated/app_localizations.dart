@@ -271,6 +271,18 @@ abstract class AppL10n {
   /// **'Quantity'**
   String get quantity;
 
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
   /// No description provided for @addToCart.
   ///
   /// In en, this message translates to:

@@ -124,7 +124,7 @@ class AppShell extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(AppL10n.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(controller.text),

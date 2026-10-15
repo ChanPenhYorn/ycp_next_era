@@ -29,6 +29,8 @@
   "deliveryInstant": "ភ្លាមៗ",
   "deliveryManual": "ដោយដៃ ក្នុងរយៈពេល ១៥ នាទី",
   "quantity": "ចំនួន",
+  "remove": "លុប",
+  "cancel": "បោះបង់",
   "addToCart": "ដាក់ក្នុងកន្ត្រក",
   "requiredInfo": "ព័ត៌មានត្រូវការ",
   "reviews": "មតិយោបល់",

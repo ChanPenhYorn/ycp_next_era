@@ -22,32 +22,65 @@ type Update = {
 };
 
 const HELP_KM = [
-  "<b>ជំនួយ</b>",
+  "🛍 <b>ជំនួយ</b>",
   "",
-  "/orders — បញ្ជីការបញ្ជាទិញថ្មីៗ",
-  "/order &lt;លេខ&gt; — មើលកូដ និងស្ថានភាព",
-  "/wallet — សមតុល្យកាបូបលុយ",
-  "/help — ជំនួយ",
+  "📦 /orders · ការបញ្ជាទិញ",
+  "🔎 /order &lt;លេខ&gt; · កូដ និងស្ថានភាព",
+  "👛 /wallet · កាបូបលុយ",
+  "💬 /help · ជំនួយ",
 ].join("\n");
 
 const HELP_EN = [
-  "<b>Commands</b>",
+  "🛍 <b>Commands</b>",
   "",
-  "/orders — your recent orders",
-  "/order &lt;number&gt; — codes and status",
-  "/wallet — wallet balance",
-  "/help — this message",
+  "📦 /orders · your recent orders",
+  "🔎 /order &lt;number&gt; · codes and status",
+  "👛 /wallet · wallet balance",
+  "💬 /help · this message",
 ].join("\n");
 
-const STATUS_KM: Record<string, string> = {
-  pending: "រង់ចាំទូទាត់",
-  paid: "បានទូទាត់",
-  delivering: "កំពុងដំណើរការ",
-  delivered: "រួចរាល់",
-  failed: "បរាជ័យ",
-  refunded: "បានសងវិញ",
-  expired: "ផុតកំណត់",
+const STORE_APP_URL = Deno.env.get("STORE_APP_URL") ?? "";
+
+function dashboardKeyboard() {
+  return STORE_APP_URL
+    ? [[{ text: "🛍 Dashboard · ផ្ទាំងគ្រប់គ្រង", url: STORE_APP_URL }]]
+    : undefined;
+}
+
+const STATUS: Record<string, { icon: string; km: string; en: string }> = {
+  pending: { icon: "⏳", km: "រង់ចាំទូទាត់", en: "Awaiting payment" },
+  paid: { icon: "💳", km: "បានទូទាត់", en: "Paid" },
+  delivering: { icon: "🚚", km: "កំពុងដំណើរការ", en: "Delivering" },
+  delivered: { icon: "✅", km: "រួចរាល់", en: "Delivered" },
+  failed: { icon: "❌", km: "បរាជ័យ", en: "Failed" },
+  refunded: { icon: "↩️", km: "បានសងវិញ", en: "Refunded" },
+  expired: { icon: "⌛", km: "ផុតកំណត់", en: "Expired" },
 };
+
+const FLOW = ["paid", "delivering", "delivered"];
+
+function statusLabel(status: string): string {
+  const s = STATUS[status];
+  return s ? `${s.icon} ${s.en}` : escapeHtml(status);
+}
+
+/** Four-step track: ▰ reached, ▱ still ahead. Terminal failure states show no track. */
+function track(status: string): string {
+  const steps = ["pending", ...FLOW];
+  const at = steps.indexOf(status);
+  if (at < 0) return "";
+  return "▰".repeat(at + 1) + "▱".repeat(steps.length - at - 1);
+}
+
+function usd(value: number | string): string {
+  return `$${Number(value).toFixed(2)}`;
+}
+
+/** Horizontal bar scaled to the largest count, so the widest row is always 10 cells. */
+function bar(count: number, max: number): string {
+  const cells = max === 0 ? 0 : Math.max(1, Math.round((count / max) * 10));
+  return "█".repeat(cells);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
@@ -98,14 +131,14 @@ Deno.serve(async (req) => {
         await handleUnlink(admin, chatId);
         break;
       case "/help":
-        await sendMessage(chatId, `${HELP_KM}\n\n${HELP_EN}`);
+        await sendMessage(chatId, `${HELP_KM}\n\n${HELP_EN}`, { keyboard: dashboardKeyboard() });
         break;
       default:
         await handleUnknown(admin, chatId, text);
     }
   } catch (error) {
     console.error(JSON.stringify({ event: "telegram_error", error: String(error) }));
-    await sendMessage(chatId, "មានបញ្ហា។ សូមព្យាយាមម្ដងទៀត។\nSomething went wrong.");
+    await sendMessage(chatId, "🚧 <b>មានបញ្ហា។ សូមព្យាយាមម្ដងទៀត។</b>\n\n🚧 <b>Something went wrong. Please try again.</b>");
   }
 
   // Any inbound message is a chance to flush late deliveries.
@@ -133,14 +166,15 @@ async function handleStart(
       await sendMessage(
         chatId,
         [
-          "✅ <b>ភ្ជាប់គណនីរួចរាល់</b>",
+          "🎉 <b>ភ្ជាប់គណនីរួចរាល់</b>",
           "ឥឡូវអ្នកអាចមើលការបញ្ជាទិញ និងកូដរបស់អ្នកនៅទីនេះ។",
           "",
-          "✅ <b>Account linked</b>",
+          "🎉 <b>Account linked</b>",
           "Your orders and codes are now available here.",
           "",
           HELP_KM,
-        ].join("\n")
+        ].join("\n"),
+        { keyboard: dashboardKeyboard() }
       );
       return;
     }
@@ -148,8 +182,8 @@ async function handleStart(
     await sendMessage(
       chatId,
       result.reason === "code_expired"
-        ? "កូដនេះផុតកំណត់ហើយ។ សូមបង្កើតកូដថ្មីក្នុងកម្មវិធី។\nThis code has expired. Generate a new one in the app."
-        : "កូដមិនត្រឹមត្រូវ។\nThat code is not valid."
+        ? "⌛ <b>កូដនេះផុតកំណត់ហើយ</b>\nសូមបង្កើតកូដថ្មីក្នុងកម្មវិធី។\n\n⌛ <b>This code has expired.</b>\nGenerate a new one in the app."
+        : "⚠️ <b>កូដមិនត្រឹមត្រូវ</b>\n\n⚠️ <b>That code is not valid.</b>"
     );
     return;
   }
@@ -157,16 +191,19 @@ async function handleStart(
   await sendMessage(
     chatId,
     [
-      "<b>Chanpenh</b> — បញ្ចូលពេជ្រហ្គេម និងកាតឌីជីថលភ្លាមៗ",
+      "💎 <b>Chanpenh</b> · បញ្ចូលពេជ្រហ្គេម និងកាតឌីជីថលភ្លាមៗ",
       "",
-      "ដើម្បីភ្ជាប់គណនី សូមបើកកម្មវិធី Chanpenh រួចចុច «ភ្ជាប់ Telegram»។",
+      "🔗 <b>ភ្ជាប់គណនី</b>",
+      "បើកកម្មវិធី Chanpenh រួចចុច «ភ្ជាប់ Telegram»។",
       "បន្ទាប់មកផ្ញើកូដមកទីនេះជាមួយ /start។",
       "",
-      "To link your account, open the Chanpenh app and tap Connect Telegram,",
+      "🔗 <b>Link your account</b>",
+      "Open the Chanpenh app, tap Connect Telegram,",
       "then send the code here as /start &lt;code&gt;.",
       "",
       HELP_KM,
-    ].join("\n")
+    ].join("\n"),
+    { keyboard: dashboardKeyboard() }
   );
 }
 
@@ -186,23 +223,45 @@ async function handleOrders(admin: ReturnType<typeof adminClient>, chatId: numbe
   if (orders.length === 0) {
     await sendMessage(
       chatId,
-      "មិនទាន់មានការបញ្ជាទិញ។\nNo orders yet."
+      "🛒 <b>មិនទាន់មានការបញ្ជាទិញ</b>\n\n🛒 <b>No orders yet.</b>"
     );
     return;
   }
 
+  const counts = new Map<string, number>();
+  let spent = 0;
+  for (const order of orders) {
+    counts.set(order.status, (counts.get(order.status) ?? 0) + 1);
+    spent += Number(order.total_usd);
+  }
+  const max = Math.max(...counts.values());
+  const histogram = [...counts.entries()].map(([status, count]) => {
+    const s = STATUS[status];
+    return `${s?.icon ?? "•"} ${bar(count, max)} ${count}`;
+  });
+
   const lines = orders.map((order) => {
-    const status = STATUS_KM[order.status] ?? order.status;
-    const items = order.items.join(", ");
+    const items = order.items.map(escapeHtml).join(", ");
     return [
-      `<code>${order.order_no}</code> · ${status} · $${Number(order.total_usd).toFixed(2)}`,
-      escapeHtml(items),
+      `${statusLabel(order.status)}  ·  <b>${usd(order.total_usd)}</b>`,
+      `<code>${order.order_no}</code>`,
+      `<i>${items}</i>`,
     ].join("\n");
   });
 
   await sendMessage(
     chatId,
-    [`<b>ការបញ្ជាទិញថ្មីៗ</b>`, "", ...lines, "", "/order &lt;លេខ&gt; ដើម្បីមើលកូដ"].join("\n\n")
+    [
+      `📦 <b>ការបញ្ជាទិញថ្មីៗ · Recent orders</b>`,
+      `<i>${orders.length} latest · ${usd(spent)} total</i>`,
+      "",
+      histogram.join("\n"),
+      "",
+      "─────────────",
+      lines.join("\n\n"),
+      "",
+      "🔎 /order &lt;លេខ&gt; · details",
+    ].join("\n")
   );
 }
 
@@ -212,7 +271,10 @@ async function handleOrder(
   orderNo: string | undefined
 ) {
   if (!orderNo) {
-    await sendMessage(chatId, "សូមផ្ញើលេខការបញ្ជាទិញ។ ឧ. /order YP261015ABC123\nSend an order number.");
+    await sendMessage(
+      chatId,
+      "🔎 <b>សូមផ្ញើលេខការបញ្ជាទិញ</b>\nឧ. <code>/order YP261015ABC123</code>\n\n🔎 <b>Send an order number.</b>\ne.g. <code>/order YP261015ABC123</code>"
+    );
     return;
   }
 
@@ -234,30 +296,33 @@ async function handleOrder(
   if (!order) {
     await sendMessage(
       chatId,
-      "រកមិនឃើញការបញ្ជាទិញនេះទេ។\nOrder not found."
+      "🔍 <b>រកមិនឃើញការបញ្ជាទិញនេះទេ</b>\n\n🔍 <b>Order not found.</b>"
     );
     return;
   }
 
   const blocks = order.items.map((item) => {
-    const header = `${escapeHtml(item.name)} x${item.qty}`;
+    const header = `🎮 <b>${escapeHtml(item.name)}</b>  ×${item.qty}`;
     if (item.codes.length === 0) {
       // Never print a code for an unpaid or undelivered order.
       const state =
         item.delivery_status === "manual_waiting"
-          ? "រង់ចាំបុគ្គលិកដំឡើង"
-          : item.delivery_status;
-      return `${header}\n<i>${escapeHtml(state)}</i>`;
+          ? "🛠 រង់ចាំបុគ្គលិកដំឡើង · Waiting for staff"
+          : `⏳ ${escapeHtml(item.delivery_status)}`;
+      return `${header}\n<i>${state}</i>`;
     }
-    const codes = item.codes.map((code) => `<code>${escapeHtml(code)}</code>`).join("\n");
+    const codes = item.codes.map((code) => `🔑 <code>${escapeHtml(code)}</code>`).join("\n");
     return `${header}\n${codes}`;
   });
 
+  const trackLine = track(order.status);
   await sendMessage(
     chatId,
     [
-      `<b><code>${order.order_no}</code></b>`,
-      `${STATUS_KM[order.status] ?? order.status} · $${Number(order.total_usd).toFixed(2)}`,
+      `🧾 <b>Order</b> <code>${order.order_no}</code>`,
+      `${statusLabel(order.status)}  ·  <b>${usd(order.total_usd)}</b>`,
+      ...(trackLine ? [`<code>${trackLine}</code>  ${STATUS[order.status]?.km ?? ""}`] : []),
+      "─────────────",
       ...blocks,
     ].join("\n\n")
   );
@@ -273,7 +338,7 @@ async function handleWallet(admin: ReturnType<typeof adminClient>, chatId: numbe
   if (!profile) {
     await sendMessage(
       chatId,
-      "គណនីមិនទាន់ភ្ជាប់។ សូមភ្ជាប់ក្នុងកម្មវិធី Chanpenh។\nAccount not linked."
+      "🔒 <b>គណនីមិនទាន់ភ្ជាប់</b>\nសូមភ្ជាប់ក្នុងកម្មវិធី Chanpenh។\n\n🔒 <b>Account not linked.</b>\nConnect it in the Chanpenh app."
     );
     return;
   }
@@ -281,9 +346,10 @@ async function handleWallet(admin: ReturnType<typeof adminClient>, chatId: numbe
   await sendMessage(
     chatId,
     [
-      "<b>កាបូបលុយ</b>",
-      `សមតុល្យ: <b>$${Number(profile.wallet_balance).toFixed(2)}</b>`,
-      `កាក់: ${profile.coins}`,
+      "👛 <b>កាបូបលុយ · Wallet</b>",
+      "",
+      `💵 សមតុល្យ · Balance   <b>${usd(profile.wallet_balance)}</b>`,
+      `🪙 កាក់ · Coins   <b>${profile.coins}</b>`,
     ].join("\n")
   );
 }
@@ -292,7 +358,7 @@ async function handleUnlink(admin: ReturnType<typeof adminClient>, chatId: numbe
   await admin.rpc("telegram_unlink", { p_chat_id: chatId });
   await sendMessage(
     chatId,
-    "បានផ្ដាច់គណនីរួចរាល់។\nAccount unlinked."
+    "🔓 <b>បានផ្ដាច់គណនីរួចរាល់</b>\n\n🔓 <b>Account unlinked.</b>"
   );
 }
 
@@ -311,10 +377,11 @@ async function handleUnknown(
   await sendMessage(
     chatId,
     [
-      "សូមអភ័យទោស យើងមិនយល់សារនេះទេ។",
+      "🤔 <b>សូមអភ័យទោស យើងមិនយល់សារនេះទេ</b>",
       "ផ្ញើ /help ដើម្បីមើលពាក្យបញ្ជា។",
       "",
-      "Sorry, I did not understand that. Send /help for commands.",
+      "🤔 <b>Sorry, I did not understand that.</b>",
+      "Send /help for commands.",
     ].join("\n")
   );
 
@@ -330,11 +397,10 @@ async function handleUnknown(
   await sendMessage(
     staffChat,
     [
-      "<b>សារថ្មីពីអ្នកទិញ</b>",
-      `chat_id: <code>${chatId}</code>`,
-      `linked: ${linked ? "yes" : "no"}`,
-      "",
-      escapeHtml(text).slice(0, 800),
+      "📥 <b>សារថ្មីពីអ្នកទិញ · New buyer message</b>",
+      `🆔 <code>${chatId}</code>  ·  ${linked ? "🟢 linked" : "⚪️ not linked"}`,
+      "─────────────",
+      `<blockquote>${escapeHtml(text).slice(0, 800)}</blockquote>`,
     ].join("\n")
   );
 }

@@ -63,23 +63,22 @@ function render(kind: string, payload: Record<string, unknown>): string | null {
     case "order_delivered":
       return [
         "✅ <b>ការបញ្ជាទិញរបស់អ្នករួចរាល់</b>",
-        `លេខ <code>${orderNo}</code> · $${total}`,
-        "ផ្ញើ /orders ដើម្បីមើលកូដ",
+        `🧾 <code>${orderNo}</code>  ·  <b>$${total}</b>`,
+        "<code>▰▰▰▰</code>  រួចរាល់ · Delivered",
+        "",
+        "🔎 /orders · មើលកូដ · see your codes",
         "",
         "✅ <b>Your order is ready</b>",
-        `Order <code>${orderNo}</code> · $${total}`,
-        "Send /orders to see your codes.",
       ].join("\n");
 
     case "order_failed":
       return [
         "⚠️ <b>យើងមិនអាចដឹកជញ្ជូនការបញ្ជាទិញនេះបានទេ</b>",
-        `លេខ <code>${orderNo}</code> · $${total}`,
-        "យើងបានបង្វិលប្រាក់ចូលកាបូបលុយរបស់អ្នកវិញរួចរាល់។",
+        `🧾 <code>${orderNo}</code>  ·  <b>$${total}</b>`,
+        "↩️ ប្រាក់បានបង្វិលចូលកាបូបលុយរួចរាល់។",
         "",
-        "⚠️ <b>We could not deliver this order</b>",
-        `Order <code>${orderNo}</code> · $${total}`,
-        "The amount has been refunded to your wallet.",
+        "⚠️ <b>We could not deliver this order.</b>",
+        "↩️ The amount has been refunded to your wallet.",
       ].join("\n");
 
     default:

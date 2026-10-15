@@ -390,25 +390,54 @@ revoke execute on function public.supplier_complete_item(bigint, boolean, text, 
 -- ---------------------------------------------------------------------------
 -- 2 (cont). Schedule the housekeeping that was never running
 --
--- pg_cron is present on hosted Supabase and absent from a plain Postgres
--- container, so this degrades instead of failing the migration.
+-- This block must never fail the migration. Scheduling housekeeping is a nice
+-- to have; creating the schema is not. On hosted Supabase cron.job is owned by
+-- supabase_admin, so direct DML is refused and you must use cron.unschedule().
+-- Each step is wrapped so a permission problem degrades to a notice.
 -- ---------------------------------------------------------------------------
 do $$
+declare
+  v_have_cron boolean := exists (select 1 from pg_namespace where nspname = 'cron');
 begin
-  if not exists (select 1 from pg_namespace where nspname = 'cron') then
-    if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
-      execute 'create extension pg_cron';
-    end if;
+  if not v_have_cron then
+    begin
+      if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+        execute 'create extension pg_cron';
+        v_have_cron := true;
+      end if;
+    exception when others then
+      raise notice 'pg_cron could not be installed here (%); schedule manually', sqlerrm;
+    end;
   end if;
 
-  if exists (select 1 from pg_namespace where nspname = 'cron') then
-    execute $sql$delete from cron.job where jobname in ('ycp-expire-orders', 'ycp-refresh-ratings')$sql$;
-    execute $sql$select cron.schedule('ycp-expire-orders', '*/2 * * * *', 'select public.expire_stale_orders()')$sql$;
-    execute $sql$select cron.schedule('ycp-refresh-ratings', '*/30 * * * *', 'select public.refresh_all_product_ratings()')$sql$;
-    raise notice 'pg_cron jobs scheduled';
-  else
-    raise notice 'pg_cron unavailable (local container) - schedule these on the host instead';
+  if not v_have_cron then
+    raise notice 'pg_cron unavailable; schedule expire_stale_orders() and refresh_all_product_ratings() on the host';
+    return;
   end if;
+
+  -- Unschedule by name via the API, never by touching cron.job.
+  begin
+    perform cron.unschedule('ycp-expire-orders');
+  exception when others then null;
+  end;
+
+  begin
+    perform cron.unschedule('ycp-refresh-ratings');
+  exception when others then null;
+  end;
+
+  begin
+    perform cron.schedule('ycp-expire-orders', '*/2 * * * *',
+                          'select public.expire_stale_orders()');
+    perform cron.schedule('ycp-refresh-ratings', '*/30 * * * *',
+                          'select public.refresh_all_product_ratings()');
+    raise notice 'pg_cron jobs scheduled';
+  exception
+    when insufficient_privilege then
+      raise notice 'pg_cron present but not schedulable by this role (%); schedule manually', sqlerrm;
+    when others then
+      raise notice 'pg_cron scheduling skipped: %', sqlerrm;
+  end;
 end $$;
 
 -- ---------------------------------------------------------------------------

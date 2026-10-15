@@ -31,9 +31,13 @@ OUT="$ROOT/supabase/bundle/combined.sql"
 HEADER
 
   for migration in "$ROOT"/supabase/migrations/*.sql; do
+    name="$(basename "$migration")"
     printf '\n\n-- ============================================================================\n'
-    printf -- '-- %s\n' "$(basename "$migration")"
+    printf -- '-- %s\n' "$name"
     printf -- '-- ============================================================================\n\n'
+    # A progress notice, so a failure in a 2000-line paste can be located
+    # instead of leaving you to guess which section died.
+    printf "do \$\$ begin raise notice '>>> %s'; end \$\$;\n\n" "$name"
     cat "$migration"
   done
 } > "$OUT"

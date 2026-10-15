@@ -16,6 +16,8 @@
 -- 20261015000100_init_schema.sql
 -- ============================================================================
 
+do $$ begin raise notice '>>> 20261015000100_init_schema.sql'; end $$;
+
 -- ============================================================================
 -- Digital goods storefront - core schema
 -- Target: Supabase (Postgres 16)
@@ -455,6 +457,8 @@ create trigger on_auth_user_created
 -- 20261015000200_rls.sql
 -- ============================================================================
 
+do $$ begin raise notice '>>> 20261015000200_rls.sql'; end $$;
+
 -- ============================================================================
 -- RLS, grants and access helpers
 -- Rule of thumb: the catalogue is public, everything transactional is own-row,
@@ -669,6 +673,8 @@ create policy audit_staff_read on public.audit_log
 -- ============================================================================
 -- 20261015000300_rpc.sql
 -- ============================================================================
+
+do $$ begin raise notice '>>> 20261015000300_rpc.sql'; end $$;
 
 -- ============================================================================
 -- Business logic. Everything the client can do goes through these functions;
@@ -1343,6 +1349,8 @@ $$;
 -- 20261015000400_wallet_cron_admin.sql
 -- ============================================================================
 
+do $$ begin raise notice '>>> 20261015000400_wallet_cron_admin.sql'; end $$;
+
 -- ============================================================================
 -- Closes the gaps found in the first audit:
 --   1. wallet had no way to be funded
@@ -1735,25 +1743,54 @@ revoke execute on function public.supplier_complete_item(bigint, boolean, text, 
 -- ---------------------------------------------------------------------------
 -- 2 (cont). Schedule the housekeeping that was never running
 --
--- pg_cron is present on hosted Supabase and absent from a plain Postgres
--- container, so this degrades instead of failing the migration.
+-- This block must never fail the migration. Scheduling housekeeping is a nice
+-- to have; creating the schema is not. On hosted Supabase cron.job is owned by
+-- supabase_admin, so direct DML is refused and you must use cron.unschedule().
+-- Each step is wrapped so a permission problem degrades to a notice.
 -- ---------------------------------------------------------------------------
 do $$
+declare
+  v_have_cron boolean := exists (select 1 from pg_namespace where nspname = 'cron');
 begin
-  if not exists (select 1 from pg_namespace where nspname = 'cron') then
-    if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
-      execute 'create extension pg_cron';
-    end if;
+  if not v_have_cron then
+    begin
+      if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+        execute 'create extension pg_cron';
+        v_have_cron := true;
+      end if;
+    exception when others then
+      raise notice 'pg_cron could not be installed here (%); schedule manually', sqlerrm;
+    end;
   end if;
 
-  if exists (select 1 from pg_namespace where nspname = 'cron') then
-    execute $sql$delete from cron.job where jobname in ('ycp-expire-orders', 'ycp-refresh-ratings')$sql$;
-    execute $sql$select cron.schedule('ycp-expire-orders', '*/2 * * * *', 'select public.expire_stale_orders()')$sql$;
-    execute $sql$select cron.schedule('ycp-refresh-ratings', '*/30 * * * *', 'select public.refresh_all_product_ratings()')$sql$;
-    raise notice 'pg_cron jobs scheduled';
-  else
-    raise notice 'pg_cron unavailable (local container) - schedule these on the host instead';
+  if not v_have_cron then
+    raise notice 'pg_cron unavailable; schedule expire_stale_orders() and refresh_all_product_ratings() on the host';
+    return;
   end if;
+
+  -- Unschedule by name via the API, never by touching cron.job.
+  begin
+    perform cron.unschedule('ycp-expire-orders');
+  exception when others then null;
+  end;
+
+  begin
+    perform cron.unschedule('ycp-refresh-ratings');
+  exception when others then null;
+  end;
+
+  begin
+    perform cron.schedule('ycp-expire-orders', '*/2 * * * *',
+                          'select public.expire_stale_orders()');
+    perform cron.schedule('ycp-refresh-ratings', '*/30 * * * *',
+                          'select public.refresh_all_product_ratings()');
+    raise notice 'pg_cron jobs scheduled';
+  exception
+    when insufficient_privilege then
+      raise notice 'pg_cron present but not schedulable by this role (%); schedule manually', sqlerrm;
+    when others then
+      raise notice 'pg_cron scheduling skipped: %', sqlerrm;
+  end;
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -1784,6 +1821,8 @@ grant execute on function public.admin_run_housekeeping() to authenticated;
 -- ============================================================================
 -- 20261015000500_telegram.sql
 -- ============================================================================
+
+do $$ begin raise notice '>>> 20261015000500_telegram.sql'; end $$;
 
 -- ============================================================================
 -- Telegram: account linking, and an outbox so notifications are durable.
@@ -2207,6 +2246,8 @@ revoke execute on function public.telegram_unlink(bigint)
 -- ============================================================================
 -- 20261015000600_suppliers.sql
 -- ============================================================================
+
+do $$ begin raise notice '>>> 20261015000600_suppliers.sql'; end $$;
 
 -- ============================================================================
 -- Supplier integration: make sync and fulfilment idempotent, and let a line

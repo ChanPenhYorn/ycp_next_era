@@ -1602,6 +1602,132 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'No tickets.'**
   String get adminTicketsEmpty;
+
+  /// No description provided for @adminCatalogueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogue'**
+  String get adminCatalogueTitle;
+
+  /// No description provided for @adminCatalogueNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden products do not show to customers. A price cannot go below the supplier cost.'**
+  String get adminCatalogueNote;
+
+  /// No description provided for @adminCatalogueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No products yet.'**
+  String get adminCatalogueEmpty;
+
+  /// No description provided for @adminProductShown.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown to customers'**
+  String get adminProductShown;
+
+  /// No description provided for @adminProductHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden'**
+  String get adminProductHidden;
+
+  /// No description provided for @adminVariantPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Retail price (USD)'**
+  String get adminVariantPrice;
+
+  /// No description provided for @adminVariantPriceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be above zero and not below the supplier cost.'**
+  String get adminVariantPriceHint;
+
+  /// No description provided for @adminCostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost'**
+  String get adminCostLabel;
+
+  /// No description provided for @adminMarginLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Margin'**
+  String get adminMarginLabel;
+
+  /// No description provided for @adminPriceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Price saved.'**
+  String get adminPriceSaved;
+
+  /// No description provided for @adminPriceInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a price above zero.'**
+  String get adminPriceInvalid;
+
+  /// No description provided for @adminPriceBelowCost.
+  ///
+  /// In en, this message translates to:
+  /// **'The price is below the supplier cost. Not saved.'**
+  String get adminPriceBelowCost;
+
+  /// No description provided for @adminQueueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier queue'**
+  String get adminQueueTitle;
+
+  /// No description provided for @adminQueueNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Lines the supplier could not finish. Retrying lines fix themselves; lines that need you are listed first.'**
+  String get adminQueueNote;
+
+  /// No description provided for @adminQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No supplier lines are stuck.'**
+  String get adminQueueEmpty;
+
+  /// No description provided for @adminQueueNeedsYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs you'**
+  String get adminQueueNeedsYou;
+
+  /// No description provided for @adminQueueRetrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrying'**
+  String get adminQueueRetrying;
+
+  /// No description provided for @adminQueueConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this line delivered?'**
+  String get adminQueueConfirmTitle;
+
+  /// No description provided for @adminQueueConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only do this after you have delivered the top-up by hand. The buyer is not refunded.'**
+  String get adminQueueConfirmBody;
+
+  /// No description provided for @adminQueueDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Line marked delivered.'**
+  String get adminQueueDelivered;
+
+  /// No description provided for @adminSavePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Save price'**
+  String get adminSavePrice;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

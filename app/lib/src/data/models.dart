@@ -917,3 +917,137 @@ class CartLine {
         .toList(),
   );
 }
+
+/// A product as staff see it: including hidden ones, with its variants and the
+/// supplier cost next to the price. Keep it on staff screens only: the cost is
+/// a business figure, and the column is readable by every role (see the note
+/// in the catalogue migration).
+class AdminCatalogueProduct {
+  const AdminCatalogueProduct({
+    required this.id,
+    required this.slug,
+    required this.name,
+    required this.isActive,
+    required this.kind,
+    required this.variants,
+    this.supplierCode,
+  });
+
+  final int id;
+  final String slug;
+  final String name;
+  final bool isActive;
+  final String kind;
+  final String? supplierCode;
+  final List<AdminCatalogueVariant> variants;
+
+  factory AdminCatalogueProduct.fromJson(Map<String, dynamic> json) {
+    final supplier = json['supplier'] as Map<String, dynamic>?;
+    return AdminCatalogueProduct(
+      id: (json['id'] as num).toInt(),
+      slug: json['slug'] as String? ?? '',
+      name: json['name_en'] as String? ?? '',
+      isActive: json['is_active'] as bool? ?? false,
+      kind: json['kind'] as String? ?? '',
+      supplierCode: supplier?['code'] as String?,
+      variants:
+          (((json['variants'] as List?) ?? const [])
+              .map(
+                (e) => AdminCatalogueVariant.fromJson(
+                  (e as Map).cast<String, dynamic>(),
+                ),
+              )
+              .toList()
+            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder))),
+    );
+  }
+}
+
+class AdminCatalogueVariant {
+  const AdminCatalogueVariant({
+    required this.id,
+    required this.sku,
+    required this.label,
+    required this.priceUsd,
+    required this.costUsd,
+    required this.isActive,
+    this.sortOrder = 0,
+  });
+
+  final int id;
+  final String sku;
+  final String label;
+  final double priceUsd;
+  final double? costUsd;
+  final bool isActive;
+  final int sortOrder;
+
+  /// Price minus cost, or null when cost is unknown. A negative value means
+  /// the variant is sold at a loss.
+  double? get marginUsd => costUsd == null ? null : priceUsd - costUsd!;
+
+  factory AdminCatalogueVariant.fromJson(Map<String, dynamic> json) =>
+      AdminCatalogueVariant(
+        id: (json['id'] as num).toInt(),
+        sku: json['sku'] as String? ?? '',
+        label: json['label_en'] as String? ?? '',
+        priceUsd: (json['price_usd'] as num?)?.toDouble() ?? 0,
+        costUsd: (json['cost_usd'] as num?)?.toDouble(),
+        isActive: json['is_active'] as bool? ?? false,
+        sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// One line the supplier worker could not finish. `state` is the database's
+/// word: `manual_waiting` needs a person, `retrying` will try again by itself.
+class SupplierQueueItem {
+  const SupplierQueueItem({
+    required this.itemId,
+    required this.orderId,
+    required this.orderNo,
+    required this.productName,
+    required this.variantLabel,
+    required this.qty,
+    required this.state,
+    required this.attempts,
+    required this.createdAt,
+    this.supplierCode,
+    this.lastError,
+    this.nextAttemptAt,
+  });
+
+  final int itemId;
+  final String orderId;
+  final String orderNo;
+  final String productName;
+  final String variantLabel;
+  final int qty;
+  final String state;
+  final int attempts;
+  final DateTime createdAt;
+  final String? supplierCode;
+  final String? lastError;
+  final DateTime? nextAttemptAt;
+
+  bool get needsPerson => state == 'manual_waiting';
+
+  factory SupplierQueueItem.fromJson(Map<String, dynamic> json) =>
+      SupplierQueueItem(
+        itemId: (json['item_id'] as num).toInt(),
+        orderId: json['order_id'] as String,
+        orderNo: json['order_no'] as String? ?? '',
+        productName: json['product_name'] as String? ?? '',
+        variantLabel: json['variant_label'] as String? ?? '',
+        qty: (json['qty'] as num?)?.toInt() ?? 1,
+        state: json['state'] as String? ?? 'retrying',
+        attempts: (json['supplier_attempts'] as num?)?.toInt() ?? 0,
+        createdAt:
+            DateTime.tryParse(json['created_at'] as String? ?? '') ??
+            DateTime.now(),
+        supplierCode: json['supplier_code'] as String?,
+        lastError: json['supplier_last_error'] as String?,
+        nextAttemptAt: DateTime.tryParse(
+          json['supplier_next_attempt_at'] as String? ?? '',
+        ),
+      );
+}

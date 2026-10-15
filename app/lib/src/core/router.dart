@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/providers.dart';
+import '../ui/admin_catalogue_page.dart';
 import '../ui/admin_order_detail_page.dart';
 import '../ui/admin_orders_page.dart';
 import '../ui/admin_page.dart';
 import '../ui/admin_refunds_page.dart';
 import '../ui/admin_support_page.dart';
+import '../ui/admin_supplier_queue_page.dart';
 import '../ui/admin_transfers_page.dart';
 import '../ui/cart_page.dart';
 import '../ui/catalog_page.dart';
@@ -171,6 +173,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/transfers',
             pageBuilder: (context, state) =>
                 _fadePage(state, const AdminTransfersPage()),
+          ),
+          GoRoute(
+            path: '/admin/catalogue',
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AdminCataloguePage()),
+          ),
+          GoRoute(
+            path: '/admin/supplier-queue',
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AdminSupplierQueuePage()),
           ),
         ],
       ),

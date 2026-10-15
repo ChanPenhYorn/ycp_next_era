@@ -884,3 +884,113 @@ begin
   end if;
 end $$;
 select 'price_follows_cost ok' as result;
+
+\echo '### 77. only staff show or hide a product, and the change is audited'
+reset role;
+select id as pid from public.products where slug = 'bay2game-pricetest' \gset
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select pg_temp.expect_error(
+  'customer_cannot_hide_product',
+  format('select public.admin_product_set_active(%s, false)', :'pid'),
+  'not_authorized%');
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select public.admin_product_set_active(:'pid'::bigint, false) ->> 'is_active' as hidden_by_staff;
+reset role;
+select set_config('harness.pid', :'pid', false);
+do $$
+begin
+  if (select is_active from public.products where id = current_setting('harness.pid')::bigint) then
+    raise exception 'FAIL [product_hidden]: product still active';
+  end if;
+  if not exists (select 1 from public.audit_log
+                  where action = 'product_set_active' and entity_id = current_setting('harness.pid')) then
+    raise exception 'FAIL [product_audit]: no audit row for the change';
+  end if;
+  raise notice 'PASS [product_visibility]: hidden by staff and audited';
+end $$;
+select public.admin_product_set_active(:'pid'::bigint, true) ->> 'is_active' as shown_again;
+
+\echo '### 78. a price must be above zero and must not sell below supplier cost'
+select id as pt_a from public.product_variants where sku = 'PT_A' \gset
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select pg_temp.expect_error(
+  'customer_cannot_set_price',
+  format('select public.admin_variant_set_price(%s, 9.00)', :'pt_a'),
+  'not_authorized%');
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select pg_temp.expect_error(
+  'zero_price_refused',
+  format('select public.admin_variant_set_price(%s, 0)', :'pt_a'),
+  'invalid_price%');
+select pg_temp.expect_error(
+  'below_cost_refused',
+  format('select public.admin_variant_set_price(%s, 5.00)', :'pt_a'),
+  'price_below_cost%');
+select public.admin_variant_set_price(:'pt_a'::bigint, 7.50) ->> 'price_usd' as price_set;
+reset role;
+select set_config('harness.pt_a', :'pt_a', false);
+do $$
+begin
+  if (select price_usd from public.product_variants where id = current_setting('harness.pt_a')::bigint) <> 7.50 then
+    raise exception 'FAIL [price_saved]: price not stored';
+  end if;
+  if not exists (select 1 from public.audit_log
+                  where action = 'variant_set_price' and entity_id = current_setting('harness.pt_a')) then
+    raise exception 'FAIL [price_audit]: no audit row for the price';
+  end if;
+  raise notice 'PASS [price_guard]: zero and below-cost refused, valid price stored and audited';
+end $$;
+
+\echo '### 79. the supplier queue lists stuck lines, manual ones first, and is staff-only'
+reset role;
+select id as q_manual from public.order_items order by id limit 1 offset 0 \gset
+select id as q_retry from public.order_items order by id limit 1 offset 1 \gset
+select id as q_done from public.order_items order by id limit 1 offset 2 \gset
+update public.order_items
+   set delivery_status = 'manual_waiting', supplier_attempts = 5,
+       supplier_last_error = 'supplier_error: Invalid API key'
+ where id = :'q_manual';
+update public.order_items
+   set delivery_status = 'pending', supplier_attempts = 1
+ where id = :'q_retry';
+update public.order_items set delivery_status = 'delivered' where id = :'q_done';
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select pg_temp.expect_error(
+  'customer_cannot_read_queue',
+  'select public.admin_supplier_queue(50)',
+  'not_authorized%');
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select public.admin_supplier_queue(50) as queue;
+reset role;
+select set_config('harness.q_manual', :'q_manual', false), set_config('harness.q_retry', :'q_retry', false), set_config('harness.q_done', :'q_done', false);
+do $$
+declare
+  v_queue jsonb;
+  v_first jsonb;
+  v_ids   bigint[];
+begin
+  select public.admin_supplier_queue(50) into v_queue;
+  select array_agg((x ->> 'item_id')::bigint order by ordinality), jsonb_agg(x) -> 0
+    into v_ids, v_first
+    from jsonb_array_elements(v_queue) with ordinality as t(x, ordinality);
+  if not (current_setting('harness.q_manual')::bigint = any(v_ids) and current_setting('harness.q_retry')::bigint = any(v_ids)) then
+    raise exception 'FAIL [queue_lists_stuck]: stuck lines missing';
+  end if;
+  if current_setting('harness.q_done')::bigint = any(v_ids) then
+    raise exception 'FAIL [queue_excludes_done]: a delivered line is in the queue';
+  end if;
+  if v_first ->> 'state' <> 'manual_waiting' or (v_first ->> 'item_id')::bigint <> current_setting('harness.q_manual')::bigint then
+    raise exception 'FAIL [queue_order]: a manual line is not first';
+  end if;
+  raise notice 'PASS [supplier_queue]: stuck lines listed, delivered excluded, manual first';
+end $$;

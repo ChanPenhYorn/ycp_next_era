@@ -192,6 +192,69 @@ class AdminRepository {
   }
 
   // --------------------------------------------------------------------------
+  // Catalogue
+  // --------------------------------------------------------------------------
+
+  /// Every product, hidden ones included: `products_admin_all` lets staff read
+  /// what customers cannot see.
+  Future<List<AdminCatalogueProduct>> catalogue() async {
+    final rows = await _client
+        .from('products')
+        .select(
+          'id, slug, name_en, is_active, kind, sort_order, '
+          'supplier:suppliers ( code ), '
+          'variants:product_variants ( id, sku, label_en, price_usd, cost_usd, '
+          'is_active, sort_order )',
+        )
+        .order('sort_order', ascending: true)
+        .order('name_en', ascending: true);
+
+    return rows.map(AdminCatalogueProduct.fromJson).toList();
+  }
+
+  Future<void> setProductActive({
+    required int productId,
+    required bool active,
+  }) async {
+    await _voidRpc('admin_product_set_active', {
+      'p_product_id': productId,
+      'p_active': active,
+    });
+  }
+
+  /// Refused in the database when the price is below the supplier cost.
+  Future<void> setVariantPrice({
+    required int variantId,
+    required double priceUsd,
+  }) async {
+    await _voidRpc('admin_variant_set_price', {
+      'p_variant_id': variantId,
+      'p_price_usd': priceUsd,
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Supplier queue
+  // --------------------------------------------------------------------------
+
+  Future<List<SupplierQueueItem>> supplierQueue({int limit = 50}) async {
+    try {
+      final result = await _client.rpc(
+        'admin_supplier_queue',
+        params: {'p_limit': limit},
+      );
+      return ((result as List?) ?? const [])
+          .map(
+            (e) =>
+                SupplierQueueItem.fromJson((e as Map).cast<String, dynamic>()),
+          )
+          .toList();
+    } on PostgrestException catch (error) {
+      throw _mapError(error);
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Support
   // --------------------------------------------------------------------------
 
@@ -229,6 +292,14 @@ class AdminRepository {
           'p_priority': priority,
         },
       );
+    } on PostgrestException catch (error) {
+      throw _mapError(error);
+    }
+  }
+
+  Future<void> _voidRpc(String name, Map<String, dynamic> params) async {
+    try {
+      await _client.rpc(name, params: params);
     } on PostgrestException catch (error) {
       throw _mapError(error);
     }

@@ -360,8 +360,10 @@ Future<String?> askAdminText(
   String? helper,
   String? confirmLabel,
   bool mandatory = false,
+  TextInputType? keyboardType,
+  String? initialValue,
 }) async {
-  final controller = TextEditingController();
+  final controller = TextEditingController(text: initialValue);
 
   try {
     return await showDialog<String>(
@@ -373,7 +375,8 @@ Future<String?> askAdminText(
           content: TextField(
             controller: controller,
             autofocus: true,
-            maxLines: 3,
+            keyboardType: keyboardType,
+            maxLines: keyboardType == null ? 3 : 1,
             minLines: 1,
             decoration: InputDecoration(
               labelText: label,

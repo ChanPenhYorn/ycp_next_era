@@ -113,6 +113,22 @@ final adminTicketsProvider =
       return ref.watch(adminRepositoryProvider).supportTickets(status: status);
     });
 
+/// Every product for the staff catalogue, hidden ones included.
+final adminCatalogueProvider = FutureProvider<List<AdminCatalogueProduct>>((
+  ref,
+) {
+  ref.watch(currentUserProvider);
+  return ref.watch(adminRepositoryProvider).catalogue();
+});
+
+/// Supplier lines that are retrying or waiting for a person.
+final adminSupplierQueueProvider = FutureProvider<List<SupplierQueueItem>>((
+  ref,
+) {
+  ref.watch(currentUserProvider);
+  return ref.watch(adminRepositoryProvider).supplierQueue();
+});
+
 final localeControllerProvider = NotifierProvider<LocaleController, Locale>(
   LocaleController.new,
 );

@@ -76,6 +76,10 @@ class AdminPage extends ConsumerWidget {
                         AdminStat(
                           label: l10n.adminManualWaiting,
                           value: '${data.itemsManualWaiting}',
+                          tone: data.itemsManualWaiting > 0
+                              ? AppColors.warn
+                              : null,
+                          onTap: () => context.go('/admin/supplier-queue'),
                         ),
                       ],
                     ),
@@ -155,6 +159,17 @@ class AdminPage extends ConsumerWidget {
                           title: l10n.adminManualPayments,
                           count: data.transfersWaiting,
                           onTap: () => context.go('/admin/transfers'),
+                        ),
+                        AdminTile(
+                          icon: Icons.sync_problem_outlined,
+                          title: l10n.adminQueueTitle,
+                          count: data.itemsManualWaiting,
+                          onTap: () => context.go('/admin/supplier-queue'),
+                        ),
+                        AdminTile(
+                          icon: Icons.inventory_2_outlined,
+                          title: l10n.adminCatalogueTitle,
+                          onTap: () => context.go('/admin/catalogue'),
                         ),
                       ],
                     ),

@@ -810,4 +810,72 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get adminTicketsEmpty => 'No tickets.';
+
+  @override
+  String get adminCatalogueTitle => 'Catalogue';
+
+  @override
+  String get adminCatalogueNote =>
+      'Hidden products do not show to customers. A price cannot go below the supplier cost.';
+
+  @override
+  String get adminCatalogueEmpty => 'No products yet.';
+
+  @override
+  String get adminProductShown => 'Shown to customers';
+
+  @override
+  String get adminProductHidden => 'Hidden';
+
+  @override
+  String get adminVariantPrice => 'Retail price (USD)';
+
+  @override
+  String get adminVariantPriceHint =>
+      'Must be above zero and not below the supplier cost.';
+
+  @override
+  String get adminCostLabel => 'Cost';
+
+  @override
+  String get adminMarginLabel => 'Margin';
+
+  @override
+  String get adminPriceSaved => 'Price saved.';
+
+  @override
+  String get adminPriceInvalid => 'Enter a price above zero.';
+
+  @override
+  String get adminPriceBelowCost =>
+      'The price is below the supplier cost. Not saved.';
+
+  @override
+  String get adminQueueTitle => 'Supplier queue';
+
+  @override
+  String get adminQueueNote =>
+      'Lines the supplier could not finish. Retrying lines fix themselves; lines that need you are listed first.';
+
+  @override
+  String get adminQueueEmpty => 'No supplier lines are stuck.';
+
+  @override
+  String get adminQueueNeedsYou => 'Needs you';
+
+  @override
+  String get adminQueueRetrying => 'Retrying';
+
+  @override
+  String get adminQueueConfirmTitle => 'Mark this line delivered?';
+
+  @override
+  String get adminQueueConfirmBody =>
+      'Only do this after you have delivered the top-up by hand. The buyer is not refunded.';
+
+  @override
+  String get adminQueueDelivered => 'Line marked delivered.';
+
+  @override
+  String get adminSavePrice => 'Save price';
 }

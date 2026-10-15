@@ -806,4 +806,72 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get adminTicketsEmpty => 'គ្មានសំបុត្រទេ។';
+
+  @override
+  String get adminCatalogueTitle => 'បញ្ជីទំនិញ';
+
+  @override
+  String get adminCatalogueNote =>
+      'ទំនិញដែលលាក់មិនបង្ហាញដល់អតិថិជនទេ។ តម្លៃមិនអាចទាបជាងតម្លៃដើមពីអ្នកផ្គត់ផ្គង់បានទេ។';
+
+  @override
+  String get adminCatalogueEmpty => 'មិនទាន់មានទំនិញទេ។';
+
+  @override
+  String get adminProductShown => 'បង្ហាញដល់អតិថិជន';
+
+  @override
+  String get adminProductHidden => 'បានលាក់';
+
+  @override
+  String get adminVariantPrice => 'តម្លៃលក់ (USD)';
+
+  @override
+  String get adminVariantPriceHint =>
+      'ត្រូវធំជាងសូន្យ និងមិនទាបជាងតម្លៃដើមពីអ្នកផ្គត់ផ្គង់។';
+
+  @override
+  String get adminCostLabel => 'តម្លៃដើម';
+
+  @override
+  String get adminMarginLabel => 'ចំណេញ';
+
+  @override
+  String get adminPriceSaved => 'បានរក្សាទុកតម្លៃ។';
+
+  @override
+  String get adminPriceInvalid => 'បញ្ចូលតម្លៃធំជាងសូន្យ។';
+
+  @override
+  String get adminPriceBelowCost =>
+      'តម្លៃទាបជាងតម្លៃដើមពីអ្នកផ្គត់ផ្គង់។ មិនបានរក្សាទុក។';
+
+  @override
+  String get adminQueueTitle => 'ជួរអ្នកផ្គត់ផ្គង់';
+
+  @override
+  String get adminQueueNote =>
+      'បន្ទាត់ដែលអ្នកផ្គត់ផ្គង់មិនអាចបញ្ចប់បាន។ បន្ទាត់កំពុងព្យាយាមម្តងទៀតនឹងដោះស្រាយខ្លួនឯង; បន្ទាត់ដែលត្រូវការអ្នកបង្ហាញមុន។';
+
+  @override
+  String get adminQueueEmpty => 'គ្មានបន្ទាត់អ្នកផ្គត់ផ្គង់ណាជាប់ទេ។';
+
+  @override
+  String get adminQueueNeedsYou => 'ត្រូវការអ្នក';
+
+  @override
+  String get adminQueueRetrying => 'កំពុងព្យាយាមម្តងទៀត';
+
+  @override
+  String get adminQueueConfirmTitle => 'សម្គាល់បន្ទាត់នេះថាបានបញ្ជូន?';
+
+  @override
+  String get adminQueueConfirmBody =>
+      'ធ្វើតែបន្ទាប់ពីអ្នកបានបញ្ជូនការបញ្ចូលដោយដៃប៉ុណ្ណោះ។ អតិថិជនមិនត្រូវបានសងប្រាក់វិញទេ។';
+
+  @override
+  String get adminQueueDelivered => 'បានសម្គាល់បន្ទាត់ថាបានបញ្ជូន។';
+
+  @override
+  String get adminSavePrice => 'រក្សាទុកតម្លៃ';
 }

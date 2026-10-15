@@ -67,14 +67,18 @@ Where each value comes from in the dashboard:
 
 > The service role key bypasses every RLS policy. It belongs in Edge Function secrets and nowhere else: not in the app bundle, not in a chat, not in git. `.env.local` is already gitignored.
 
-Prefer working entirely offline? The migrations also run locally:
+Prefer working entirely offline? The migrations and the demo catalogue both run
+locally. `supabase/config.toml` points `[db.seed]` at `seed/demo.sql`, so a reset
+seeds the catalogue:
 
 ```bash
 supabase start
-supabase db reset
-psql "$DB_URL" -f supabase/tests/local_bootstrap.sql   # local-only stubs
-psql "$DB_URL" -f supabase/tests/seed_catalog.sql      # demo catalogue + stock
+supabase db reset    # migrations, then seed/demo.sql: 4 products, 8 variants, stock, a coupon
 ```
+
+`supabase/tests/local_bootstrap.sql` and `supabase/tests/seed_catalog.sql` are for
+the standalone Postgres harness in `supabase/tests/run.sh`, which has to create the
+Supabase roles itself.
 
 ### 2. PayWay
 
@@ -86,6 +90,55 @@ supabase secrets set --env-file .env
 
 Set `PAYWAY_ENV`, `PAYWAY_MERCHANT_ID`, `PAYWAY_API_KEY`. Production credentials come from `paywaysales@ababank.com`.
 
+**Locally those belong in `supabase/functions/.env`, not `.env.local`.** `.env.local`
+only feeds `supabase secrets set` for the hosted project; local functions read
+their own file. Miss that and `payway-init` answers `503 payway_not_configured`
+while every credential looks present in `.env.local`. A payment link such as
+`link-sandbox.payway.com.kh/<code>` is a hosted checkout page, not credentials —
+the API needs the merchant id and API key.
+
+A missing credential is reported as: *"KHQR payments are not switched on for this
+project yet."*
+
+### Paying in dev without ABA credentials
+
+`PAYWAY_ENV=stub` in `supabase/functions/.env` stands in for ABA, so checkout, the
+QR sheet and settlement all work with nothing to sign up for. Only the ABA
+boundary is faked: `payway-init` builds the real request and hash, `settleOrder`
+runs its real amount check and `mark_order_paid` is the real RPC, so the order
+still goes through its normal path.
+
+The stub refuses to engage outside a local stack (`isLocalRuntime()` in
+`_shared/payway.ts`), so a hosted project that sets the name by mistake reports
+`payway_not_configured` rather than approving money nobody sent. Its QR strings
+begin with `STUB-`, so they cannot be mistaken for payable codes.
+
+Two knobs exercise the failure branches, each needing the stack restarted:
+
+```
+PAYWAY_STUB_SETTLE_SECONDS=6   # how long the QR waits before it is approved
+PAYWAY_STUB_STATE=DECLINED     # the sheet shows a declined payment
+PAYWAY_STUB_UNDERPAY=1         # settlement refuses for underpayment
+```
+
+`SETTLE_SECONDS` matters most for the UI. A stub that approves on the first poll
+closes the QR sheet the instant it opens (`khqr_sheet.dart` pops on `ok`), which
+is what a real ABA payment never does: ABA answers `PENDING` until a human scans.
+The default 6s keeps the sheet open long enough to read. Set it to 0 only when you
+want the instant path, and remember the same wait does not exist against real ABA —
+there the wait is however long your test payment takes.
+
+The underpayment knob matters more than convenience: it is the guard that stops
+delivery on a short payment. `./scripts/verify-sandbox.sh --check-payway` proves
+both branches and reports the shortfall it refused.
+
+### Two restart rules, because they differ
+
+| Changed | Do this | Why |
+|---|---|---|
+| An Edge Function's **code** | `./scripts/dev.sh --reload-functions` | the runtime snapshots functions into `/var/tmp` at boot and reuses the stale isolate |
+| An Edge Function's **environment** (`supabase/functions/.env`) | `supabase stop && supabase start` | the CLI bakes those values into the container at creation; `docker restart` keeps the old ones |
+
 Then whitelist the callback URL in the PayWay merchant profile:
 
 ```
@@ -96,16 +149,46 @@ https://<project-ref>.supabase.co/functions/v1/payway-callback
 
 ### 3. Flutter
 
+Two configs, one per environment. They are plain `--dart-define-from-file`
+files, so the same command works on web, Android and iOS. No native flavors:
+`flutter run --flavor` is only honoured on Android, macOS and iOS, and this
+project is tested in Chrome, where it is a warning and nothing more.
+
+| File | Target | Sign-in |
+|---|---|---|
+| `app/config/dev.json` | local stack, `127.0.0.1:54321` | fixed code, no email |
+| `app/config/prod.json` | hosted project | real email OTP |
+
+Paths are relative to `app/`, which is the Flutter project root.
+
 ```bash
-./scripts/run-app.sh -d chrome    # credentials come from .env.local
-./scripts/run-app.sh -d macos
+./scripts/dev.sh                  # stack up, seeded, verified, app in Chrome
+./scripts/dev.sh -d macos
+./scripts/dev.sh --reset          # wipe and re-seed the database first
 ```
 
-The script refuses to start if the publishable key is missing or if it looks
-like a secret key — a privileged key compiled into the app bundle would be a
-full RLS bypass for anyone who extracts it.
+`dev.sh` is idempotent: it checks Docker and the CLI, creates
+`supabase/functions/.env` if it is missing, starts the stack, resets the database
+only when the catalogue is empty (or on `--reset`), runs the verification below,
+then launches the app. The manual equivalent, if you prefer to see each step:
 
-`flutter run -d chrome` for web, or pick a device. Only the client-safe key goes in the app.
+```bash
+supabase start                        # dev only
+./scripts/run-sandbox.sh -d chrome    # reads config/dev.json
+
+cd app
+flutter build web --dart-define-from-file=config/prod.json
+```
+
+VS Code gets the same setups in `.vscode/launch.json`: *Sela dev* and
+*Sela prod*, each for Chrome and for a device. Use dev while building screens —
+a few careless prod runs against the 2-per-hour mailer lock sign-in for the
+whole project until the window rolls over.
+
+`./scripts/run-app.sh` still works for the hosted project and reads `.env.local`.
+It refuses to start if the publishable key is missing or if it looks like a secret
+key — a privileged key compiled into the app bundle would be a full RLS bypass for
+anyone who extracts it.
 
 ### 4. Verify the database layer
 
@@ -168,6 +251,43 @@ usable for testing and unusable for launch.
 | Email, built-in | free | **2/hour** | testing only |
 | Facebook | free | none | dominant in Cambodia |
 | Phone / SMS | per message | provider-dependent | needs Twilio/MessageBird |
+
+### Sandbox sign-in
+
+Ordering an email on every test run is unusable, so dev builds sign in with a
+fixed code instead. Set `DEV_OTP` in `app/config/dev.json` (already `123456`)
+plus the same value in `supabase/functions/.env`, run `supabase start`, and the
+`dev-signin` Edge Function returns a real session for that code. Nothing is
+emailed, and RLS applies to the session exactly as it does to an emailed one.
+
+The code is ignored unless `SUPABASE_URL` is loopback, checked in
+`Env.devAuthEnabled`, so a prod build cannot be made to accept it. Unset `DEV_OTP`
+in the function environment and `dev-signin` answers 404.
+
+Proof, rather than assertion:
+
+```bash
+./scripts/verify-sandbox.sh                  # 31 checks against the running stack
+./scripts/verify-sandbox.sh --check-payway   # also proves the declined and underpaid branches
+./scripts/verify-sandbox.sh --check-disabled # also stops/starts the stack to prove the switch
+```
+
+It covers the guardrails (wrong code, missing address, wrong method), the sign-in
+itself, that the session it hands out is a real one (the signup trigger has run,
+the profile is RLS-scoped to that user, an anonymous read is refused outright), the
+demo catalogue the home screen renders, and the whole checkout → `payway-init` →
+settled-order path. `./scripts/dev.sh` runs the default set before launching.
+
+One trap when changing `DEV_OTP`: the CLI bakes `supabase/functions/.env` into the
+container's environment when it creates it (`docker inspect` shows it). A
+`docker restart` changes nothing and `supabase start` on a running stack is a
+no-op, so use `supabase stop && supabase start`.
+
+**Before launch, on the hosted project:** turn off *Confirm email* under
+Authentication → Providers → Email, and add custom SMTP under Authentication →
+Emails. With confirmation on, `signInWithOtp` for a new address sends the *Confirm
+signup* template, which carries a link and no `{{ .Token }}`, so the app's
+six-digit field has nothing to accept.
 
 ### Enabling Google
 

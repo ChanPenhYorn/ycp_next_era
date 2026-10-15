@@ -1,7 +1,11 @@
 /// Build-time configuration.
 ///
-/// Prefer `./scripts/run-app.sh`, which reads these from the gitignored
-/// .env.local. Passing them by hand works too:
+/// The normal path is a config file, so nothing has to be pasted per command:
+///   ./scripts/run-sandbox.sh -d chrome        # app/config/dev.json, local stack
+///   flutter run --dart-define-from-file=config/prod.json
+///
+/// ./scripts/run-app.sh reads .env.local instead, and passing them by hand still
+/// works:
 ///   flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_PUBLISHABLE_KEY=...
 ///
 /// Only the client-safe key belongs here. The secret key and the PayWay API key
@@ -34,6 +38,28 @@ class Env {
 
   /// Public bucket for product imagery.
   static const productImageBucket = 'product-images';
+
+  /// Sandbox-only fixed sign-in code, e.g. `--dart-define=DEV_OTP=123456`.
+  ///
+  /// The hosted project's mailer allows 2 emails per hour for everyone and
+  /// insists on a confirmation link for new addresses, which makes a local test
+  /// loop impossible. With this set the app skips Supabase's `signInWithOtp`
+  /// and swaps the code for a real session through the dev-signin Edge Function
+  /// instead. Leave it unset for production: email OTP is unaffected either way.
+  static const devOtp = String.fromEnvironment('DEV_OTP');
+
+  /// True only against a local stack. Pointing a sandbox build at a hosted
+  /// project would otherwise turn a fixed six-digit string into a login bypass,
+  /// so the URL has to be loopback for this to do anything.
+  static bool get devAuthEnabled =>
+      devAuthEnabledFor(otp: devOtp, url: supabaseUrl);
+
+  /// Pure so it can be unit tested without a build-time define.
+  static bool devAuthEnabledFor({required String otp, required String url}) {
+    if (otp.trim().isEmpty) return false;
+    final host = Uri.tryParse(url)?.host ?? '';
+    return host == 'localhost' || host == '127.0.0.1' || host == '::1';
+  }
 
   /// OAuth returns here after the provider round trip.
   ///

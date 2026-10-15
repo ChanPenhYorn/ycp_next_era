@@ -473,8 +473,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         'auth_required' => l10n.guestMustSignIn,
         'account_blocked' => l10n.somethingWentWrong,
         'order_expired' => l10n.statusExpired,
-        'payway_not_configured' => l10n.somethingWentWrong,
-        'payway_rejected' => l10n.somethingWentWrong,
+        // Naming the real problem beats "Something went wrong": this one means a
+        // credential is missing on the project, not that the user did anything
+        // wrong, and it is the first thing hit on a fresh environment.
+        'payway_not_configured' => l10n.paywayNotConfigured,
+        'payway_rejected' => l10n.paywayRejected,
         _ => l10n.somethingWentWrong,
       };
 

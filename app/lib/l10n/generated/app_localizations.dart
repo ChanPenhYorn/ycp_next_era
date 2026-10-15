@@ -852,6 +852,30 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Email sign-in is limited while testing. Google sign-in has no limit.'**
   String get emailOnlyNote;
+
+  /// No description provided for @codeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is not right. Check the six digits and try again.'**
+  String get codeInvalid;
+
+  /// No description provided for @devCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sandbox mode: no email is sent. Enter {code}.'**
+  String devCodeHint(String code);
+
+  /// No description provided for @paywayNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'KHQR payments are not switched on for this project yet. Please use another payment method.'**
+  String get paywayNotConfigured;
+
+  /// No description provided for @paywayRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'ABA did not accept that payment. Please try again, or use another method.'**
+  String get paywayRejected;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

@@ -1,31 +1,47 @@
 {
-  // The Flutter project lives in app/. Paths are absolute via ${workspaceFolder}
-  // so they resolve the same whether VS Code opened the repo root or app/.
+  // The Flutter project lives in app/, so both cwd and the flavor config paths
+  // resolve through ${workspaceFolder} whether VS Code opened the repo root or
+  // app/.
+  //
+  // dev  = local Supabase stack, fixed sign-in code, nothing emailed.
+  // prod = the hosted project, real email OTP.
+  //
+  // Only pick a prod config when you mean it: the hosted mailer allows 2 emails
+  // per hour, so a few careless runs lock sign-in for everyone until the window
+  // rolls over. Use dev for building screens.
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Sela (Chrome)",
+      "name": "Sela dev (Chrome)",
       "request": "launch",
       "type": "dart",
       "program": "${workspaceFolder}/app/lib/main.dart",
       "cwd": "${workspaceFolder}/app",
-      "args": [
-        "-d",
-        "chrome",
-        "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
-        "--dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_Pkf6mahsgfWeW6CydARzPg_C641KzHR"
-      ]
+      "args": ["-d", "chrome", "--dart-define-from-file=config/dev.json"]
     },
     {
-      "name": "Sela (device)",
+      "name": "Sela dev (device)",
       "request": "launch",
       "type": "dart",
       "program": "${workspaceFolder}/app/lib/main.dart",
       "cwd": "${workspaceFolder}/app",
-      "args": [
-        "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
-        "--dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_Pkf6mahsgfWeW6CydARzPg_C641KzHR"
-      ]
+      "args": ["--dart-define-from-file=config/dev.json"]
+    },
+    {
+      "name": "Sela prod (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "${workspaceFolder}/app/lib/main.dart",
+      "cwd": "${workspaceFolder}/app",
+      "args": ["-d", "chrome", "--dart-define-from-file=config/prod.json"]
+    },
+    {
+      "name": "Sela prod (device)",
+      "request": "launch",
+      "type": "dart",
+      "program": "${workspaceFolder}/app/lib/main.dart",
+      "cwd": "${workspaceFolder}/app",
+      "args": ["--dart-define-from-file=config/prod.json"]
     }
   ]
 }

@@ -9,7 +9,15 @@ max_rows = 1000
 
 [db]
 port = 54322
-major_version = 16
+# The CLI accepts 15 or 17. 16 is not one of them.
+major_version = 17
+
+[db.seed]
+# The CLI looks for ./seed.sql by default and this project keeps the demo
+# catalogue in ./seed/demo.sql, which is why a fresh stack started empty.
+# Runs on `supabase db reset` only, so an existing database is left alone.
+enabled = true
+sql_paths = ["./seed/demo.sql"]
 
 [studio]
 enabled = true
@@ -51,7 +59,15 @@ enable_signup = true
 enable_confirmations = false
 otp_length = 6
 otp_expiry = 600
-max_frequency = 60
+# Minimum gap between two emails to the same address. The CLI wants a duration
+# string here, not a number.
+max_frequency = "1s"
+
+# Hosted projects are capped at 2 emails/hour on the built-in mailer. Locally
+# nothing leaves the machine, every message lands in Mailpit on :54324, so the
+# cap only gets in the way of testing.
+[auth.rate_limit]
+email_sent = 100
 
 [storage]
 enabled = true
@@ -77,6 +93,12 @@ verify_jwt = true
 
 [functions.payway-verify]
 verify_jwt = true
+
+# Sandbox sign-in only. Refuses every request unless DEV_OTP is set in the
+# function environment, which is true on a local stack and nowhere else.
+# There is no user to authenticate yet, so it cannot require a JWT.
+[functions.dev-signin]
+verify_jwt = false
 
 # Telegram posts updates here and has no Supabase JWT. The function authenticates
 # them with TELEGRAM_WEBHOOK_SECRET instead.

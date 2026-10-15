@@ -1,7 +1,10 @@
 -- ============================================================================
 -- Demo data for a fresh project.
 --
--- Paste into the Supabase SQL editor AFTER supabase/migrations/combined.sql.
+-- Two ways in. Locally `supabase/config.toml` points [db.seed] at this file, so
+-- `supabase db reset` loads it. For a hosted project, paste it into the SQL
+-- editor AFTER supabase/migrations/combined.sql.
+--
 -- Unlike supabase/tests/seed_catalog.sql, this touches no auth tables, so it is
 -- safe to run against a hosted project.
 --

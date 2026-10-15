@@ -405,4 +405,21 @@ class AppL10nEn extends AppL10n {
   @override
   String get emailOnlyNote =>
       'Email sign-in is limited while testing. Google sign-in has no limit.';
+
+  @override
+  String get codeInvalid =>
+      'That code is not right. Check the six digits and try again.';
+
+  @override
+  String devCodeHint(String code) {
+    return 'Sandbox mode: no email is sent. Enter $code.';
+  }
+
+  @override
+  String get paywayNotConfigured =>
+      'KHQR payments are not switched on for this project yet. Please use another payment method.';
+
+  @override
+  String get paywayRejected =>
+      'ABA did not accept that payment. Please try again, or use another method.';
 }

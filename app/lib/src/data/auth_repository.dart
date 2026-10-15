@@ -49,15 +49,18 @@ class AuthRepository {
   /// Public endpoint: no key beyond the publishable one, no user required.
   Future<AuthCapabilities> capabilities() async {
     try {
-      final res = await http.get(
-        Uri.parse('${Env.supabaseUrl}/auth/v1/settings'),
-        headers: {'apikey': Env.supabaseKey},
-      ).timeout(const Duration(seconds: 10));
+      final res = await http
+          .get(
+            Uri.parse('${Env.supabaseUrl}/auth/v1/settings'),
+            headers: {'apikey': Env.supabaseKey},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (res.statusCode != 200) return AuthCapabilities.fallback;
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final external = (body['external'] as Map?)?.cast<String, dynamic>() ?? {};
+      final external =
+          (body['external'] as Map?)?.cast<String, dynamic>() ?? {};
 
       bool on(String key) => external[key] == true;
 
@@ -97,6 +100,54 @@ class AuthRepository {
       email: email,
       token: token,
     );
+  }
+
+  /// Sandbox sign-in (see [Env.devAuthEnabled]).
+  ///
+  /// Asks dev-signin for a token hash and exchanges it for a real session, so
+  /// the rest of the app cannot tell this apart from a genuine email OTP and
+  /// every RLS policy still applies. The wording of the messages thrown here
+  /// matches what [LoginPage] already knows how to translate.
+  Future<void> devSignIn({required String email, required String token}) async {
+    final res = await http
+        .post(
+          Env.function('dev-signin'),
+          headers: {
+            'apikey': Env.supabaseKey,
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'email': email, 'code': token}),
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (res.statusCode != 200) {
+      // Read the body when it parses: "invalid code" is a user mistake, and
+      // anything else is a broken sandbox.
+      String detail = '';
+      try {
+        detail =
+            (jsonDecode(res.body) as Map<String, dynamic>)['error']
+                as String? ??
+            '';
+      } catch (_) {
+        detail = '';
+      }
+      if (detail == 'invalid_code') {
+        throw AuthException('invalid code', statusCode: '401');
+      }
+      throw AuthException(
+        'dev sign-in failed: ${detail.isEmpty ? res.statusCode : detail}',
+        statusCode: res.statusCode.toString(),
+      );
+    }
+
+    final tokenHash =
+        (jsonDecode(res.body) as Map<String, dynamic>)['token_hash'] as String?;
+    if (tokenHash == null) {
+      throw const AuthException('dev sign-in returned no token');
+    }
+
+    await _client.auth.verifyOTP(type: OtpType.magiclink, tokenHash: tokenHash);
   }
 
   Future<void> signOut() => _client.auth.signOut();

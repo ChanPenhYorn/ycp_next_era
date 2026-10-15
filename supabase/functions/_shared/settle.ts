@@ -40,7 +40,7 @@ export async function settleOrder(
 
   const { data: payment } = await admin
     .from("payments")
-    .select("provider_ref, amount_usd")
+    .select("provider_ref, amount_usd, initiated_at")
     .eq("order_id", orderId)
     .eq("provider", "payway")
     .not("provider_ref", "is", null)
@@ -52,7 +52,12 @@ export async function settleOrder(
     return { ok: false, state: "UNKNOWN", order_status: order.status, reason: "no_payment" };
   }
 
-  const result = await checkTransaction(payment.provider_ref);
+  const result = await checkTransaction(payment.provider_ref, {
+    expectedAmountUsd: Number(order.total_usd),
+    initiatedAtMs: payment.initiated_at
+      ? Date.parse(payment.initiated_at)
+      : undefined,
+  });
 
   if (result.state !== "APPROVED") {
     return { ok: false, state: result.state, order_status: order.status, reason: "not_approved" };

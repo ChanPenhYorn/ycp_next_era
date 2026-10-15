@@ -8,8 +8,9 @@ import 'package:ycp_store/src/state/providers.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('explains the setup instead of failing when Supabase is absent',
-      (tester) async {
+  testWidgets('explains the setup instead of failing when Supabase is absent', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
 
@@ -36,10 +37,7 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    expect(
-      container.read(localeControllerProvider).languageCode,
-      'km',
-    );
+    expect(container.read(localeControllerProvider).languageCode, 'km');
   });
 
   group('configuration guard', () {
@@ -70,7 +68,10 @@ void main() {
     });
 
     test('rejects a url placeholder', () {
-      expect(problem('https://YOUR-REF.supabase.co', key), contains('placeholder'));
+      expect(
+        problem('https://YOUR-REF.supabase.co', key),
+        contains('placeholder'),
+      );
     });
 
     test('refuses a secret key, which would ship an RLS bypass', () {
@@ -80,7 +81,41 @@ void main() {
     });
 
     test('refuses a legacy service_role jwt', () {
-      expect(problem(url, 'eyJhbGciOiJIUzI1NiJ9.service_role.x'), contains('secret key'));
+      expect(
+        problem(url, 'eyJhbGciOiJIUzI1NiJ9.service_role.x'),
+        contains('secret key'),
+      );
+    });
+  });
+
+  group('sandbox sign-in', () {
+    test('is on for a local stack', () {
+      expect(
+        Env.devAuthEnabledFor(otp: '123456', url: 'http://127.0.0.1:54321'),
+        isTrue,
+      );
+      expect(
+        Env.devAuthEnabledFor(otp: '123456', url: 'http://localhost:54321'),
+        isTrue,
+      );
+    });
+
+    test('stays off without a code', () {
+      expect(
+        Env.devAuthEnabledFor(otp: '', url: 'http://127.0.0.1:54321'),
+        isFalse,
+      );
+    });
+
+    test('refuses to turn a hosted project into a fixed-code login', () {
+      // The whole point: DEV_OTP in a production build must do nothing.
+      expect(
+        Env.devAuthEnabledFor(
+          otp: '123456',
+          url: 'https://ozelquxztpqpjikhgnxd.supabase.co',
+        ),
+        isFalse,
+      );
     });
   });
 }

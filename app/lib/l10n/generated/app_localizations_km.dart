@@ -403,4 +403,21 @@ class AppL10nKm extends AppL10n {
   @override
   String get emailOnlyNote =>
       'ការចូលតាមអ៊ីមែលមានកំណត់ក្នុងការសាកល្បង។ Google គ្មានកំណត់ទេ។';
+
+  @override
+  String get codeInvalid =>
+      'កូដនេះមិនត្រឹមត្រូវ។ សូមពិនិត្យលេខ ៦ ខ្ទង់ ហើយព្យាយាមម្ដងទៀត។';
+
+  @override
+  String devCodeHint(String code) {
+    return 'របៀបសាកល្បង: គ្មានអ៊ីមែលត្រូវបានផ្ញើទេ។ សូមបញ្ចូល $code។';
+  }
+
+  @override
+  String get paywayNotConfigured =>
+      'ការទូទាត់ KHQR មិនទាន់បើកសម្រាប់គម្រោងនេះនៅឡើយទេ។ សូមប្រើវិធីផ្សេង។';
+
+  @override
+  String get paywayRejected =>
+      'ABA មិនទទួលយកការទូទាត់នេះទេ។ សូមព្យាយាមម្ដងទៀត។';
 }

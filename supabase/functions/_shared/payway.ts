@@ -16,9 +16,37 @@ const ENDPOINTS = {
     baseUrl: "https://checkout.payway.com.kh",
     jsUrl: "https://checkout.payway.com.kh/plugins/checkout2-0.js",
   },
+  // Never fetched: both createPurchase and checkTransaction short-circuit before
+  // any request when the stub is on. The host is deliberately unresolvable so a
+  // mistake surfaces immediately instead of reaching ABA.
+  stub: {
+    baseUrl: "http://payway-stub.invalid",
+    jsUrl: "",
+  },
 } as const;
 
 export type PaywayEnv = keyof typeof ENDPOINTS;
+
+/**
+ * True inside a local Supabase stack. The stub is only allowed here, because the
+ * alternative is a hosted project handing out approvals for money it never
+ * received. The CLI runs functions with SUPABASE_URL=http://kong:8000.
+ */
+export function isLocalRuntime(): boolean {
+  let host = "";
+  try {
+    host = new URL(Deno.env.get("SUPABASE_URL") ?? "").hostname;
+  } catch {
+    return false;
+  }
+  return (
+    host === "kong" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host === "host.docker.internal"
+  );
+}
 
 /**
  * Field order is fixed by ABA. Kept as an array so the hash cannot silently
@@ -54,19 +82,101 @@ export const HASH_FIELD_ORDER = [
 export type PurchaseHashField = (typeof HASH_FIELD_ORDER)[number];
 
 export function paywayConfig() {
-  const env = (Deno.env.get("PAYWAY_ENV") ?? "sandbox") as PaywayEnv;
-  const endpoints = ENDPOINTS[env] ?? ENDPOINTS.sandbox;
+  const requested = (Deno.env.get("PAYWAY_ENV") ?? "sandbox") as PaywayEnv;
   const merchantId = Deno.env.get("PAYWAY_MERCHANT_ID") ?? "";
   const apiKey = Deno.env.get("PAYWAY_API_KEY") ?? "";
+
+  // The stub stands in for ABA so the checkout flow can be exercised without
+  // credentials. It only engages on a local stack: on anything else the name is
+  // ignored and the call falls back to a real environment, which then reports
+  // payway_not_configured rather than approving money nobody sent.
+  const stubRequested = requested === "stub";
+  const isStub = stubRequested && isLocalRuntime();
+  if (stubRequested && !isStub) {
+    console.error(
+      "PAYWAY_ENV=stub ignored: this is not a local stack. Payments stay unconfigured."
+    );
+  }
+
+  const env = isStub ? "stub" : stubRequested ? "sandbox" : requested;
+  const endpoints = ENDPOINTS[env] ?? ENDPOINTS.sandbox;
 
   return {
     env,
     ...endpoints,
-    merchantId,
-    apiKey,
-    isConfigured: Boolean(merchantId && apiKey),
+    merchantId: isStub ? "stub" : merchantId,
+    apiKey: isStub ? "stub" : apiKey,
+    isStub,
+    isConfigured: isStub || Boolean(merchantId && apiKey),
     purchaseUrl: `${endpoints.baseUrl}/api/payment-gateway/v1/payments/purchase`,
     checkUrl: `${endpoints.baseUrl}/api/payment-gateway/v1/payments/check-transaction-2`,
+  };
+}
+
+/**
+ * A QR string the widget can render, and a deeplink that resolves nowhere. It
+ * says STUB on purpose: scanning it must never look like a real payable code.
+ */
+function stubPurchaseResponse(
+  request: PurchaseRequest,
+  merchantId: string
+): PurchaseResponse {
+  const tranId = request.tranId.slice(0, 20);
+  const amount = request.amountUsd.toFixed(2);
+  return {
+    status: { code: "00", message: "stub approval", tran_id: tranId },
+    qr_string: `STUB-KHQR|${merchantId}|${tranId}|${amount}USD`,
+    abapay_deeplink: `abapay://stub?tran=${encodeURIComponent(tranId)}`,
+    checkout_qr_url: `${ENDPOINTS.stub.baseUrl}/checkout/${encodeURIComponent(tranId)}`,
+  };
+}
+
+/**
+ * What ABA would have reported.
+ *
+ * PAYWAY_STUB_STATE picks the verdict, PAYWAY_STUB_UNDERPAY short-changes the
+ * amount (which is how the underpayment guard gets exercised without a second
+ * merchant account), and PAYWAY_STUB_SETTLE_SECONDS holds the answer at PENDING
+ * first. That last one matters: a real QR waits for a human to scan it, and
+ * without the wait the sheet flashes open and shut, which makes the payment
+ * screen impossible to look at.
+ */
+function stubTransaction(
+  tranId: string,
+  context: TransactionContext
+): TransactionResult {
+  const verdict = (Deno.env.get("PAYWAY_STUB_STATE") ?? "APPROVED")
+    .toUpperCase() as TransactionState;
+  const settleSeconds = Number(
+    Deno.env.get("PAYWAY_STUB_SETTLE_SECONDS") ?? "6"
+  );
+  const underpay = (Deno.env.get("PAYWAY_STUB_UNDERPAY") ?? "") !== "";
+
+  // No initiation time (a hand-made request) means the wait is already over, so
+  // the answer stays deterministic when there is nothing to wait for.
+  const elapsedSeconds = context.initiatedAtMs == null
+    ? Number.POSITIVE_INFINITY
+    : (Date.now() - context.initiatedAtMs) / 1000;
+
+  const waiting =
+    Number.isFinite(settleSeconds) && elapsedSeconds < settleSeconds;
+  const state: TransactionState = waiting ? "PENDING" : verdict;
+
+  const amountUsd = context.expectedAmountUsd == null
+    ? null
+    : underpay
+      ? Number((context.expectedAmountUsd * 0.9).toFixed(2))
+      : context.expectedAmountUsd;
+
+  return {
+    ok: state === "APPROVED",
+    state,
+    tranId,
+    amountUsd,
+    currency: "USD",
+    approvalCode: state === "APPROVED" ? `STUB-${tranId.slice(-6)}` : null,
+    transactionDate: new Date().toISOString(),
+    message: "stub",
   };
 }
 
@@ -117,6 +227,25 @@ export async function buildPurchaseHash(
 
 export type PurchaseItem = { name: string; quantity: number; price: number };
 
+/**
+ * base64 of the UTF-8 bytes, not of the UTF-16 code units.
+ *
+ * `btoa` throws `InvalidCharacterError` on anything outside Latin-1, and every
+ * Khmer product name is outside it: order_items.product_name is
+ * products.name_km. That made payway-init answer 500 on every order, in every
+ * environment, until the field was exercised.
+ *
+ * ABA's PHP samples use base64_encode, which is byte-level, so UTF-8 is also the
+ * encoding their side expects.
+ */
+function base64Utf8(value: string): string {
+  let binary = "";
+  for (const byte of new TextEncoder().encode(value)) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
 export type PurchaseRequest = {
   tranId: string;
   amountUsd: number;
@@ -143,7 +272,7 @@ export function buildPurchaseFields(
     tran_id: request.tranId.slice(0, 20),
     // Hashed as the exact string we send, so format it once.
     amount: request.amountUsd.toFixed(2),
-    items: btoa(JSON.stringify(request.items)),
+    items: base64Utf8(JSON.stringify(request.items)),
     shipping: "0",
     firstname: request.firstName ?? "",
     lastname: request.lastName ?? "",
@@ -157,7 +286,7 @@ export function buildPurchaseFields(
     return_deeplink: "",
     currency: "USD",
     custom_fields: request.customFields
-      ? btoa(JSON.stringify(request.customFields))
+      ? base64Utf8(JSON.stringify(request.customFields))
       : "",
     return_params: "",
     payout: "",
@@ -191,6 +320,16 @@ export async function createPurchase(
   const config = paywayConfig();
   if (!config.isConfigured) {
     return { ok: false, reason: "payway_not_configured" };
+  }
+
+  if (config.isStub) {
+    // Real fields and a real hash are built anyway, so the request that would
+    // have been sent is still visible in the logs when debugging the adapter.
+    return {
+      ok: true,
+      response: stubPurchaseResponse(request, config.merchantId),
+      fields: await buildPurchaseFields(request, config.merchantId),
+    };
   }
 
   const fields = await buildPurchaseFields(request, config.merchantId);
@@ -245,8 +384,26 @@ export type TransactionResult = {
   message: string | null;
 };
 
-/** Server-to-server truth. This is what unlocks delivery. */
-export async function checkTransaction(tranId: string): Promise<TransactionResult> {
+/**
+ * What the stub needs and a real environment ignores.
+ */
+export type TransactionContext = {
+  /** Echoed back so the underpayment guard still has something to compare. */
+  expectedAmountUsd?: number;
+  /** When the payment row was created, so the stub can fake a scanning delay. */
+  initiatedAtMs?: number;
+};
+
+/**
+ * Server-to-server truth. This is what unlocks delivery.
+ *
+ * [context] is only read by the stub. A real environment ignores it entirely:
+ * the amount always comes from ABA's answer, never from us.
+ */
+export async function checkTransaction(
+  tranId: string,
+  context: TransactionContext = {}
+): Promise<TransactionResult> {
   const config = paywayConfig();
   const blank = (reason: string): TransactionResult => ({
     ok: false,
@@ -259,6 +416,7 @@ export async function checkTransaction(tranId: string): Promise<TransactionResul
     message: reason,
   });
 
+  if (config.isStub) return stubTransaction(tranId, context);
   if (!config.isConfigured) return blank("payway_not_configured");
 
   const reqTime = paywayReqTime();

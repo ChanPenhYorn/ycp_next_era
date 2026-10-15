@@ -149,5 +149,16 @@
   "useDifferentEmail": "Use a different email",
   "emailRateLimited": "Too many sign-in emails for now. Please try again later, or use Google.",
   "providerNotEnabled": "That sign-in method is not switched on yet.",
-  "emailOnlyNote": "Email sign-in is limited while testing. Google sign-in has no limit."
+  "emailOnlyNote": "Email sign-in is limited while testing. Google sign-in has no limit.",
+  "codeInvalid": "That code is not right. Check the six digits and try again.",
+  "devCodeHint": "Sandbox mode: no email is sent. Enter {code}.",
+  "@devCodeHint": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "paywayNotConfigured": "KHQR payments are not switched on for this project yet. Please use another payment method.",
+  "paywayRejected": "ABA did not accept that payment. Please try again, or use another method."
 }

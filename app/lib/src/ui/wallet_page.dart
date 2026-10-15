@@ -217,7 +217,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
       if (!mounted) return;
       setState(() => _busy = false);
       _toast(error.code == 'payway_not_configured'
-          ? l10n.walletTopupFailed
+          ? l10n.paywayNotConfigured
           : l10n.somethingWentWrong);
     } catch (_) {
       if (!mounted) return;

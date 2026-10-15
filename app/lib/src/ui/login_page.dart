@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/auth_repository.dart';
 
+import '../core/env.dart';
 import '../core/theme.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
@@ -116,6 +117,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       counterText: '',
                     ),
                   ),
+                  if (Env.devAuthEnabled) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.devCodeHint(Env.devOtp),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.ink400,
+                      ),
+                    ),
+                  ],
                 ],
 
                 const SizedBox(height: 18),
@@ -197,14 +208,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      await ref.read(authRepositoryProvider).signInWithOtp(email);
+      // Sandbox: nothing is emailed, so neither the mailer's 2-per-hour budget
+      // nor the hosted project's confirmation template comes into it.
+      if (!Env.devAuthEnabled) {
+        await ref.read(authRepositoryProvider).signInWithOtp(email);
+      }
       if (!mounted) return;
       setState(() {
         _busy = false;
         _codeSent = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.otpSentTo(email))),
+        SnackBar(
+          content: Text(
+            Env.devAuthEnabled
+                ? l10n.devCodeHint(Env.devOtp)
+                : l10n.otpSentTo(email),
+          ),
+        ),
       );
     } on AuthException catch (error) {
       if (!mounted) return;
@@ -229,10 +250,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      await ref.read(authRepositoryProvider).verifyOtp(
-            email: _email.text.trim(),
-            token: _token.text.trim(),
-          );
+      if (Env.devAuthEnabled) {
+        await ref
+            .read(authRepositoryProvider)
+            .devSignIn(email: _email.text.trim(), token: _token.text.trim());
+      } else {
+        await ref
+            .read(authRepositoryProvider)
+            .verifyOtp(email: _email.text.trim(), token: _token.text.trim());
+      }
       if (!mounted) return;
       setState(() => _busy = false);
       context.go('/');
@@ -261,6 +287,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
     if (raw.contains('not enabled') || raw.contains('provider')) {
       return l10n.providerNotEnabled;
+    }
+    if (raw.contains('invalid') && raw.contains('code')) {
+      return l10n.codeInvalid;
     }
     if (raw.contains('invalid') && raw.contains('email')) {
       return l10n.invalidEmail;

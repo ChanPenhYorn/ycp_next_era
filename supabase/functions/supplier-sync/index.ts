@@ -4,11 +4,12 @@
  * Pulls a supplier catalogue into your own products, variants and
  * supplier_skus, so the storefront can sell their inventory.
  *
- * POST { supplier?: "bay2game", gameCode?: string, limit?: number, dryRun?: boolean }
+ * POST { supplier?: "bay2game", gameCode?: string, limit?: number, offset?: number, dryRun?: boolean }
  *
  * Defaults to a small batch: a full sweep is 200+ games and 200+ product calls,
  * which is unfriendly to a supplier's rate limit and slow to run synchronously.
- * Call it repeatedly, or per game.
+ * Page through with `offset`: the response's `next_offset` is the value to send
+ * next, or null when the catalogue is done. Or sync one game with `gameCode`.
  *
  * Note that synced variants are priced AT COST until staff set a retail price.
  * An unpriced SKU therefore cannot be sold at a loss, only at zero margin.
@@ -115,6 +116,7 @@ Deno.serve(async (req) => {
     supplier?: string;
     gameCode?: string;
     limit?: number;
+    offset?: number;
     dryRun?: boolean;
     mirrorImages?: boolean;
   } = {};
@@ -151,6 +153,7 @@ Deno.serve(async (req) => {
       : null;
 
   const limit = Math.min(Math.max(body.limit ?? 3, 1), 25);
+  const offset = Math.max(Math.floor(body.offset ?? 0), 0);
   const admin = adminClient();
   const results: Array<Record<string, unknown>> = [];
   const skipped: Array<Record<string, unknown>> = [];
@@ -160,7 +163,9 @@ Deno.serve(async (req) => {
     const allGames = await adapter.games();
     const games = body.gameCode
       ? allGames.filter((game) => game.gameCode === body.gameCode)
-      : allGames.slice(0, limit);
+      : allGames.slice(offset, offset + limit);
+    const nextOffset =
+      !body.gameCode && offset + limit < allGames.length ? offset + limit : null;
 
     if (body.gameCode && games.length === 0) {
       return json({ error: "game_not_found", detail: body.gameCode }, 404);
@@ -254,6 +259,8 @@ Deno.serve(async (req) => {
       ok: true,
       supplier: code,
       total_games_available: allGames.length,
+      offset: body.gameCode ? null : offset,
+      next_offset: nextOffset,
       processed: games.length,
       synced,
       skipped: skipped.length,

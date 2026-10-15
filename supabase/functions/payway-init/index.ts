@@ -10,6 +10,15 @@
 import { adminClient, json, preflight, requireUser } from "../_shared/supabase.ts";
 import { createPurchase, paywayConfig } from "../_shared/payway.ts";
 
+function qrFromDeeplink(deeplink: string | undefined): string | undefined {
+  if (!deeplink) return undefined;
+  try {
+    return new URL(deeplink).searchParams.get("qrcode") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -97,7 +106,7 @@ Deno.serve(async (req) => {
 
   return json({
     tran_id: tranId,
-    qr_string: purchase.response.qr_string,
+    qr_string: purchase.response.qr_string ?? qrFromDeeplink(purchase.response.abapay_deeplink),
     abapay_deeplink: purchase.response.abapay_deeplink,
     checkout_qr_url: purchase.response.checkout_qr_url,
     total_usd: Number(order.total_usd),

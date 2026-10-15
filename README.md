@@ -129,12 +129,19 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 5 | **Native KHQR sheet**: render QR, deep-link to ABA Mobile, poll and settle | `[~]` |
 | 6 | Orders: history, detail, reveal codes | `[~]` |
 | 7 | Auth: passwordless email OTP | `[~]` |
-| 8 | Admin surface: add stock, resolve manual items, product CRUD | `[ ]` |
-| 9 | Supplier auto-restock: FazerCards / FoxReload / Marix adapters + price sync | `[ ]` |
-| 10 | Growth: coins, referrals, review rewards, flash-sale banners | `[ ]` |
-| 11 | Ops: pg_cron expiry sweep, backups, uptime alerts, fraud velocity rules | `[ ]` |
-| 12 | Telegram bot for order status and support handoff | `[ ]` |
-| 13 | Play Store / App Store submission, Khmer store listing | `[ ]` |
+| 8 | Wallet top-up (RPC + settlement path) | `[x]` |
+| 9 | Scheduled housekeeping: order expiry, rating refresh (`pg_cron`) | `[x]` |
+| 10 | Review approval, coin reward, rating recompute | `[x]` |
+| 11 | Supplier fulfilment RPCs: claim a job, complete or refund | `[x]` |
+| 12 | Supplier worker: Edge Function that drains `supplier_pending_items` | `[ ]` |
+| 13 | Admin UI over the existing admin RPCs (stock intake, manual queue, review moderation) | `[ ]` |
+| 14 | Wallet top-up UI + history screen in the app | `[ ]` |
+| 15 | Growth: referrals, flash-sale banners, coins redemption | `[ ]` |
+| 16 | Ops: backups, uptime alerts, fraud velocity rules | `[ ]` |
+| 17 | Telegram bot for order status and support handoff | `[ ]` |
+| 18 | Play Store / App Store submission, Khmer store listing | `[ ]` |
+
+The database row of this table is the part that is genuinely verified: `supabase/tests/run.sh` asserts RLS isolation, the oversell guard, quantity limits, required buyer fields, coupon limits, the wallet ledger, the short-pick rollback, top-up limits, the review guard, and the supplier refund path.
 
 Stage 5 is the one to exercise next: it needs live sandbox credentials, and payment flows are where assumptions go to die.
 

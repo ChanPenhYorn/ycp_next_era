@@ -2,13 +2,23 @@ import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders, json } from "./http.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Supabase is migrating from anon/service_role to publishable/secret keys.
+// Projects on the new system inject different variable names, so accept both.
+const PUBLISHABLE_KEY =
+  Deno.env.get("SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
+  "";
+
+const SECRET_KEY =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+  Deno.env.get("SUPABASE_SECRET_KEY") ??
+  "";
 
 /** Acts as the caller. All RLS policies apply, so ownership is enforced by Postgres. */
 export function userClient(req: Request): SupabaseClient {
   const authorization = req.headers.get("Authorization") ?? "";
-  return createClient(SUPABASE_URL, ANON_KEY, {
+  return createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -16,7 +26,12 @@ export function userClient(req: Request): SupabaseClient {
 
 /** Bypasses RLS. Only for settlement and delivery decisions. */
 export function adminClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  if (!SECRET_KEY) {
+    throw new Error(
+      "No secret key in the environment. Set SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY."
+    );
+  }
+  return createClient(SUPABASE_URL, SECRET_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

@@ -132,6 +132,8 @@ grant select on public.order_items to authenticated;
 grant select on public.payments to authenticated;
 grant select on public.wallet_transactions to authenticated;
 grant select on public.reviews to anon, authenticated;
+-- The insert policy below is useless without the matching table grant.
+grant insert on public.reviews to authenticated;
 
 create policy orders_select_own on public.orders
   for select to authenticated

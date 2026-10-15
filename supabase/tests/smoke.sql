@@ -176,7 +176,116 @@ select order_no, status, delivered_at is not null as closed from public.orders w
 \echo '### 17. expiry sweep'
 select public.expire_stale_orders() as expired_orders;
 
-\echo '### 18. final state'
+\echo '### 18. wallet top-up funds the wallet through the normal payment path'
+reset role;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_wallet_topup(25.00, 'buyer@example.test') as topup_order;
+select id as toid from public.orders order by created_at desc limit 1 \gset
+reset role;
+select public.mark_order_paid(:'toid', 'payway', 'PW-TOPUP-0001', 'abapay_khqr_deeplink', null, null) as topup_settle;
+select kind, amount_usd, balance_after from public.wallet_transactions
+ where order_id = :'toid';
+select status from public.orders where id = :'toid';
+
+\echo '### 19. top-up limits are enforced'
+create or replace function pg_temp.expect_topup_fail(p_amount numeric, p_expect text)
+returns text language plpgsql as $$
+begin
+  perform public.create_wallet_topup(p_amount, null);
+  return 'FAIL [topup ' || p_amount || ']: no error raised';
+exception
+  when others then
+    if sqlerrm like p_expect then return 'PASS [topup ' || p_amount || ']: ' || sqlerrm; end if;
+    return 'FAIL [topup ' || p_amount || ']: got "' || sqlerrm || '"';
+end $$;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select pg_temp.expect_topup_fail(0.10, 'topup_below_minimum%');
+select pg_temp.expect_topup_fail(999999, 'topup_above_maximum%');
+
+\echo '### 20. supplier worker can see the auto_topup line'
+reset role;
+select item_id, sku, qty, supplier_code from public.supplier_pending_items(10);
+
+\echo '### 21. fulfilling it closes the order'
+select public.supplier_complete_item(
+  (select item_id from public.supplier_pending_items(10) limit 1),
+  true, 'MLBB-REF-0001', 0.82
+) as fulfilled;
+select order_no, status, delivered_at is not null as closed
+  from public.orders where id = :'oid';
+
+\echo '### 22. a failed supplier line refunds the buyer automatically'
+reset role;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb86, 'qty', 1)),
+  null, jsonb_build_object('game_id', '987654321', 'server_id', '2002'), null, null) as refund_order;
+select id as roid from public.orders order by created_at desc limit 1 \gset
+reset role;
+select public.mark_order_paid(:'roid', 'payway', 'PW-REFUND-0001', 'abapay_khqr_deeplink', null, null) as refund_settle;
+select wallet_balance from public.profiles where id = '22222222-2222-2222-2222-222222222222';
+
+select public.supplier_complete_item(
+  (select item_id from public.supplier_pending_items(10)
+    where order_id = :'roid' limit 1),
+  false, 'MLBB-REF-FAILED', 0
+) as refunded;
+
+select o.order_no, o.status, oi.delivery_status
+  from public.orders o join public.order_items oi on oi.order_id = o.id
+ where o.id = :'roid';
+select kind, amount_usd, note from public.wallet_transactions
+ where order_id = :'roid';
+
+\echo '### 23. a buyer can only review a product they actually received'
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+insert into public.reviews (product_id, user_id, order_id, rating, body)
+values (
+  (select id from public.products where slug = 'mobile-legends-diamonds'),
+  '22222222-2222-2222-2222-222222222222',
+  :'oid', 5, 'Delivered in under a minute'
+) returning id as review_id, is_approved;
+
+\echo '### 23b. a non-buyer cannot review at all'
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false);
+do $$
+begin
+  insert into public.reviews (product_id, user_id, order_id, rating, body)
+  values (
+    (select id from public.products where slug = 'mobile-legends-diamonds'),
+    '33333333-3333-3333-3333-333333333333',
+    null, 1, 'never bought this'
+  );
+  raise exception 'FAIL [review_guard]: a non-buyer was able to review';
+exception
+  when others then
+    if sqlerrm like '%row-level security%' or sqlerrm like '%violates%' then
+      raise notice 'PASS [review_guard]: blocked';
+    else
+      raise;
+    end if;
+end $$;
+
+\echo '### 24. approving it moves the product rating and pays the coins'
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+select public.admin_review_set_approved(
+  (select id from public.reviews order by id desc limit 1), true, 5) as approved;
+select slug, rating_avg, rating_count from public.products
+ where slug = 'mobile-legends-diamonds';
+select coins, coin_rewarded from public.profiles, public.reviews
+ where public.profiles.id = '22222222-2222-2222-2222-222222222222'
+   and public.reviews.id = (select id from public.reviews order by id desc limit 1);
+
+\echo '### 25. housekeeping runs as staff'
+select public.admin_run_housekeeping() as housekeeping;
+
+\echo '### 26. final state'
 select (select count(*) from public.orders)  as orders,
        (select count(*) from public.order_items) as items,
        (select count(*) from public.payments) as payments,

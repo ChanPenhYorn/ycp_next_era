@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
   const limit = Math.min(Math.max(body.limit ?? 3, 1), 25);
   const admin = adminClient();
   const results: Array<Record<string, unknown>> = [];
+  const skipped: Array<Record<string, unknown>> = [];
   let synced = 0;
 
   try {
@@ -74,6 +75,18 @@ Deno.serve(async (req) => {
     }
 
     for (const game of games) {
+      // Skip games whose buyer fields cannot be passed to the supplier. Listing
+      // one would mean taking the buyer's money and then refunding them.
+      if (!adapter.canFulfil(game.fields)) {
+        skipped.push({
+          game: game.gameCode,
+          name: game.name,
+          fields: game.fields,
+          reason: "fields_not_supported_by_supplier_order_api",
+        });
+        continue;
+      }
+
       try {
         const products = await adapter.products(game.gameCode);
 
@@ -127,8 +140,10 @@ Deno.serve(async (req) => {
       total_games_available: allGames.length,
       processed: games.length,
       synced,
+      skipped: skipped.length,
       activated: !body.dryRun && synced > 0,
       dryRun: body.dryRun ?? false,
+      skipped_games: skipped,
       results,
     });
   } catch (error) {

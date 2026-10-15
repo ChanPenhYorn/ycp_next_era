@@ -43,6 +43,12 @@ export interface SupplierAdapter {
   readonly code: string;
   /** True when the API key is present. */
   configured(): boolean;
+  /**
+   * Whether this supplier can actually accept an order for a game that needs
+   * these buyer fields. A game whose fields cannot be passed through must be
+   * excluded from the catalogue, not listed and then refunded.
+   */
+  canFulfil(fields: string[]): boolean;
   games(): Promise<SupplierGame[]>;
   products(gameCode: string): Promise<SupplierProduct[]>;
   fulfil(input: FulfilInput): Promise<FulfilResult>;

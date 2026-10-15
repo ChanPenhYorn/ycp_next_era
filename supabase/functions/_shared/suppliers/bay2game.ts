@@ -26,10 +26,20 @@ import {
 const BASE = Deno.env.get("BAY2GAME_BASE_URL") ?? "https://api.bay2game.xyz/api";
 
 /** Their field names map onto their order parameters. */
-const FIELD_MAP: Record<string, string> = {
+export const FIELD_MAP: Record<string, string> = {
   userid: "game_user_id",
   serverid: "game_zone_id",
 };
+
+/**
+ * Fields a game may declare that this API cannot accept. `create_order` takes
+ * only product_code, game_user_id, game_zone_id and reference, so a game
+ * wanting a character name cannot be fulfilled even though it is listed.
+ * Selling it would mean taking money and then refunding.
+ */
+export function unsupportedFields(fields: string[]): string[] {
+  return fields.filter((field) => !(field in FIELD_MAP));
+}
 
 type Bay2Response = {
   status?: string;
@@ -102,14 +112,21 @@ function toUsd(value: number | string | undefined): number | null {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
 }
 
+/** Their status field is inconsistently cased: docs say "SUCCESS", the live API returns "success". */
+function isSuccess(status: string | undefined): boolean {
+  return (status ?? "").toLowerCase() === "success";
+}
+
 export const bay2game: SupplierAdapter = {
   code: "bay2game",
 
   configured: () => key().length > 0,
 
+  canFulfil: (fields: string[]) => unsupportedFields(fields).length === 0,
+
   async games(): Promise<SupplierGame[]> {
     const data = await call("/categories", {});
-    if (data.status !== "SUCCESS") {
+    if (!isSuccess(data.status)) {
       throw new SupplierError(`categories: ${data.message ?? data.status}`, false);
     }
 
@@ -124,11 +141,12 @@ export const bay2game: SupplierAdapter = {
 
   async products(gameCode: string): Promise<SupplierProduct[]> {
     const data = await call("/products", { game_code: gameCode });
-    if (data.status !== "SUCCESS") {
+    if (!isSuccess(data.status)) {
       throw new SupplierError(`products: ${data.message ?? data.status}`, false);
     }
 
     return (data.products ?? [])
+      // Some games legitimately declare no fields, so an empty list is fine.
       .filter((product) => (product.status ?? "active") === "active")
       .map((product) => ({
         productCode: product.product_code,

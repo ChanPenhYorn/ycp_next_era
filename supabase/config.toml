@@ -30,6 +30,16 @@ additional_redirect_urls = []
 jwt_expiry = 3600
 enable_signup = true
 
+# Password accounts are the second way in, next to Google and the emailed code.
+#
+# These two rules are mirrored by `passwordMinLength` and `passwordProblem` in
+# `app/lib/src/data/auth_repository.dart`; Supabase re-checks on every signup and
+# password change, while the client copy only drives the hint text — and the two
+# must be changed together or the form will promise a rule the server does not
+# enforce, or reject a password the server would accept.
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits"
+
 # ---------------------------------------------------------------------------
 # Social providers.
 #
@@ -48,6 +58,15 @@ enable_signup = true
 # provider is on, so nothing has to be rebuilt after enabling it.
 # ---------------------------------------------------------------------------
 [auth.external.google]
+# Off, because Google has no sandbox: a real OAuth client is the only way to
+# test it. Flip this to true and export the two values below to try it locally
+# (the CLI cannot read a bool from the environment — `env(...)` in a boolean
+# field is a config parse error, which took the stack down once already):
+#   export SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+#   export SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...
+#   supabase stop && supabase start
+# Sandbox builds sign in with a code instead (see Env.devAuthEnabled), so local
+# work never needs this.
 enabled = false
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
@@ -55,7 +74,9 @@ skip_nonce_check = false
 
 [auth.email]
 enable_signup = true
-# Email OTP is the only sign-in path the app uses.
+# Password accounts are the second way in; the emailed code stays as the
+# fallback. Confirmations stay off so a local signup returns a session
+# immediately instead of waiting on a mailer that is not running.
 enable_confirmations = false
 otp_length = 6
 otp_expiry = 600
@@ -89,6 +110,12 @@ content_path = "./supabase/templates/magic_link.html"
 [auth.email.template.confirmation]
 subject = "Confirm your Chanpenh email"
 content_path = "./supabase/templates/confirmation.html"
+
+# Password reset. Carries the same six digits as the other two, because the app
+# asks for a code and then for the new password.
+[auth.email.template.recovery]
+subject = "Reset your Chanpenh password"
+content_path = "./supabase/templates/recovery.html"
 
 # Hosted projects are capped at 2 emails/hour on the built-in mailer. Locally
 # nothing leaves the machine, every message lands in Mailpit on :54324, so the

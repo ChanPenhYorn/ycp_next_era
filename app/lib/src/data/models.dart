@@ -50,9 +50,9 @@ class RequiredField {
   String label(String locale) => locale == 'km' ? labelKm : labelEn;
 
   factory RequiredField.fromJson(Map<String, dynamic> json) => RequiredField(
-        key: json['key'] as String,
-        labelKm: (json['label_km'] ?? json['key']) as String,
-        labelEn: (json['label_en'] ?? json['key']) as String,
+        key: json['key'] as String? ?? '',
+        labelKm: (json['label_km'] ?? json['key'] ?? '') as String,
+        labelEn: (json['label_en'] ?? json['key'] ?? '') as String,
         placeholder: json['placeholder'] as String?,
         pattern: json['pattern'] as String?,
       );
@@ -74,10 +74,10 @@ class Category {
   String name(String locale) => locale == 'km' ? nameKm : nameEn;
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['id'] as int,
-        slug: json['slug'] as String,
-        nameKm: json['name_km'] as String,
-        nameEn: json['name_en'] as String,
+        id: (json['id'] as num).toInt(),
+        slug: json['slug'] as String? ?? '',
+        nameKm: json['name_km'] as String? ?? '',
+        nameEn: json['name_en'] as String? ?? '',
       );
 }
 
@@ -114,11 +114,13 @@ class Variant {
   bool get isUnlimited => stockMode == StockMode.unlimited;
 
   factory Variant.fromJson(Map<String, dynamic> json) => Variant(
-        id: json['id'] as int,
-        sku: json['sku'] as String,
-        labelKm: json['label_km'] as String,
-        labelEn: json['label_en'] as String,
-        priceUsd: (json['price_usd'] as num).toDouble(),
+        id: (json['id'] as num).toInt(),
+        // Display fields tolerate a partial payload: a missing label must not
+        // take down the whole catalogue, and `id` is the only structural key.
+        sku: json['sku'] as String? ?? '',
+        labelKm: json['label_km'] as String? ?? '',
+        labelEn: json['label_en'] as String? ?? '',
+        priceUsd: (json['price_usd'] as num?)?.toDouble() ?? 0,
         compareAtPriceUsd: (json['compare_at_price_usd'] as num?)?.toDouble(),
         stockMode: json['stock_mode'] == 'unlimited'
             ? StockMode.unlimited

@@ -2,6 +2,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models.dart';
 
+/// Columns every `Variant.fromJson` read depends on.
+///
+/// Kept as a constant and reused by each query so the two cannot drift. They
+/// did once: the list query omitted sku/label_km/label_en, so parsing threw
+/// `type 'Null' is not a subtype of type 'String'` and the whole catalogue
+/// page failed as soon as real data existed. `test/parsing_test.dart` guards it.
+const variantColumns = 'id, sku, label_km, label_en, price_usd, '
+    'compare_at_price_usd, stock_mode, min_qty, max_qty';
+
+/// Columns `Category.fromJson` reads.
+const categoryColumns = 'id, slug, name_km, name_en';
+
 /// Read-only access to the public catalogue. Every query here maps to a
 /// `select` policy in `0002_rls.sql`; no privileged key is involved.
 class CatalogRepository {
@@ -50,8 +62,8 @@ class CatalogRepository {
         .from('products')
         .select(
           'id, slug, name_km, name_en, image_url, kind, rating_avg, rating_count, '
-          'sold_count, category:categories ( id, slug, name_km, name_en ), '
-          'variants:product_variants ( id, price_usd, compare_at_price_usd, stock_mode )',
+          'sold_count, category:categories ( $categoryColumns ), '
+          'variants:product_variants ( $variantColumns )',
         );
 
     // Filters must be applied before order/limit: those return a transform
@@ -83,8 +95,8 @@ class CatalogRepository {
           'id, slug, name_km, name_en, summary_km, summary_en, description_km, '
           'description_en, image_url, kind, requires_fields, rating_avg, '
           'rating_count, sold_count, '
-          'category:categories ( id, slug, name_km, name_en ), '
-          'variants:product_variants ( id, price_usd, compare_at_price_usd, stock_mode )',
+          'category:categories ( $categoryColumns ), '
+          'variants:product_variants ( $variantColumns )',
         )
         .eq('slug', slug)
         .maybeSingle();
@@ -93,10 +105,7 @@ class CatalogRepository {
 
     final variantRows = await _client
         .from('product_variants')
-        .select(
-          'id, sku, label_km, label_en, price_usd, compare_at_price_usd, '
-          'stock_mode, min_qty, max_qty, sort_order',
-        )
+        .select('$variantColumns, sort_order')
         .eq('product_id', row['id'])
         .order('sort_order');
 
@@ -204,10 +213,10 @@ class CatalogRepository {
     final categoryRow = row['category'] as Map<String, dynamic>?;
 
     return ProductCard(
-      id: row['id'] as int,
-      slug: row['slug'] as String,
-      nameKm: row['name_km'] as String,
-      nameEn: row['name_en'] as String,
+      id: (row['id'] as num).toInt(),
+      slug: row['slug'] as String? ?? '',
+      nameKm: row['name_km'] as String? ?? '',
+      nameEn: row['name_en'] as String? ?? '',
       imageUrl: row['image_url'] as String?,
       kind: productKindFrom(row['kind'] as String? ?? 'manual_setup'),
       ratingAvg: (row['rating_avg'] as num?)?.toDouble() ?? 0,

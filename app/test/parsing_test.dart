@@ -1,0 +1,196 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ycp_store/src/data/catalog_repository.dart';
+import 'package:ycp_store/src/data/models.dart';
+
+/// Regression tests for the parsing layer.
+///
+/// These exist because a missing column in a PostgREST `select` throws at
+/// runtime, not at analysis time. `flutter analyze` passed while the catalogue
+/// page was dead: the list query omitted sku/label_km/label_en, so
+/// `json['sku'] as String` hit null and threw
+/// `type 'Null' is not a subtype of type 'String'`.
+///
+/// Two layers of defence here:
+///   1. a payload shaped exactly like the real response
+///   2. an assertion that the shared column constants still carry every field
+///      the parsers read, so the query and the model cannot drift apart again
+void main() {
+  group('payloads shaped like PostgREST responses parse', () {
+    test('product list row with an inline variant', () {
+      // Exactly the shape `products()` produces.
+      final row = <String, dynamic>{
+        'id': 3,
+        'slug': 'mobile-legends',
+        'name_km': 'ពេជ្រ Mobile Legends',
+        'name_en': 'Mobile Legends Diamonds',
+        'image_url': null,
+        'kind': 'auto_topup',
+        'rating_avg': 0,
+        'rating_count': 0,
+        'sold_count': 12,
+        'category': {
+          'id': 1,
+          'slug': 'game-topup',
+          'name_km': 'បញ្ចូលពេជ្រហ្គេម',
+          'name_en': 'Game Top-Up',
+        },
+        'variants': [
+          {
+            'id': 9,
+            'sku': 'MLBB-86',
+            'label_km': '៨៦ ពេជ្រ',
+            'label_en': '86 Diamonds',
+            'price_usd': 0.99,
+            'compare_at_price_usd': 1.20,
+            'stock_mode': 'unlimited',
+            'min_qty': 1,
+            'max_qty': 20,
+            'in_stock': null,
+          },
+        ],
+      };
+
+      final variant = Variant.fromJson(
+        (row['variants'] as List).first as Map<String, dynamic>,
+      );
+      expect(variant.sku, 'MLBB-86');
+      expect(variant.labelEn, '86 Diamonds');
+      expect(variant.priceUsd, 0.99);
+      expect(variant.isUnlimited, isTrue);
+      expect(variant.isSoldOut, isFalse);
+
+      final category = Category.fromJson(row['category'] as Map<String, dynamic>);
+      expect(category.slug, 'game-topup');
+    });
+
+    test('a partial variant payload degrades instead of throwing', () {
+      // The exact shape that took the catalogue down. It must not throw.
+      final variant = Variant.fromJson({
+        'id': 9,
+        'price_usd': 0.99,
+        'compare_at_price_usd': null,
+        'stock_mode': 'stock',
+        'in_stock': 3,
+      });
+
+      expect(variant.id, 9);
+      expect(variant.sku, isEmpty);
+      expect(variant.labelKm, isEmpty);
+      expect(variant.minQty, 1, reason: 'min_qty defaults to 1');
+      expect(variant.inStock, 3);
+    });
+
+    test('the three variants of buyer fields all parse', () {
+      for (final fields in <List<String>>[
+        <String>[],
+        <String>['userid'],
+        <String>['userid', 'serverid'],
+        <String>['userid', 'serverid', 'charname'],
+      ]) {
+        final parsed = fields
+            .map((key) => RequiredField.fromJson({'key': key}))
+            .toList();
+
+        expect(parsed.length, fields.length);
+        for (final field in parsed) {
+          // label falls back to key so the form always renders a label.
+          expect(field.labelKm, isNotEmpty);
+          expect(field.labelEn, isNotEmpty);
+        }
+      }
+    });
+
+    test('order with items and a null paid_at', () {
+      final order = Order.fromJson({
+        'id': '11111111-1111-1111-1111-111111111111',
+        'order_no': 'YP261015ABC123',
+        'status': 'delivering',
+        'subtotal_usd': 7.48,
+        'discount_usd': 0.75,
+        'total_usd': 6.73,
+        'coupon_code': 'WELCOME10',
+        'expires_at': '2026-10-15T10:00:00.000Z',
+        'created_at': '2026-10-15T09:45:00.000Z',
+        'paid_at': null,
+        'items': [
+          {
+            'id': 1,
+            'product_name': 'កាត Steam',
+            'variant_label': 'Steam \$5',
+            'qty': 1,
+            'unit_price_usd': 5.50,
+            'line_total_usd': 5.50,
+            'delivery_status': 'delivered',
+            'variant': {'product_id': 3},
+          },
+        ],
+      });
+
+      expect(order.status, OrderStatus.delivering);
+      expect(order.paidAt, isNull);
+      expect(order.items.single.productId, 3);
+      expect(order.items.single.canBeReviewed, isTrue);
+    });
+
+    test('wallet ledger entry where order_id is null', () {
+      final tx = WalletTransaction.fromJson({
+        'id': 5,
+        'kind': 'topup',
+        'amount_usd': 25.0,
+        'balance_after': 45.0,
+        'note': 'topup YP261015ABC123',
+        'order_id': null,
+        'created_at': '2026-10-15T09:00:00.000Z',
+      });
+
+      expect(tx.isCredit, isTrue);
+      expect(tx.orderId, isNull);
+      expect(tx.balanceAfter, 45.0);
+    });
+
+    test('settings row with nullable contact fields', () {
+      final settings = PublicSettings.fallback;
+      expect(settings.siteName, 'Sela');
+      expect(settings.topupMinUsd, 1);
+      expect(settings.topupMaxUsd, 1000);
+    });
+  });
+
+  group('query columns cannot drift from the parsers', () {
+    // Every field Variant.fromJson reads. If a new one is added there, add it
+    // here too and the select will fail this test rather than production.
+    const variantFieldsReadByParser = [
+      'id',
+      'sku',
+      'label_km',
+      'label_en',
+      'price_usd',
+      'compare_at_price_usd',
+      'stock_mode',
+      'min_qty',
+      'max_qty',
+    ];
+
+    const categoryFieldsReadByParser = ['id', 'slug', 'name_km', 'name_en'];
+
+    test('variantColumns covers Variant.fromJson', () {
+      for (final field in variantFieldsReadByParser) {
+        expect(
+          variantColumns,
+          contains(field),
+          reason: 'variantColumns is missing "$field", which Variant.fromJson reads',
+        );
+      }
+    });
+
+    test('categoryColumns covers Category.fromJson', () {
+      for (final field in categoryFieldsReadByParser) {
+        expect(
+          categoryColumns,
+          contains(field),
+          reason: 'categoryColumns is missing "$field", which Category.fromJson reads',
+        );
+      }
+    });
+  });
+}

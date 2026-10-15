@@ -46,14 +46,35 @@ If fewer rows come back than were ordered, the pick is rolled back and the line 
 
 ### 1. Supabase
 
+Everything below runs against project `ozelquxztpqpjikhgnxd`.
+
 ```bash
-supabase start                       # local stack
-supabase db reset                    # applies supabase/migrations
+cp .env.local.example .env.local     # fill in the keys, never commit it
+./scripts/setup-supabase.sh
+```
+
+That script checks CLI auth, links the project, applies the migrations, uploads the PayWay secrets, deploys the three Edge Functions, and prints the callback URL to register with ABA plus the Flutter run command.
+
+Where each value comes from in the dashboard:
+
+| `.env.local` key | Dashboard location |
+|---|---|
+| `SUPABASE_PROJECT_REF` | Settings → General → Reference ID |
+| `DATABASE_PASSWORD` | Settings → Database → Connection string |
+| `SUPABASE_URL` | Settings → API → Project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Settings → API → publishable key (older projects: `anon`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Settings → API → secret key (older projects: `service_role`) |
+
+> The service role key bypasses every RLS policy. It belongs in Edge Function secrets and nowhere else: not in the app bundle, not in a chat, not in git. `.env.local` is already gitignored.
+
+Prefer working entirely offline? The migrations also run locally:
+
+```bash
+supabase start
+supabase db reset
 psql "$DB_URL" -f supabase/tests/local_bootstrap.sql   # local-only stubs
 psql "$DB_URL" -f supabase/tests/seed_catalog.sql      # demo catalogue + stock
 ```
-
-For a hosted project, `supabase db push` applies the same migrations.
 
 ### 2. PayWay
 

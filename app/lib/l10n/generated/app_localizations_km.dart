@@ -374,4 +374,33 @@ class AppL10nKm extends AppL10n {
   @override
   String get telegramLinkFailed =>
       'មិនអាចចាប់ផ្ដើមភ្ជាប់បានទេ។ សូមព្យាយាមម្ដងទៀត។';
+
+  @override
+  String get invalidEmail =>
+      'អ៊ីមែលនេះមិនត្រឹមត្រូវទេ។ សូមពិនិត្យមើលថាមានសញ្ញា @ ឬអត់។';
+
+  @override
+  String get continueWithGoogle => 'បន្តដោយ Google';
+
+  @override
+  String get orDivider => 'ឬ';
+
+  @override
+  String otpSentTo(Object email) {
+    return 'យើងបានផ្ញើកូដ ៦ ខ្ទង់ទៅ $email';
+  }
+
+  @override
+  String get useDifferentEmail => 'ប្រើអ៊ីមែលផ្សេង';
+
+  @override
+  String get emailRateLimited =>
+      'ផ្ញើអ៊ីមែលច្រើនពេក។ សូមព្យាយាមម្ដងទៀត ឬប្រើ Google។';
+
+  @override
+  String get providerNotEnabled => 'វិធីចូលនេះមិនទាន់បើកនៅឡើយទេ។';
+
+  @override
+  String get emailOnlyNote =>
+      'ការចូលតាមអ៊ីមែលមានកំណត់ក្នុងការសាកល្បង។ Google គ្មានកំណត់ទេ។';
 }

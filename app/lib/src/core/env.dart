@@ -6,6 +6,12 @@
 ///
 /// Only the client-safe key belongs here. The secret key and the PayWay API key
 /// live in Supabase Edge Function secrets and never ship in the app.
+library;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import 'brand.dart';
+
 class Env {
   const Env._();
 
@@ -28,6 +34,16 @@ class Env {
 
   /// Public bucket for product imagery.
   static const productImageBucket = 'product-images';
+
+  /// OAuth returns here after the provider round trip.
+  ///
+  /// On web the browser lands back on the site. On mobile there is no origin,
+  /// so it uses the `sela://` scheme registered in the native projects.
+  static String get oauthRedirectUrl {
+    if (!kIsWeb) return '${Brand.urlScheme}://auth-callback';
+    const site = String.fromEnvironment('SITE_URL', defaultValue: '');
+    return site.isEmpty ? 'http://localhost:8080' : site;
+  }
 
   /// Values that appear in the committed launch configs. Treating these as
   /// "configured" produces a 401 on every request, which reads as a broken

@@ -375,4 +375,34 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get telegramLinkFailed => 'Could not start linking. Please try again.';
+
+  @override
+  String get invalidEmail =>
+      'That doesn\'t look like an email address. Check for a missing @.';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get orDivider => 'or';
+
+  @override
+  String otpSentTo(Object email) {
+    return 'We sent a 6-digit code to $email';
+  }
+
+  @override
+  String get useDifferentEmail => 'Use a different email';
+
+  @override
+  String get emailRateLimited =>
+      'Too many sign-in emails for now. Please try again later, or use Google.';
+
+  @override
+  String get providerNotEnabled =>
+      'That sign-in method is not switched on yet.';
+
+  @override
+  String get emailOnlyNote =>
+      'Email sign-in is limited while testing. Google sign-in has no limit.';
 }

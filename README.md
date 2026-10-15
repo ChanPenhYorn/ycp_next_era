@@ -151,6 +151,39 @@ The database row of this table is the part that is genuinely verified: `supabase
 
 Stage 5 is the one to exercise next: it needs live sandbox credentials, and payment flows are where assumptions go to die.
 
+## Authentication
+
+Sign-in is Google first, email OTP second. The app asks the project
+`GET /auth/v1/settings` at runtime and renders the Google button only when the
+provider is enabled, so enabling it in the dashboard needs no app rebuild.
+
+**The email limit is the reason Google matters.** Supabase's built-in mailer
+allows **2 emails per hour for the entire project** — not per user. That is
+usable for testing and unusable for launch.
+
+| Method | Cost | Limit | Notes |
+|---|---|---|---|
+| Google | free | none | scopes are non-sensitive, so no Google review |
+| Email + custom SMTP | Resend 3k/mo, Brevo 300/day free | generous | set under Authentication → SMTP |
+| Email, built-in | free | **2/hour** | testing only |
+| Facebook | free | none | dominant in Cambodia |
+| Phone / SMS | per message | provider-dependent | needs Twilio/MessageBird |
+
+### Enabling Google
+
+1. Google Cloud → Auth Platform → create an OAuth client (type: Web application).
+2. Authorised JavaScript origins: your site URL and `http://localhost:8080`.
+3. Authorised redirect URI:
+   `https://<project-ref>.supabase.co/auth/v1/callback`
+4. Paste the client ID and secret into Authentication → Providers → Google.
+5. Add these redirect URLs under Authentication → URL Configuration:
+   - `http://localhost:8080`
+   - `sela://auth-callback` (mobile deep link, see `Brand.urlScheme`)
+
+For Android you also need a second OAuth client of type Android, registered with
+your keystore's SHA-1 fingerprint. There is a different fingerprint for debug
+and release, so add both.
+
 ## Suppliers
 
 Auto top-ups are fulfilled by a supplier adapter. Adding one is a single file

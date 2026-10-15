@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/auth_repository.dart';
 import '../data/catalog_repository.dart';
 import '../data/models.dart';
 import '../data/order_repository.dart';
@@ -17,6 +18,16 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
 
 final supabaseProvider = Provider<SupabaseClient>(
   (ref) => Supabase.instance.client,
+);
+
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => AuthRepository(ref.watch(supabaseProvider)),
+);
+
+/// Which sign-in methods are switched on. Read from the project, so enabling
+/// Google in the dashboard is enough to make the button appear.
+final authCapabilitiesProvider = FutureProvider<AuthCapabilities>(
+  (ref) => ref.watch(authRepositoryProvider).capabilities(),
 );
 
 final catalogRepositoryProvider = Provider<CatalogRepository>(

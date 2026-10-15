@@ -141,5 +141,13 @@
   "openTelegram": "Open Telegram",
   "telegramRefresh": "I have sent it",
   "telegramDisconnect": "Disconnect",
-  "telegramLinkFailed": "Could not start linking. Please try again."
+  "telegramLinkFailed": "Could not start linking. Please try again.",
+  "invalidEmail": "That doesn't look like an email address. Check for a missing @.",
+  "continueWithGoogle": "Continue with Google",
+  "orDivider": "or",
+  "otpSentTo": "We sent a 6-digit code to {email}",
+  "useDifferentEmail": "Use a different email",
+  "emailRateLimited": "Too many sign-in emails for now. Please try again later, or use Google.",
+  "providerNotEnabled": "That sign-in method is not switched on yet.",
+  "emailOnlyNote": "Email sign-in is limited while testing. Google sign-in has no limit."
 }

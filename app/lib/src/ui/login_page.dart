@@ -4,11 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/auth_repository.dart';
+
 import '../core/theme.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 
-/// Passwordless email OTP. Nothing to store, nothing to leak.
+/// Passwordless sign-in: Google where it is enabled, email OTP otherwise.
+///
+/// Note on email: Supabase's built-in mailer allows only 2 emails per hour for
+/// the whole project. That is fine for testing and not fine for launch, so the
+/// UI says so plainly instead of leaving people stuck.
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -34,6 +40,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
+    final capabilities = ref.watch(authCapabilitiesProvider);
 
     return Scaffold(
       appBar: AppBar(),
@@ -58,18 +65,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   l10n.loginSubtitle,
                   style: const TextStyle(fontSize: 12, color: AppColors.ink400),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 24),
+
+                // Social first: no rate limit, one tap, and it is what most
+                // people will reach for.
+                ...capabilities.maybeWhen(
+                  data: (caps) => caps.google
+                      ? [
+                          FilledButton.icon(
+                            onPressed: _busy ? null : _google,
+                            icon: const Icon(Icons.g_mobiledata, size: 26),
+                            label: Text(l10n.continueWithGoogle),
+                          ),
+                          const SizedBox(height: 18),
+                          _Divider(label: l10n.orDivider),
+                          const SizedBox(height: 18),
+                        ]
+                      : <Widget>[],
+                  orElse: () => <Widget>[],
+                ),
+
                 TextField(
                   controller: _email,
                   enabled: !_codeSent,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.done,
+                  autocorrect: false,
+                  onChanged: (_) {
+                    if (_error != null) setState(() => _error = null);
+                  },
                   decoration: InputDecoration(
                     labelText: l10n.emailLabel,
                     errorText: _error,
                     prefixIcon: const Icon(Icons.mail_outline, size: 18),
                   ),
                 ),
+
                 if (_codeSent) ...[
                   const SizedBox(height: 14),
                   TextField(
@@ -86,6 +117,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                 ],
+
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: _busy ? null : (_codeSent ? _verify : _sendCode),
@@ -97,14 +129,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         )
                       : Text(_codeSent ? l10n.verify : l10n.sendCode),
                 ),
+
                 if (_codeSent)
                   TextButton(
                     onPressed: () => setState(() {
                       _codeSent = false;
+                      _token.clear();
                       _error = null;
                     }),
-                    child: Text(l10n.emailLabel),
+                    child: Text(l10n.useDifferentEmail),
                   ),
+
+                const SizedBox(height: 10),
+                Text(
+                  l10n.emailOnlyNote,
+                  style: const TextStyle(fontSize: 11, color: AppColors.ink400),
+                ),
               ],
             ),
           ),
@@ -113,10 +153,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
+  Future<void> _google() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+      // Web redirects away; mobile returns through the deep link and the auth
+      // stream refreshes the router.
+      if (mounted) setState(() => _busy = false);
+    } on AuthException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = _message(error, AppL10n.of(context));
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = AppL10n.of(context).somethingWentWrong;
+      });
+    }
+  }
+
   Future<void> _sendCode() async {
+    final l10n = AppL10n.of(context);
+    // Trim first: a trailing space is a common paste artefact.
     final email = _email.text.trim();
-    if (!email.contains('@')) {
-      setState(() => _error = AppL10n.of(context).emailLabel);
+
+    if (!isLikelyEmail(email)) {
+      // Name the actual problem. The previous copy just repeated the field
+      // label, which told the user nothing.
+      setState(() => _error = l10n.invalidEmail);
       return;
     }
 
@@ -126,37 +197,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      await ref.read(supabaseProvider).auth.signInWithOtp(email: email);
+      await ref.read(authRepositoryProvider).signInWithOtp(email);
       if (!mounted) return;
       setState(() {
         _busy = false;
         _codeSent = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppL10n.of(context).codeSent(email))),
+        SnackBar(content: Text(l10n.otpSentTo(email))),
       );
     } on AuthException catch (error) {
+      if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = error.message;
+        _error = _message(error, l10n);
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = AppL10n.of(context).somethingWentWrong;
+        _error = l10n.somethingWentWrong;
       });
     }
   }
 
   Future<void> _verify() async {
+    final l10n = AppL10n.of(context);
     setState(() {
       _busy = true;
       _error = null;
     });
 
     try {
-      await ref.read(supabaseProvider).auth.verifyOTP(
-            type: OtpType.email,
+      await ref.read(authRepositoryProvider).verifyOtp(
             email: _email.text.trim(),
             token: _token.text.trim(),
           );
@@ -164,15 +237,57 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       setState(() => _busy = false);
       context.go('/');
     } on AuthException catch (error) {
+      if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = error.message;
+        _error = _message(error, l10n);
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = AppL10n.of(context).somethingWentWrong;
+        _error = l10n.somethingWentWrong;
       });
     }
+  }
+
+  /// Supabase's raw messages are accurate but unfriendly, and the rate limit
+  /// one is guaranteed to happen on the built-in mailer.
+  String _message(AuthException error, AppL10n l10n) {
+    final raw = error.message.toLowerCase();
+
+    if (raw.contains('rate limit') || error.statusCode == '429') {
+      return l10n.emailRateLimited;
+    }
+    if (raw.contains('not enabled') || raw.contains('provider')) {
+      return l10n.providerNotEnabled;
+    }
+    if (raw.contains('invalid') && raw.contains('email')) {
+      return l10n.invalidEmail;
+    }
+    return error.message;
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.ink400),
+          ),
+        ),
+        const Expanded(child: Divider()),
+      ],
+    );
   }
 }

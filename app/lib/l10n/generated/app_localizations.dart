@@ -804,6 +804,54 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Could not start linking. Please try again.'**
   String get telegramLinkFailed;
+
+  /// No description provided for @invalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like an email address. Check for a missing @.'**
+  String get invalidEmail;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// No description provided for @orDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get orDivider;
+
+  /// No description provided for @otpSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}'**
+  String otpSentTo(Object email);
+
+  /// No description provided for @useDifferentEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a different email'**
+  String get useDifferentEmail;
+
+  /// No description provided for @emailRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many sign-in emails for now. Please try again later, or use Google.'**
+  String get emailRateLimited;
+
+  /// No description provided for @providerNotEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'That sign-in method is not switched on yet.'**
+  String get providerNotEnabled;
+
+  /// No description provided for @emailOnlyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Email sign-in is limited while testing. Google sign-in has no limit.'**
+  String get emailOnlyNote;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

@@ -103,9 +103,12 @@ class _ProductPageState extends ConsumerState<ProductPage> {
             ),
             const SizedBox(height: 6),
             Text(
-              product.card.kind == ProductKind.instantStock
-                  ? l10n.deliveryInstant
-                  : l10n.deliveryManual,
+              // Only a manual setup waits on staff. An auto top-up is fulfilled
+              // by the supplier worker within seconds, so saying "within 15
+              // minutes" undersells it and reads as a different product.
+              product.card.kind == ProductKind.manualSetup
+                  ? l10n.deliveryManual
+                  : l10n.deliveryInstant,
               style: const TextStyle(fontSize: 12, color: AppColors.accent),
             ),
             if (variants.length > 1) ...[

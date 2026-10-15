@@ -47,7 +47,10 @@ class CatalogRepository {
     final rows = await _client
         .from('categories')
         .select('id, slug, name_km, name_en')
-        .order('sort_order');
+        // supabase-dart's order() defaults to DESCENDING, which silently
+        // reversed every sort_order list: the catalogue read right to left and
+        // a supplier game showed its 112 packs highest-price-first.
+        .order('sort_order', ascending: true);
 
     return rows.map(Category.fromJson).toList();
   }
@@ -77,7 +80,7 @@ class CatalogRepository {
       );
     }
 
-    final rows = await query.order('sort_order').limit(limit);
+    final rows = await query.order('sort_order', ascending: true).limit(limit);
 
     final stock = await _stockFor([
       for (final row in rows)
@@ -107,7 +110,7 @@ class CatalogRepository {
         .from('product_variants')
         .select('$variantColumns, sort_order')
         .eq('product_id', row['id'])
-        .order('sort_order');
+        .order('sort_order', ascending: true);
 
     final stock = await _stockFor(
       variantRows.map((v) => (v['id'] as num).toInt()).toList(),

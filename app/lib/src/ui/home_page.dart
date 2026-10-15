@@ -9,6 +9,7 @@ import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/home_sections.dart';
 import 'widgets/product_card.dart';
+import 'widgets/store_footer.dart';
 
 /// Home, in the order `implement.md` §6 asks for: search, popular games,
 /// promotions, how it works, trust and support.
@@ -67,14 +68,19 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _SearchField(
-            controller: _searchController,
-            hint: l10n.searchGames,
-            onSubmitted: _submitSearch,
-          ),
-          const SizedBox(height: 12),
+          const HomeHero(),
+          const SizedBox(height: 14),
+          // Wide screens already carry the search in the top bar.
+          if (MediaQuery.sizeOf(context).width < 900) ...[
+            _SearchField(
+              controller: _searchController,
+              hint: l10n.searchGames,
+              onSubmitted: _submitSearch,
+            ),
+            const SizedBox(height: 12),
+          ],
           const TrustRow(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
           AsyncValueView(
             value: categories,
             onRetry: () => ref.invalidate(categoriesProvider),
@@ -134,7 +140,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             onRetry: () => ref.invalidate(productsProvider),
             builder: (items) => _Grid(products: items),
           ),
-          const SizedBox(height: 30),
+          const StoreFooter(),
         ],
       ),
     );

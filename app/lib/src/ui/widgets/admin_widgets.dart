@@ -133,11 +133,11 @@ class AdminSection extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 14),
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: AppColors.ink900,
       border: Border.all(color: AppColors.ink800),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadius.card),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,10 +314,7 @@ class AdminChipRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 6),
             child: ChoiceChip(
-              label: Text(
-                option.label,
-                style: const TextStyle(fontSize: 11.5),
-              ),
+              label: Text(option.label, style: const TextStyle(fontSize: 11.5)),
               selected: option.value == selected,
               onSelected: (_) => onSelected(option.value),
             ),

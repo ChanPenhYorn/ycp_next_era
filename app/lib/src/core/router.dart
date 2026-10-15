@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,6 +20,35 @@ import '../ui/orders_page.dart';
 import '../ui/product_page.dart';
 import '../ui/home_page.dart';
 import '../ui/widgets/app_shell.dart';
+
+/// One transition for every route: a short fade with a small rise. The default
+/// platform slide reads as a jump on this dark UI, and tabs should not slide
+/// sideways at all.
+Page<void> _fadePage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 240),
+    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: (context, animation, secondary, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.02),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -48,76 +78,107 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) =>
             AppShell(location: state.matchedLocation, child: child),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const HomePage()),
+          GoRoute(
+            path: '/',
+            pageBuilder: (context, state) => _fadePage(state, const HomePage()),
+          ),
           GoRoute(
             path: '/products',
-            builder: (context, state) => CatalogPage(
-              categorySlug: state.uri.queryParameters['category'],
-              search: state.uri.queryParameters['q'],
+            pageBuilder: (context, state) => _fadePage(
+              state,
+              CatalogPage(
+                categorySlug: state.uri.queryParameters['category'],
+                search: state.uri.queryParameters['q'],
+              ),
             ),
           ),
           GoRoute(
             path: '/products/:slug',
-            builder: (context, state) =>
-                ProductPage(slug: state.pathParameters['slug']!),
+            pageBuilder: (context, state) => _fadePage(
+              state,
+              ProductPage(slug: state.pathParameters['slug']!),
+            ),
           ),
-          GoRoute(path: '/cart', builder: (context, state) => const CartPage()),
+          GoRoute(
+            path: '/cart',
+            pageBuilder: (context, state) => _fadePage(state, const CartPage()),
+          ),
           GoRoute(
             path: '/wallet',
-            builder: (context, state) => const WalletPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const WalletPage()),
           ),
           GoRoute(
             path: '/account',
-            builder: (context, state) => const AccountPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AccountPage()),
           ),
           GoRoute(
             path: '/checkout',
-            builder: (context, state) => const CheckoutPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const CheckoutPage()),
           ),
           GoRoute(
             path: '/orders',
-            builder: (context, state) => const OrdersPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const OrdersPage()),
           ),
           GoRoute(
             path: '/orders/:id',
-            builder: (context, state) =>
-                OrderDetailPage(orderId: state.pathParameters['id']!),
+            pageBuilder: (context, state) => _fadePage(
+              state,
+              OrderDetailPage(orderId: state.pathParameters['id']!),
+            ),
           ),
           // Staff surface. Every page re-checks the role before it reads
           // anything, and the database re-checks it on every RPC.
           GoRoute(
             path: '/admin',
-            builder: (context, state) => const AdminPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AdminPage()),
           ),
           GoRoute(
             path: '/admin/orders',
-            builder: (context, state) => AdminOrdersPage(
-              initialStatus: state.uri.queryParameters['status'],
+            pageBuilder: (context, state) => _fadePage(
+              state,
+              AdminOrdersPage(
+                initialStatus: state.uri.queryParameters['status'],
+              ),
             ),
           ),
           GoRoute(
             path: '/admin/orders/:id',
-            builder: (context, state) =>
-                AdminOrderDetailPage(orderId: state.pathParameters['id']!),
+            pageBuilder: (context, state) => _fadePage(
+              state,
+              AdminOrderDetailPage(orderId: state.pathParameters['id']!),
+            ),
           ),
           GoRoute(
             path: '/admin/refunds',
-            builder: (context, state) => const AdminRefundsPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AdminRefundsPage()),
           ),
           GoRoute(
             path: '/admin/support',
-            builder: (context, state) => AdminSupportPage(
-              initialStatus: state.uri.queryParameters['status'],
+            pageBuilder: (context, state) => _fadePage(
+              state,
+              AdminSupportPage(
+                initialStatus: state.uri.queryParameters['status'],
+              ),
             ),
           ),
           GoRoute(
             path: '/admin/transfers',
-            builder: (context, state) => const AdminTransfersPage(),
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AdminTransfersPage()),
           ),
         ],
       ),
       // Full-screen routes: no bottom navigation while paying or signing in.
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (context, state) => _fadePage(state, const LoginPage()),
+      ),
     ],
   );
 });

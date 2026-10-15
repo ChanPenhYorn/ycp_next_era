@@ -77,6 +77,16 @@ class AppL10nEn extends AppL10n {
   String get trustInstant => 'Automatic delivery';
 
   @override
+  String get heroTitle => 'Top up your games in seconds';
+
+  @override
+  String get heroSubtitle =>
+      'Game top-ups and gift cards. Pay with ABA KHQR and get your order delivered automatically.';
+
+  @override
+  String get heroCta => 'Browse games';
+
+  @override
   String get trustPayment => 'Pay with ABA KHQR';
 
   @override
@@ -159,6 +169,9 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get payWithWallet => 'Pay from wallet';
+
+  @override
+  String get paymentMethod => 'Payment method';
 
   @override
   String get scanQr => 'Scan with any banking app';

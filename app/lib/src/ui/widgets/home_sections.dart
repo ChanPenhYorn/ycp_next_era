@@ -248,6 +248,100 @@ class TrustAndSupportSection extends StatelessWidget {
   }
 }
 
+/// Top-of-home banner: one clear promise and one clear action.
+class HomeHero extends StatelessWidget {
+  const HomeHero({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppL10n.of(context);
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(wide ? 40 : 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.hero),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2F6BFF), Color(0xFF1B2F7A), AppColors.ink900],
+          stops: [0, 0.55, 1],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.brand.withValues(alpha: 0.25),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt_rounded, size: 14, color: Colors.white),
+                const SizedBox(width: 4),
+                Text(
+                  l10n.trustInstant,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.heroTitle,
+            style: TextStyle(
+              fontSize: wide ? 34 : 24,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.2,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Text(
+              l10n.heroSubtitle,
+              style: TextStyle(
+                fontSize: wide ? 15 : 13.5,
+                color: Colors.white.withValues(alpha: 0.78),
+                height: 1.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: () => context.go('/products'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.brandDark,
+              minimumSize: const Size(0, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+            ),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            label: Text(l10n.heroCta),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class TrustRow extends StatelessWidget {
   const TrustRow({super.key});
 

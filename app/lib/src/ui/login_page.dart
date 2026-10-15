@@ -10,6 +10,7 @@ import '../core/env.dart';
 import '../core/theme.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
+import 'widgets/brand_mark.dart';
 
 /// Passwordless sign-in: Google where it is enabled, email OTP otherwise.
 ///
@@ -53,6 +54,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: BrandMark(size: 52),
+                ),
+                const SizedBox(height: 22),
                 Text(
                   l10n.loginTitle,
                   style: const TextStyle(

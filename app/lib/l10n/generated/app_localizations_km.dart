@@ -9,7 +9,7 @@ class AppL10nKm extends AppL10n {
   AppL10nKm([String locale = 'km']) : super(locale);
 
   @override
-  String get appTitle => 'សេឡា';
+  String get appTitle => 'ចាន់ពេញ';
 
   @override
   String get searchHint => 'ស្វែងរកផលិតផល';
@@ -75,6 +75,16 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get trustInstant => 'ដឹកជញ្ជូនស្វ័យប្រវត្តិ';
+
+  @override
+  String get heroTitle => 'បញ្ចូលទឹកប្រាក់ហ្គេមក្នុងរយៈពេលពីរបីវិនាទី';
+
+  @override
+  String get heroSubtitle =>
+      'បញ្ចូលទឹកប្រាក់ហ្គេម និងកាតកាដូ។ បង់ប្រាក់តាម ABA KHQR ហើយទទួលការបញ្ជាទិញដោយស្វ័យប្រវត្តិ។';
+
+  @override
+  String get heroCta => 'មើលហ្គេម';
 
   @override
   String get trustPayment => 'បង់ប្រាក់តាម ABA KHQR';
@@ -159,6 +169,9 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get payWithWallet => 'បង់ដោយកាបូបលុយ';
+
+  @override
+  String get paymentMethod => 'វិធីបង់ប្រាក់';
 
   @override
   String get scanQr => 'ស្កេនដោយកម្មវិធីធនាគារណាមួយ';

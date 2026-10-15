@@ -1,11 +1,11 @@
 {
-    "name": "ycp_store",
-    "short_name": "ycp_store",
+    "name": "Chanpenh",
+    "short_name": "Chanpenh",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0B0F19",
+    "theme_color": "#2F6BFF",
+    "description": "Game top-ups and gift cards, paid with ABA KHQR and delivered automatically.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

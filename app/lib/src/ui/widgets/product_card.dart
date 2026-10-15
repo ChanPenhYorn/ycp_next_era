@@ -22,12 +22,12 @@ class ProductCardTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () => context.go('/products/${product.slug}'),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.ink900,
           border: Border.all(color: AppColors.ink800),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -39,23 +39,13 @@ class ProductCardTile extends ConsumerWidget {
                 fit: StackFit.expand,
                 children: [
                   product.imageUrl == null
-                      ? const ColoredBox(
-                          color: AppColors.ink850,
-                          child: Center(
-                            child: Text('📦', style: TextStyle(fontSize: 30)),
-                          ),
-                        )
+                      ? const _ArtPlaceholder()
                       : CachedNetworkImage(
                           imageUrl: product.imageUrl!,
                           fit: BoxFit.cover,
                           placeholder: (_, _) =>
                               const ColoredBox(color: AppColors.ink850),
-                          errorWidget: (_, _, _) => const ColoredBox(
-                            color: AppColors.ink850,
-                            child: Center(
-                              child: Text('📦', style: TextStyle(fontSize: 30)),
-                            ),
-                          ),
+                          errorWidget: (_, _, _) => const _ArtPlaceholder(),
                         ),
                   if (off != null)
                     Positioned(
@@ -100,8 +90,8 @@ class ProductCardTile extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
                       height: 1.35,
                     ),
@@ -181,6 +171,24 @@ class ProductCardTile extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtPlaceholder extends StatelessWidget {
+  const _ArtPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: AppColors.ink850,
+      child: Center(
+        child: Icon(
+          Icons.sports_esports_outlined,
+          size: 34,
+          color: AppColors.ink400,
         ),
       ),
     );

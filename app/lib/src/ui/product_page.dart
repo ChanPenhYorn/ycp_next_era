@@ -73,133 +73,138 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           ),
         );
 
-        return Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _Gallery(product: product),
-                  const SizedBox(height: 16),
-                  Row(
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
                     children: [
-                      Expanded(
-                        child: Text(
-                          product.name(locale),
+                      _Gallery(product: product),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              product.name(locale),
+                              style: const TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _MetaRow(product: product, l10n: l10n),
+                      if (product.description != null) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          product.description!,
                           style: const TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            height: 1.4,
+                            fontSize: 13,
+                            color: AppColors.ink200,
+                            height: 1.7,
                           ),
                         ),
+                      ],
+                      const SizedBox(height: 20),
+                      Text(
+                        l10n.deliveryTime,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        // Only a manual setup waits on staff. An auto top-up is fulfilled
+                        // by the supplier worker within seconds, so saying "within 15
+                        // minutes" undersells it and reads as a different product.
+                        product.card.kind == ProductKind.manualSetup
+                            ? l10n.deliveryManual
+                            : l10n.deliveryInstant,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                      if (variants.length > 1) ...[
+                        const SizedBox(height: 20),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final variant in variants)
+                              ChoiceChip(
+                                label: Text(
+                                  '${variant.label(locale)} · ${money(variant.priceUsd)}',
+                                ),
+                                selected: variant.id == selected.id,
+                                onSelected: variant.isSoldOut
+                                    ? null
+                                    : (_) => setState(() {
+                                        _selectedVariantId = variant.id;
+                                        _qty = variant.minQty;
+                                      }),
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (product.requiresFields.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          l10n.requiredInfo,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        RequiredFieldsForm(
+                          fields: product.requiresFields,
+                          locale: locale,
+                          controllerFor: _controllerFor,
+                          errors: _fieldErrors,
+                          onChanged: (field) {
+                            if (_fieldErrors[field.key] != null) {
+                              setState(
+                                () =>
+                                    _fieldErrors = {..._fieldErrors}
+                                      ..remove(field.key),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      _QuantityRow(
+                        label: l10n.quantity,
+                        variant: selected,
+                        qty: _qty,
+                        onChanged: (value) => setState(() => _qty = value),
+                      ),
+                      const SizedBox(height: 26),
+                      _Reviews(productId: product.card.id, l10n: l10n),
+                      const SizedBox(height: 30),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  _MetaRow(product: product, l10n: l10n),
-                  if (product.description != null) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      product.description!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.ink200,
-                        height: 1.7,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  Text(
-                    l10n.deliveryTime,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    // Only a manual setup waits on staff. An auto top-up is fulfilled
-                    // by the supplier worker within seconds, so saying "within 15
-                    // minutes" undersells it and reads as a different product.
-                    product.card.kind == ProductKind.manualSetup
-                        ? l10n.deliveryManual
-                        : l10n.deliveryInstant,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  if (variants.length > 1) ...[
-                    const SizedBox(height: 20),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final variant in variants)
-                          ChoiceChip(
-                            label: Text(
-                              '${variant.label(locale)} · ${money(variant.priceUsd)}',
-                            ),
-                            selected: variant.id == selected.id,
-                            onSelected: variant.isSoldOut
-                                ? null
-                                : (_) => setState(() {
-                                    _selectedVariantId = variant.id;
-                                    _qty = variant.minQty;
-                                  }),
-                          ),
-                      ],
-                    ),
-                  ],
-                  if (product.requiresFields.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    Text(
-                      l10n.requiredInfo,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    RequiredFieldsForm(
-                      fields: product.requiresFields,
-                      locale: locale,
-                      controllerFor: _controllerFor,
-                      errors: _fieldErrors,
-                      onChanged: (field) {
-                        if (_fieldErrors[field.key] != null) {
-                          setState(
-                            () =>
-                                _fieldErrors = {..._fieldErrors}
-                                  ..remove(field.key),
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  _QuantityRow(
-                    label: l10n.quantity,
-                    variant: selected,
-                    qty: _qty,
-                    onChanged: (value) => setState(() => _qty = value),
-                  ),
-                  const SizedBox(height: 26),
-                  _Reviews(productId: product.card.id, l10n: l10n),
-                  const SizedBox(height: 30),
-                ],
-              ),
+                ),
+                _BuyBar(
+                  total: money(selected.priceUsd * _qty),
+                  soldOut: selected.isSoldOut,
+                  addLabel: l10n.addToCart,
+                  buyLabel: l10n.buyNow,
+                  onAdd: () => _addToCart(l10n, product, selected),
+                  onBuy: () => _buyNow(l10n, product, selected),
+                ),
+              ],
             ),
-            _BuyBar(
-              total: money(selected.priceUsd * _qty),
-              soldOut: selected.isSoldOut,
-              addLabel: l10n.addToCart,
-              buyLabel: l10n.buyNow,
-              onAdd: () => _addToCart(l10n, product, selected),
-              onBuy: () => _buyNow(l10n, product, selected),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -440,14 +445,18 @@ class _Gallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       child: AspectRatio(
         aspectRatio: 16 / 9,
         child: product.card.imageUrl == null
             ? const ColoredBox(
                 color: AppColors.ink850,
                 child: Center(
-                  child: Text('📦', style: TextStyle(fontSize: 44)),
+                  child: Icon(
+                    Icons.sports_esports_outlined,
+                    size: 48,
+                    color: AppColors.ink400,
+                  ),
                 ),
               )
             : CachedNetworkImage(

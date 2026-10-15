@@ -40,6 +40,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
   bool _busy = false;
 
+  _PayMethod _method = _PayMethod.khqr;
+
   @override
   void initState() {
     super.initState();
@@ -81,11 +83,212 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     final l10n = AppL10n.of(context);
     final lines = ref.watch(cartControllerProvider);
     final subtotal = ref.watch(cartSubtotalProvider);
-    final profile = ref.watch(profileProvider);
+    final profile = ref.watch(profileProvider).valueOrNull;
     final total = (subtotal - (_couponDiscount ?? 0)).clamp(0, double.infinity);
+    final wide = MediaQuery.sizeOf(context).width >= 900;
 
     if (lines.isEmpty) {
       return Center(child: Text(l10n.cartEmpty));
+    }
+
+    final needsFields = lines.where((line) => line.needsFields).toList();
+    final balance = profile?.walletBalance;
+
+    final sections = <({String title, Widget child})>[
+      if (needsFields.isNotEmpty)
+        (
+          title: l10n.requiredInfo,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final line in needsFields) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '${line.productName} · ${line.variantLabel}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.ink400,
+                    ),
+                  ),
+                ),
+                RequiredFieldsForm(
+                  fields: line.requiredFields,
+                  locale: Localizations.localeOf(context).languageCode,
+                  controllerFor: (field) =>
+                      _controllerFor(line.variantId, field),
+                  // Keyed per line, because two lines can declare the same
+                  // field name and only one of them may be the problem.
+                  errors: {
+                    for (final field in line.requiredFields)
+                      field.key:
+                          _fieldErrors[_fieldKey(line.variantId, field.key)],
+                  },
+                  onChanged: (field) {
+                    final key = _fieldKey(line.variantId, field.key);
+                    if (_fieldErrors[key] != null) {
+                      setState(
+                        () => _fieldErrors = {..._fieldErrors}..remove(key),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      (
+        title: l10n.contactEmail,
+        child: Column(
+          children: [
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(labelText: l10n.contactEmail),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _note,
+              maxLines: 2,
+              decoration: InputDecoration(labelText: l10n.note),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _coupon,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: l10n.coupon,
+                      errorText: _couponError,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 100,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _busy ? null : () => _applyCoupon(subtotal),
+                    child: Text(l10n.apply),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      (
+        title: l10n.paymentMethod,
+        child: Column(
+          children: [
+            _MethodTile(
+              icon: Icons.qr_code_2,
+              title: l10n.payWithKhqr,
+              subtitle: l10n.scanQr,
+              selected: _method == _PayMethod.khqr,
+              onTap: () => setState(() => _method = _PayMethod.khqr),
+            ),
+            const SizedBox(height: 8),
+            _MethodTile(
+              icon: Icons.account_balance_wallet_outlined,
+              title: l10n.payWithWallet,
+              subtitle: balance == null
+                  ? l10n.loading
+                  : '${l10n.walletBalance} · ${money(balance)}',
+              selected: _method == _PayMethod.wallet,
+              onTap: () => setState(() => _method = _PayMethod.wallet),
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    final summary = _Panel(
+      title: l10n.orderSummary,
+      child: Column(
+        children: [
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${line.productName} · ${line.variantLabel} x${line.qty}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  Text(
+                    money(line.lineTotal),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          const Divider(),
+          _row(l10n.subtotal, money(subtotal)),
+          if ((_couponDiscount ?? 0) > 0)
+            _row(
+              l10n.discount,
+              '-${money(_couponDiscount!)}',
+              color: AppColors.accent,
+            ),
+          _row(l10n.total, money(total), bold: true),
+          const SizedBox(height: 16),
+          _payButton(l10n, total, balance),
+          if (_busy) ...[
+            const SizedBox(height: 14),
+            const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final stepPanels = [
+      for (var i = 0; i < sections.length; i++) ...[
+        _Panel(step: i + 1, title: sections[i].title, child: sections[i].child),
+        const SizedBox(height: 12),
+      ],
+    ];
+
+    if (wide) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  Text(
+                    l10n.checkout,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...stepPanels,
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            SizedBox(width: 340, child: summary),
+          ],
+        ),
+      );
     }
 
     return ListView(
@@ -94,178 +297,49 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         Text(
           l10n.checkout,
           style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 16),
-        _Panel(
-          title: l10n.orderSummary,
-          child: Column(
-            children: [
-              for (final line in lines)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${line.productName} · ${line.variantLabel} x${line.qty}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      Text(
-                        money(line.lineTotal),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              const Divider(),
-              _row(l10n.subtotal, money(subtotal)),
-              if ((_couponDiscount ?? 0) > 0)
-                _row(
-                  l10n.discount,
-                  '-${money(_couponDiscount!)}',
-                  color: AppColors.accent,
-                ),
-              _row(l10n.total, money(total), bold: true),
-            ],
-          ),
-        ),
-        if (lines.any((line) => line.needsFields)) ...[
-          const SizedBox(height: 12),
-          _Panel(
-            title: l10n.requiredInfo,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final line in lines.where((l) => l.needsFields)) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      '${line.productName} · ${line.variantLabel}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.ink400,
-                      ),
-                    ),
-                  ),
-                  RequiredFieldsForm(
-                    fields: line.requiredFields,
-                    locale: Localizations.localeOf(context).languageCode,
-                    controllerFor: (field) =>
-                        _controllerFor(line.variantId, field),
-                    // Keyed per line, because two lines can declare the same
-                    // field name and only one of them may be the problem.
-                    errors: {
-                      for (final field in line.requiredFields)
-                        field.key:
-                            _fieldErrors[_fieldKey(line.variantId, field.key)],
-                    },
-                    onChanged: (field) {
-                      final key = _fieldKey(line.variantId, field.key);
-                      if (_fieldErrors[key] != null) {
-                        setState(
-                          () => _fieldErrors = {..._fieldErrors}..remove(key),
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        _Panel(
-          title: l10n.contactEmail,
-          child: Column(
-            children: [
-              TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: l10n.contactEmail),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _note,
-                maxLines: 2,
-                decoration: InputDecoration(labelText: l10n.note),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _coupon,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: InputDecoration(
-                        labelText: l10n.coupon,
-                        errorText: _couponError,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    width: 100,
-                    child: FilledButton(
-                      onPressed: _busy ? null : () => _applyCoupon(subtotal),
-                      child: Text(l10n.apply),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: _busy ? null : _payWithKhqr,
-          icon: const Icon(Icons.qr_code_2, size: 20),
-          label: Text(l10n.payWithKhqr),
-        ),
-        const SizedBox(height: 10),
-        profile.maybeWhen(
-          data: (value) {
-            if (value == null) return const SizedBox.shrink();
-            // Short on balance: send them to top up rather than dead-ending
-            // on a disabled button.
-            final enough = value.walletBalance >= total;
-
-            return OutlinedButton.icon(
-              onPressed: _busy
-                  ? null
-                  : enough
-                  ? () => _payWithWallet(value.walletBalance)
-                  : () => context.go('/wallet'),
-              icon: Icon(
-                enough ? Icons.account_balance_wallet_outlined : Icons.add_card,
-                size: 18,
-              ),
-              label: Text(
-                enough
-                    ? '${l10n.payWithWallet} · ${money(value.walletBalance)}'
-                    : '${l10n.walletTopup} · ${money(value.walletBalance)}',
-              ),
-            );
-          },
-          orElse: () => const SizedBox.shrink(),
-        ),
-        if (_busy) ...[
-          const SizedBox(height: 16),
-          const Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-        ],
+        const SizedBox(height: 14),
+        ...stepPanels,
+        summary,
         const SizedBox(height: 30),
       ],
+    );
+  }
+
+  /// One button, whose action follows the selected method. Wallet short on
+  /// balance becomes a top-up link instead of a dead-end disabled button.
+  Widget _payButton(AppL10n l10n, num total, double? balance) {
+    final wallet = _method == _PayMethod.wallet;
+    final walletEnough = balance != null && balance >= total;
+
+    if (!wallet) {
+      return FilledButton.icon(
+        onPressed: _busy ? null : _payWithKhqr,
+        icon: const Icon(Icons.qr_code_2, size: 20),
+        label: Text('${l10n.payWithKhqr} · ${money(total)}'),
+      );
+    }
+
+    if (balance == null) {
+      return FilledButton(onPressed: null, child: Text(l10n.loading));
+    }
+
+    if (!walletEnough) {
+      return FilledButton.icon(
+        onPressed: _busy ? null : () => context.go('/wallet'),
+        icon: const Icon(Icons.add_card, size: 20),
+        label: Text('${l10n.walletTopup} · ${money(balance)}'),
+      );
+    }
+
+    return FilledButton.icon(
+      onPressed: _busy ? null : () => _payWithWallet(balance),
+      icon: const Icon(Icons.account_balance_wallet_outlined, size: 20),
+      label: Text('${l10n.payWithWallet} · ${money(total)}'),
     );
   }
 
@@ -547,34 +621,137 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   }
 }
 
+enum _PayMethod { khqr, wallet }
+
+class _MethodTile extends StatelessWidget {
+  const _MethodTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.tile),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.brand.withValues(alpha: 0.12)
+              : AppColors.ink850,
+          border: Border.all(
+            color: selected ? AppColors.brand : AppColors.ink700,
+            width: selected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: selected ? AppColors.brand : AppColors.ink200,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.ink400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              size: 20,
+              color: selected ? AppColors.brand : AppColors.ink400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child});
+  const _Panel({required this.title, required this.child, this.step});
 
   final String title;
   final Widget child;
+  final int? step;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.ink900,
         border: Border.all(color: AppColors.ink800),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              if (step != null) ...[
+                Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.brand.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    '$step',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.brand,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           child,
         ],
       ),

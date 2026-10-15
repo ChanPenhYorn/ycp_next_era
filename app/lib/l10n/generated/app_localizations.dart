@@ -229,6 +229,24 @@ abstract class AppL10n {
   /// **'Automatic delivery'**
   String get trustInstant;
 
+  /// No description provided for @heroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up your games in seconds'**
+  String get heroTitle;
+
+  /// No description provided for @heroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Game top-ups and gift cards. Pay with ABA KHQR and get your order delivered automatically.'**
+  String get heroSubtitle;
+
+  /// No description provided for @heroCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse games'**
+  String get heroCta;
+
   /// No description provided for @trustPayment.
   ///
   /// In en, this message translates to:
@@ -396,6 +414,12 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Pay from wallet'**
   String get payWithWallet;
+
+  /// No description provided for @paymentMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment method'**
+  String get paymentMethod;
 
   /// No description provided for @scanQr.
   ///

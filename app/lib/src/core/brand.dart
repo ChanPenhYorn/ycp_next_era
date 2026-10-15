@@ -8,10 +8,7 @@ class Brand {
   const Brand._();
 
   static const name = 'Chanpenh';
-  static const nameKm = 'សេឡា';
-
-  /// Drawn in the header mark and the launcher icon.
-  static const monogram = 'SE';
+  static const nameKm = 'ចាន់ពេញ';
 
   static const taglineKm = 'ទិញភ្លាមៗ ទទួលភ្លាមៗ';
   static const taglineEn = 'Buy now, delivered now';

@@ -25,7 +25,8 @@ class AppColors {
 class AppRadius {
   const AppRadius._();
 
-  static const card = 16.0;
+  static const hero = 22.0;
+  static const card = 18.0;
   static const control = 14.0;
   static const tile = 12.0;
 }

@@ -31,3 +31,6 @@ supabase/.temp
 
 # Wrangler local state (account ids, cache)
 .wrangler/
+
+# Local credential dump; never commit.
+credential_info.txt

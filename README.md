@@ -217,7 +217,7 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 5a | Manual transfer fallback: buyer asks, staff confirm against the bank, one settlement path | `[x]` |
 | 5b | Staff operations at `/admin`: overview, orders, refunds, support | `[x]` |
 | 6 | Orders: history, detail, reveal codes | `[~]` |
-| 7 | Auth: passwordless email OTP | `[~]` |
+| 7 | Auth: Google, email + password, emailed code fallback, password reset | `[~]` |
 | 8 | Wallet top-up (RPC + settlement path) | `[x]` |
 | 9 | Scheduled housekeeping: order expiry, rating refresh (`pg_cron`) | `[x]` |
 | 10 | Review approval, coin reward, rating recompute | `[x]` |
@@ -231,6 +231,7 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 14 | Wallet UI: balance, top-up via KHQR, ledger | `[x]` |
 | 15 | Review UI: write a review from a delivered order, pending-approval notice | `[x]` |
 | 16 | Growth: referrals, flash-sale banners, coins redemption | `[ ]` |
+| 16a | Referral attribution: `apply_referral_code`, optional code at signup | `[x]` |
 | 17 | Ops: backups, uptime alerts, fraud velocity rules | `[ ]` |
 | 19 | Play Store / App Store submission, Khmer store listing | `[ ]` |
 
@@ -244,13 +245,36 @@ Stage 5 is the one to exercise next: it needs live sandbox credentials, and paym
 
 ## Authentication
 
-Sign-in is Google first, email OTP second. The app asks the project
-`GET /auth/v1/settings` at runtime and renders the Google button only when the
-provider is enabled, so enabling it in the dashboard needs no app rebuild.
+Three ways in, on one screen (`/login`, and `/register` for the same screen
+started on the other tab):
 
-**The email limit is the reason Google matters.** Supabase's built-in mailer
-allows **2 emails per hour for the entire project** — not per user. That is
-usable for testing and unusable for launch.
+| Method | Where it comes from | Notes |
+|---|---|---|
+| Google | `signInWithOAuth` | one tap, no mail, no rate limit; button appears only when `/auth/v1/settings` says the provider is on |
+| Email + password | `signUp` / `signInWithPassword` | rules are `auth.minimum_password_length` and `auth.password_requirements` in `supabase/config.toml`, mirrored by the hint text in the app |
+| Emailed six-digit code | `signInWithOtp` / `verifyOtp` | the fallback, and the only path that works before custom SMTP exists |
+
+Passwords were added without removing the code path on purpose. Resetting a
+password needs an email, and until custom SMTP is set up the project's mailer
+allows **2 emails per hour for the entire project** — not per user — so the code
+path is what keeps people able to sign in at all.
+
+The app asks the project `GET /auth/v1/settings` at runtime and renders the
+Google button only when the provider is enabled, so enabling it in the dashboard
+needs no app rebuild.
+
+**Every email template must print `{{ .Token }}`.** Supabase's stock templates
+print only `{{ .ConfirmationURL }}`, which is fine for a website and useless here:
+the app collects six digits, so a link-only mail leaves the code field with
+nothing to accept. `supabase/templates/` holds all three, each with the code and
+the link.
+
+Registration takes a display name, an optional referral code and a terms
+acknowledgement. The name rides in the user metadata because
+`private.handle_new_user` reads it when it creates the `public.profiles` row; the
+referral code goes to `apply_referral_code`, which enforces the rules server-side
+(code must exist, no self-referral, first code wins). No money moves on a
+referral yet: the reward is a campaign decision, not a signup side effect.
 
 | Method | Cost | Limit | Notes |
 |---|---|---|---|
@@ -295,12 +319,16 @@ no-op, so use `supabase stop && supabase start`.
 Authentication → Providers → Email, and add custom SMTP under Authentication →
 Emails.
 
-Then paste the two templates from `supabase/templates/` into
+Then paste the three templates from `supabase/templates/` into
 Authentication → Emails — `magic_link.html` into *Magic Link*, `confirmation.html`
-into *Confirm signup*. The app asks for a six-digit code, but Supabase's stock
+into *Confirm signup*, `recovery.html` into *Reset password*. Supabase's stock
 templates print only `{{ .ConfirmationURL }}`: the mail reads "Your sign-in link"
-and the app's code field has nothing to accept. Both files in this repo print
+and the app's code field has nothing to accept. Every file in this repo prints
 `{{ .Token }}` as well, so the rendered mail carries the code.
+
+Set *Minimum password length* to 8 and the character mix to
+lower/upper/digits on the same page, so the hosted rules match
+`supabase/config.toml` and the app's hints.
 
 The local stack reads the same files via `[auth.email.template.*]` in
 `supabase/config.toml`, so Mailpit on :54324 shows what the hosted mailer will
@@ -311,6 +339,13 @@ container at creation.
 
 ### Enabling Google
 
+The button is not hidden by the app: `AuthCapabilities.google` reads
+`external.google` from `GET /auth/v1/settings`, and the button renders only when
+that says the provider is on. So a missing button means the provider is off —
+check `curl -s $SUPABASE_URL/auth/v1/settings -H "apikey: $KEY" | grep -o '"google":[a-z]*'`
+before touching the UI. If that call itself fails, `capabilities()` falls back to
+`google: false`, which looks identical.
+
 1. Google Cloud → Auth Platform → create an OAuth client (type: Web application).
 2. Authorised JavaScript origins: your site URL and `http://localhost:8080`.
 3. Authorised redirect URI:
@@ -319,6 +354,27 @@ container at creation.
 5. Add these redirect URLs under Authentication → URL Configuration:
    - `http://localhost:8080`
    - `chanpenh://auth-callback` (mobile deep link, see `Brand.urlScheme`)
+
+No app rebuild is needed afterwards: the settings call is made at runtime.
+
+For a local run, `[auth.external.google]` in `supabase/config.toml` also has to
+be switched on, and its redirect URI is
+`http://127.0.0.1:54321/auth/v1/callback` — Google needs that exact string, which
+is why a local client is easiest as a second OAuth client rather than reusing the
+hosted one:
+
+```bash
+export SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+export SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...
+# flip `enabled = false` to true in [auth.external.google], then:
+supabase stop && supabase start
+```
+
+`enabled` cannot be driven by `env(...)` like the client id and secret are: a
+boolean field given a string is a config parse error (`CliConfigParseError`) and
+`supabase start` refuses to boot. Verified the hard way. With the provider on,
+`/auth/v1/authorize?provider=google` redirects to Google with the right callback,
+which is as far as a local test goes without real credentials.
 
 For Android you also need a second OAuth client of type Android, registered with
 your keystore's SHA-1 fingerprint. There is a different fingerprint for debug

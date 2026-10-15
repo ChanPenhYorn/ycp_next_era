@@ -1,0 +1,29 @@
+{
+  // Present so the project also runs when VS Code opens app/ directly as the
+  // workspace folder, in which case the root .vscode/launch.json is not read.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Sela (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "chrome",
+        "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=REPLACE_WITH_PUBLISHABLE_KEY"
+      ]
+    },
+    {
+      "name": "Sela (device)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=REPLACE_WITH_PUBLISHABLE_KEY"
+      ]
+    }
+  ]
+}

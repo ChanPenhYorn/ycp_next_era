@@ -1,28 +1,30 @@
 {
+  // The Flutter project lives in app/. Paths are absolute via ${workspaceFolder}
+  // so they resolve the same whether VS Code opened the repo root or app/.
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "YCP Store (Chrome)",
+      "name": "Sela (Chrome)",
       "request": "launch",
       "type": "dart",
-      "program": "app/lib/main.dart",
-      "cwd": "app",
+      "program": "${workspaceFolder}/app/lib/main.dart",
+      "cwd": "${workspaceFolder}/app",
       "args": [
         "-d",
         "chrome",
-        "--dart-define=SUPABASE_URL=https://YOUR-REF.supabase.co",
-        "--dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR-PUBLISHABLE-KEY"
+        "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=REPLACE_WITH_PUBLISHABLE_KEY"
       ]
     },
     {
-      "name": "YCP Store (device)",
+      "name": "Sela (device)",
       "request": "launch",
       "type": "dart",
-      "program": "app/lib/main.dart",
-      "cwd": "app",
+      "program": "${workspaceFolder}/app/lib/main.dart",
+      "cwd": "${workspaceFolder}/app",
       "args": [
-        "--dart-define=SUPABASE_URL=https://YOUR-REF.supabase.co",
-        "--dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR-PUBLISHABLE-KEY"
+        "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=REPLACE_WITH_PUBLISHABLE_KEY"
       ]
     }
   ]

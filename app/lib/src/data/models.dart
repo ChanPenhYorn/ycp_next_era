@@ -49,6 +49,14 @@ class RequiredField {
 
   String label(String locale) => locale == 'km' ? labelKm : labelEn;
 
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'label_km': labelKm,
+        'label_en': labelEn,
+        if (placeholder != null) 'placeholder': placeholder,
+        if (pattern != null) 'pattern': pattern,
+      };
+
   factory RequiredField.fromJson(Map<String, dynamic> json) => RequiredField(
         key: json['key'] as String? ?? '',
         labelKm: (json['label_km'] ?? json['key'] ?? '') as String,
@@ -413,6 +421,7 @@ class CartLine {
     required this.maxQty,
     required this.minQty,
     this.fields = const {},
+    this.requiredFields = const [],
   });
 
   final int variantId;
@@ -429,9 +438,16 @@ class CartLine {
   /// validates them per product against one payload.
   final Map<String, String> fields;
 
+  /// The definitions behind [fields]. Carried on the line so checkout can
+  /// render the inputs itself instead of relying on whatever the product page
+  /// happened to collect, which was not editable afterwards.
+  final List<RequiredField> requiredFields;
+
+  bool get needsFields => requiredFields.isNotEmpty;
+
   double get lineTotal => unitPriceUsd * qty;
 
-  CartLine copyWith({int? qty}) => CartLine(
+  CartLine copyWith({int? qty, Map<String, String>? fields}) => CartLine(
         variantId: variantId,
         productSlug: productSlug,
         productName: productName,
@@ -440,7 +456,8 @@ class CartLine {
         qty: qty ?? this.qty,
         maxQty: maxQty,
         minQty: minQty,
-        fields: fields,
+        fields: fields ?? this.fields,
+        requiredFields: requiredFields,
       );
 
   Map<String, dynamic> toJson() => {
@@ -453,6 +470,7 @@ class CartLine {
         'max_qty': maxQty,
         'min_qty': minQty,
         'fields': fields,
+        'required_fields': [for (final field in requiredFields) field.toJson()],
       };
 
   factory CartLine.fromJson(Map<String, dynamic> json) => CartLine(
@@ -466,5 +484,8 @@ class CartLine {
         minQty: (json['min_qty'] as num?)?.toInt() ?? 1,
         fields: ((json['fields'] as Map?) ?? const {})
             .map((key, value) => MapEntry(key.toString(), value.toString())),
+        requiredFields: ((json['required_fields'] as List?) ?? const [])
+            .map((e) => RequiredField.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
       );
 }

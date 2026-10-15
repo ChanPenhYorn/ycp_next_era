@@ -156,6 +156,78 @@ void main() {
     });
   });
 
+  group('cart round-trip', () {
+    const field = RequiredField(
+      key: 'userid',
+      labelKm: 'លេខ ID ហ្គេម',
+      labelEn: 'Game ID',
+      placeholder: '123456789',
+      pattern: '^[0-9]{6,12}\$',
+    );
+
+    test('a line with buyer fields survives being persisted and restored', () {
+      const line = CartLine(
+        variantId: 9,
+        productSlug: 'mobile-legends-diamonds',
+        productName: 'ពេជ្រ Mobile Legends',
+        variantLabel: '៨៦ ពេជ្រ',
+        unitPriceUsd: 0.99,
+        qty: 2,
+        maxQty: 20,
+        minQty: 1,
+        fields: {'userid': '262856740', 'serverid': '3543'},
+        requiredFields: [field],
+      );
+
+      // SharedPreferences only stores strings, so this is the real path.
+      final restored = CartLine.fromJson(line.toJson());
+
+      expect(restored.fields['userid'], '262856740');
+      expect(restored.fields['serverid'], '3543');
+      expect(restored.needsFields, isTrue);
+      expect(restored.requiredFields.single.key, 'userid');
+      expect(restored.requiredFields.single.labelEn, 'Game ID');
+      expect(restored.requiredFields.single.pattern, r'^[0-9]{6,12}$');
+      expect(restored.qty, 2);
+    });
+
+    test('copyWith can replace the values without losing the definitions', () {
+      const line = CartLine(
+        variantId: 9,
+        productSlug: 'p',
+        productName: 'n',
+        variantLabel: 'v',
+        unitPriceUsd: 1,
+        qty: 1,
+        maxQty: 5,
+        minQty: 1,
+        fields: {'userid': ''},
+        requiredFields: [field],
+      );
+
+      final updated = line.copyWith(fields: {'userid': '123456789'});
+      expect(updated.fields['userid'], '123456789');
+      expect(updated.requiredFields.length, 1);
+    });
+
+    test('a line without fields round-trips too', () {
+      const line = CartLine(
+        variantId: 3,
+        productSlug: 'steam-wallet',
+        productName: 'Steam',
+        variantLabel: 'Steam \$5',
+        unitPriceUsd: 5.5,
+        qty: 1,
+        maxQty: 5,
+        minQty: 1,
+      );
+
+      final restored = CartLine.fromJson(line.toJson());
+      expect(restored.needsFields, isFalse);
+      expect(restored.fields, isEmpty);
+    });
+  });
+
   group('query columns cannot drift from the parsers', () {
     // Every field Variant.fromJson reads. If a new one is added there, add it
     // here too and the select will fail this test rather than production.

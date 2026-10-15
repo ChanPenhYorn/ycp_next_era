@@ -41,6 +41,7 @@ class CartController extends Notifier<List<CartLine>> {
     required int maxQty,
     int qty = 1,
     Map<String, String> fields = const {},
+    List<RequiredField> requiredFields = const [],
   }) async {
     final existing = state.indexWhere((line) => line.variantId == variantId);
 
@@ -48,7 +49,12 @@ class CartController extends Notifier<List<CartLine>> {
       final line = state[existing];
       final merged = (line.qty + qty).clamp(line.minQty, line.maxQty);
       final next = [...state];
-      next[existing] = line.copyWith(qty: merged);
+      // Merge the values too. Previously the second add dropped them, so a line
+      // could sit in the cart with qty 2 and no game id.
+      next[existing] = line.copyWith(
+        qty: merged,
+        fields: fields.isEmpty ? null : fields,
+      );
       state = next;
     } else {
       state = [
@@ -63,10 +69,23 @@ class CartController extends Notifier<List<CartLine>> {
           maxQty: maxQty,
           minQty: minQty,
           fields: fields,
+          requiredFields: requiredFields,
         ),
       ];
     }
 
+    await _persist();
+  }
+
+  /// Records the buyer fields for a line, edited at checkout.
+  Future<void> setFields(int variantId, Map<String, String> fields) async {
+    state = [
+      for (final line in state)
+        if (line.variantId == variantId)
+          line.copyWith(fields: fields)
+        else
+          line,
+    ];
     await _persist();
   }
 

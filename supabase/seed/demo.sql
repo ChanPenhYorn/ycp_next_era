@@ -46,8 +46,11 @@ insert into public.products (
    E'បញ្ចូលពេជ្រចូលគណនីរបស់អ្នកដោយស្វ័យប្រវត្តិ។\nសូមបញ្ចូល ID ហ្គេម និង Server ឲ្យត្រឹមត្រូវ។',
    E'Diamonds are credited automatically.\nEnter your Game ID and Server exactly as shown in the game.',
    'auto_topup',
-   '[{"key":"game_id","label_km":"លេខ ID ហ្គេម","label_en":"Game ID","placeholder":"123456789","pattern":"^[0-9]{6,12}$"},
-     {"key":"server_id","label_km":"Server","label_en":"Server","placeholder":"2001","pattern":"^[0-9]{3,6}$"}]'::jsonb,
+   -- Field KEYS must match the supplier's own names (Bay2Game uses userid and
+   -- serverid) or the adapter cannot map them and every order refunds. Labels
+   -- are free text, so the buyer still sees "Game ID".
+   '[{"key":"userid","label_km":"លេខ ID ហ្គេម","label_en":"Game ID","placeholder":"123456789","pattern":"^[0-9]{6,12}$"},
+     {"key":"serverid","label_km":"Server","label_en":"Server","placeholder":"2001","pattern":"^[0-9]{3,6}$"}]'::jsonb,
    true, 1),
 
   ((select id from public.categories where slug = 'gift-card'),

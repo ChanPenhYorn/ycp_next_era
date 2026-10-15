@@ -174,7 +174,8 @@ export const bay2game: SupplierAdapter = {
     }
     if (unmapped.length > 0) {
       // Their order endpoint ignores unknown fields, so submitting would place
-      // an order with a missing player id. Refuse instead.
+      // an order with a missing player id. Refuse instead. This is what fires
+      // when a product's requires_fields keys do not match FIELD_MAP.
       return {
         outcome: "refund",
         reason: `unmapped_customer_fields: ${unmapped.join(",")}`,

@@ -237,6 +237,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           maxQty: variant.maxQty,
           qty: _qty,
           fields: fields,
+          requiredFields: product.requiresFields,
         );
 
     _toast(l10n.addToCart);
@@ -256,6 +257,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           maxQty: variant.maxQty,
           qty: _qty,
           fields: fields,
+          requiredFields: product.requiresFields,
         );
 
     context.go('/checkout');

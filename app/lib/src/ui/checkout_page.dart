@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
 import '../core/theme.dart';
+import '../data/models.dart';
 import '../data/order_repository.dart';
 import '../data/payment_repository.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -22,14 +23,31 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   final _note = TextEditingController();
   final _coupon = TextEditingController();
 
+  /// Per-line buyer inputs, keyed `variantId:fieldKey`. Collected here
+  /// rather than on the product page because this is where the buyer commits,
+  /// and because a value stashed earlier was never editable again.
+  final _fieldControllers = <String, TextEditingController>{};
+
   double? _couponDiscount;
   String? _couponError;
+  String? _fieldError;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
     _email.text = ref.read(currentUserProvider)?.email ?? '';
+
+    // Seed from the cart so anything entered on the product page carries over.
+    for (final line in ref.read(cartControllerProvider)) {
+      for (final field in line.requiredFields) {
+        final controller = _fieldControllers.putIfAbsent(
+          _fieldKey(line.variantId, field.key),
+          TextEditingController.new,
+        );
+        controller.text = line.fields[field.key] ?? '';
+      }
+    }
   }
 
   @override
@@ -37,8 +55,19 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     _email.dispose();
     _note.dispose();
     _coupon.dispose();
+    for (final controller in _fieldControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
+
+  String _fieldKey(int variantId, String key) => '$variantId:$key';
+
+  TextEditingController _controllerFor(int variantId, RequiredField field) =>
+      _fieldControllers.putIfAbsent(
+        _fieldKey(variantId, field.key),
+        TextEditingController.new,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +126,46 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             ],
           ),
         ),
+        if (lines.any((line) => line.needsFields)) ...[
+          const SizedBox(height: 12),
+          _Panel(
+            title: l10n.requiredInfo,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final line in lines.where((l) => l.needsFields)) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      '${line.productName} · ${line.variantLabel}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.ink400,
+                      ),
+                    ),
+                  ),
+                  for (final field in line.requiredFields) ...[
+                    TextField(
+                      controller: _controllerFor(line.variantId, field),
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) {
+                        if (_fieldError != null) {
+                          setState(() => _fieldError = null);
+                        }
+                      },
+                      decoration: InputDecoration(
+                        labelText: field.label(Localizations.localeOf(context).languageCode),
+                        hintText: field.placeholder,
+                        errorText: _fieldError,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         _Panel(
           title: l10n.contactEmail,
@@ -308,17 +377,55 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     }
   }
 
+  /// Reads the per-line inputs, records them on the cart, and returns the merged
+  /// payload create_order expects. Null when something is missing, with the
+  /// offending field named inline.
+  Map<String, String>? _collectBuyerFields() {
+    final l10n = AppL10n.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+    final merged = <String, String>{};
+    final problems = <String>[];
+
+    for (final line in ref.read(cartControllerProvider)) {
+      final values = <String, String>{};
+
+      for (final field in line.requiredFields) {
+        final raw = _controllerFor(line.variantId, field).text.trim();
+        final pattern = field.pattern;
+
+        if (raw.isEmpty) {
+          problems.add(field.label(locale));
+          continue;
+        }
+        if (pattern != null && !RegExp(pattern).hasMatch(raw)) {
+          problems.add('${field.label(locale)} (${field.placeholder ?? pattern})');
+          continue;
+        }
+
+        values[field.key] = raw;
+      }
+
+      merged.addAll(values);
+      // Keep the cart in step, so leaving and returning does not lose it.
+      ref.read(cartControllerProvider.notifier).setFields(line.variantId, values);
+    }
+
+    if (problems.isNotEmpty) {
+      setState(() => _fieldError = '${l10n.requiredInfo}: ${problems.join(', ')}');
+      return null;
+    }
+
+    setState(() => _fieldError = null);
+    return merged;
+  }
+
   Future<CreatedOrder?> _createOrder() async {
     final l10n = AppL10n.of(context);
     final lines = ref.read(cartControllerProvider);
     if (lines.isEmpty) return null;
 
-    // create_order validates every product's required fields against one
-    // payload, so merge the per-line values here.
-    final fields = <String, String>{};
-    for (final line in lines) {
-      fields.addAll(line.fields);
-    }
+    final fields = _collectBuyerFields();
+    if (fields == null) return null;
 
     setState(() => _busy = true);
 
@@ -333,6 +440,15 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       if (mounted) setState(() => _busy = false);
       return order;
     } on OrderException catch (error) {
+      if (error.code == 'missing_fields') {
+        // Belongs next to the inputs, not in a toast at the bottom.
+        setState(() {
+          _busy = false;
+          _fieldError = '${l10n.requiredInfo}: ${error.detail ?? ''}';
+        });
+        return null;
+      }
+
       _toast(_humanise(error.code, l10n));
       if (mounted) setState(() => _busy = false);
       ref.invalidate(productsProvider);

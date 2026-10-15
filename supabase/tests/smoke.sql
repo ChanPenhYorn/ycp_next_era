@@ -52,7 +52,7 @@ select public.create_order(
     jsonb_build_object('variant_id', :steam5, 'qty', 1)
   ),
   'WELCOME10',
-  jsonb_build_object('game_id', '123456789', 'server_id', '2001'),
+  jsonb_build_object('userid', '123456789', 'serverid', '2001'),
   'buyer@example.test',
   'please deliver fast'
 ) as created_order;
@@ -127,7 +127,7 @@ select pg_temp.expect_fail(
   'empty_cart', '[]'::jsonb, null, '{}'::jsonb, 'empty_cart%');
 select pg_temp.expect_fail(
   'reuse_coupon', jsonb_build_array(jsonb_build_object('variant_id', :mlbb86, 'qty', 2)),
-  'WELCOME10', jsonb_build_object('game_id', '123456789', 'server_id', '2001'), 'coupon_user_limit%');
+  'WELCOME10', jsonb_build_object('userid', '123456789', 'serverid', '2001'), 'coupon_user_limit%');
 
 \echo '### 12. coupon preview endpoint'
 select public.validate_coupon('NOPE', 10)      as unknown_coupon;
@@ -140,7 +140,7 @@ set role authenticated;
 select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
 select public.create_order(
   jsonb_build_array(jsonb_build_object('variant_id', :mlbb86, 'qty', 1)),
-  null, jsonb_build_object('game_id', '123456789', 'server_id', '2001'), null, null) as wallet_order;
+  null, jsonb_build_object('userid', '123456789', 'serverid', '2001'), null, null) as wallet_order;
 select id as woid from public.orders order by created_at desc limit 1 \gset
 select public.pay_order_with_wallet(:'woid') as wallet_pay;
 select wallet_balance from public.profiles where id = '22222222-2222-2222-2222-222222222222';
@@ -223,7 +223,7 @@ select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222
 set role authenticated;
 select public.create_order(
   jsonb_build_array(jsonb_build_object('variant_id', :mlbb86, 'qty', 1)),
-  null, jsonb_build_object('game_id', '987654321', 'server_id', '2002'), null, null) as refund_order;
+  null, jsonb_build_object('userid', '987654321', 'serverid', '2002'), null, null) as refund_order;
 select id as roid from public.orders order by created_at desc limit 1 \gset
 reset role;
 select public.mark_order_paid(:'roid', 'payway', 'PW-REFUND-0001', 'abapay_khqr_deeplink', null, null) as refund_settle;

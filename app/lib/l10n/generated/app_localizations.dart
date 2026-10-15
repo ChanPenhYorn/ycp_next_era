@@ -580,13 +580,13 @@ abstract class AppL10n {
   /// No description provided for @loginTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to your account'**
+  /// **'Welcome back'**
   String get loginTitle;
 
   /// No description provided for @loginSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'We email you a one-time code. No password to remember.'**
+  /// **'Sign in with Google, or your email and password.'**
   String get loginSubtitle;
 
   /// No description provided for @emailLabel.
@@ -594,6 +594,12 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Email address'**
   String get emailLabel;
+
+  /// No description provided for @emailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'you@example.com'**
+  String get emailHint;
 
   /// No description provided for @sendCode.
   ///
@@ -874,7 +880,7 @@ abstract class AppL10n {
   /// No description provided for @emailOnlyNote.
   ///
   /// In en, this message translates to:
-  /// **'Email sign-in is limited while testing. Google sign-in has no limit.'**
+  /// **'Email sign-in is limited while the project tests its mailer. Google has no limit.'**
   String get emailOnlyNote;
 
   /// No description provided for @codeInvalid.
@@ -888,6 +894,288 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Sandbox mode: no email is sent. Enter {code}.'**
   String devCodeHint(String code);
+
+  /// No description provided for @authTabSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authTabSignIn;
+
+  /// No description provided for @authTabRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get authTabRegister;
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get registerTitle;
+
+  /// No description provided for @registerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One account for orders, wallet balance and delivery codes.'**
+  String get registerSubtitle;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get nameLabel;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// No description provided for @noAccountYet.
+  ///
+  /// In en, this message translates to:
+  /// **'New to {brand}?'**
+  String noAccountYet(String brand);
+
+  /// No description provided for @haveAccountAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account?'**
+  String get haveAccountAlready;
+
+  /// No description provided for @orContinueWithEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'or continue with email'**
+  String get orContinueWithEmail;
+
+  /// No description provided for @signInWithCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Email me a code instead'**
+  String get signInWithCode;
+
+  /// No description provided for @usePasswordInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a password instead'**
+  String get usePasswordInstead;
+
+  /// No description provided for @codeSignInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with a code'**
+  String get codeSignInTitle;
+
+  /// No description provided for @codeSignInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No password needed. We email six digits.'**
+  String get codeSignInSubtitle;
+
+  /// No description provided for @resendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new code'**
+  String get resendCode;
+
+  /// No description provided for @confirmEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your email'**
+  String get confirmEmailTitle;
+
+  /// No description provided for @confirmEmailBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent six digits to {email}. Enter them to switch the account on.'**
+  String confirmEmailBody(String email);
+
+  /// No description provided for @confirmAndContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and continue'**
+  String get confirmAndContinue;
+
+  /// No description provided for @resetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset your password'**
+  String get resetTitle;
+
+  /// No description provided for @resetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We email six digits, then you choose a new password.'**
+  String get resetSubtitle;
+
+  /// No description provided for @sendResetCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Email me a code'**
+  String get sendResetCode;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @savePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Save password and sign in'**
+  String get savePassword;
+
+  /// No description provided for @passwordRuleTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least {min} characters.'**
+  String passwordRuleTooShort(String min);
+
+  /// No description provided for @passwordRuleNeedsLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a lowercase letter.'**
+  String get passwordRuleNeedsLower;
+
+  /// No description provided for @passwordRuleNeedsUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an uppercase letter.'**
+  String get passwordRuleNeedsUpper;
+
+  /// No description provided for @passwordRuleNeedsDigit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a number.'**
+  String get passwordRuleNeedsDigit;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two passwords do not match.'**
+  String get passwordMismatch;
+
+  /// No description provided for @passwordTooWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'That password is too easy to guess. Make it longer.'**
+  String get passwordTooWeak;
+
+  /// No description provided for @passwordStrengthWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get passwordStrengthWeak;
+
+  /// No description provided for @passwordStrengthFair.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair'**
+  String get passwordStrengthFair;
+
+  /// No description provided for @passwordStrengthStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get passwordStrengthStrong;
+
+  /// No description provided for @referralToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Have a referral code?'**
+  String get referralToggle;
+
+  /// No description provided for @referralCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code (optional)'**
+  String get referralCodeLabel;
+
+  /// No description provided for @referralHint.
+  ///
+  /// In en, this message translates to:
+  /// **'8 letters or numbers'**
+  String get referralHint;
+
+  /// No description provided for @referralInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'A referral code is 8 characters.'**
+  String get referralInvalid;
+
+  /// No description provided for @referralFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created, but that referral code was not applied.'**
+  String get referralFailed;
+
+  /// No description provided for @termsAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'I agree to the Terms of Service and Privacy Policy.'**
+  String get termsAgree;
+
+  /// No description provided for @termsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please accept the terms to continue.'**
+  String get termsRequired;
+
+  /// No description provided for @nameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name.'**
+  String get nameRequired;
+
+  /// No description provided for @passwordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password.'**
+  String get passwordRequired;
+
+  /// No description provided for @codeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from the email.'**
+  String get codeRequired;
+
+  /// No description provided for @emailInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'That email already has an account. Try signing in.'**
+  String get emailInUse;
+
+  /// No description provided for @wrongCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or password is not right.'**
+  String get wrongCredentials;
+
+  /// No description provided for @emailNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your email first — we sent you a code.'**
+  String get emailNotConfirmed;
+
+  /// No description provided for @codeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'That code has expired. Ask for a new one.'**
+  String get codeExpired;
 
   /// No description provided for @paywayNotConfigured.
   ///
@@ -1032,6 +1320,24 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Send us your order number and we will take it from there.'**
   String get trustSupportBody;
+
+  /// No description provided for @partnerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Supply partner'**
+  String get partnerTitle;
+
+  /// No description provided for @partnerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Many top-ups are fulfilled automatically through our supply partner Bay2Game.'**
+  String get partnerBody;
+
+  /// No description provided for @partnerBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic fulfilment'**
+  String get partnerBadge;
 
   /// No description provided for @contactSupport.
   ///

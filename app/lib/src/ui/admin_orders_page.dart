@@ -171,24 +171,15 @@ class _OrderRow extends StatelessWidget {
                   order.kind == 'wallet_topup'
                       ? l10n.adminKindWalletTopup
                       : l10n.adminKindPurchase,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.ink400,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: AppColors.ink400),
                 ),
                 Text(
                   '${order.itemCount} ×',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.ink400,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: AppColors.ink400),
                 ),
                 Text(
                   adminStamp(order.createdAt),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.ink400,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: AppColors.ink400),
                 ),
               ],
             ),

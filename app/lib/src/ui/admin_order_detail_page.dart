@@ -104,9 +104,12 @@ class _BodyState extends ConsumerState<_Body> {
                 ],
               ),
               const SizedBox(height: 10),
-              _kv(l10n.adminKind, order.kind == 'wallet_topup'
-                  ? l10n.adminKindWalletTopup
-                  : l10n.adminKindPurchase),
+              _kv(
+                l10n.adminKind,
+                order.kind == 'wallet_topup'
+                    ? l10n.adminKindWalletTopup
+                    : l10n.adminKindPurchase,
+              ),
               _kv(l10n.adminCreatedAt, adminStamp(order.createdAt)),
               if (order.paidAt != null)
                 _kv(l10n.adminPaidAt, adminStamp(order.paidAt!)),
@@ -135,11 +138,7 @@ class _BodyState extends ConsumerState<_Body> {
           child: Column(
             children: [
               for (final item in detail.items)
-                _ItemRow(
-                  item: item,
-                  busy: _busy,
-                  onResolve: _resolve,
-                ),
+                _ItemRow(item: item, busy: _busy, onResolve: _resolve),
             ],
           ),
         ),
@@ -148,7 +147,8 @@ class _BodyState extends ConsumerState<_Body> {
             title: l10n.adminPaymentsTitle,
             child: Column(
               children: [
-                for (final payment in detail.payments) _PaymentRow(payment: payment),
+                for (final payment in detail.payments)
+                  _PaymentRow(payment: payment),
               ],
             ),
           ),
@@ -184,10 +184,7 @@ class _BodyState extends ConsumerState<_Body> {
           ),
         ),
         Expanded(
-          child: SelectableText(
-            value,
-            style: const TextStyle(fontSize: 12),
-          ),
+          child: SelectableText(value, style: const TextStyle(fontSize: 12)),
         ),
       ],
     ),
@@ -303,7 +300,11 @@ String _deliveryWord(DeliveryStatus status) => switch (status) {
 };
 
 class _ItemRow extends StatelessWidget {
-  const _ItemRow({required this.item, required this.busy, required this.onResolve});
+  const _ItemRow({
+    required this.item,
+    required this.busy,
+    required this.onResolve,
+  });
 
   final AdminOrderItem item;
   final bool busy;
@@ -350,18 +351,12 @@ class _ItemRow extends StatelessWidget {
               if (item.supplierAttempts > 0)
                 Text(
                   '${item.supplierAttempts} ×',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.ink400,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: AppColors.ink400),
                 ),
               if (item.supplierRef != null)
                 Text(
                   item.supplierRef!,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.ink400,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: AppColors.ink400),
                 ),
             ],
           ),
@@ -385,9 +380,7 @@ class _ItemRow extends StatelessWidget {
             Row(
               children: [
                 OutlinedButton(
-                  onPressed: busy
-                      ? null
-                      : () => onResolve(item, 'delivered'),
+                  onPressed: busy ? null : () => onResolve(item, 'delivered'),
                   child: Text(l10n.adminResolveDelivered),
                 ),
                 const SizedBox(width: 8),
@@ -438,7 +431,10 @@ class _PaymentRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(money(payment.amountUsd), style: const TextStyle(fontSize: 12)),
+            Text(
+              money(payment.amountUsd),
+              style: const TextStyle(fontSize: 12),
+            ),
             if (payment.verifiedAt != null)
               Text(
                 adminStamp(payment.verifiedAt!),

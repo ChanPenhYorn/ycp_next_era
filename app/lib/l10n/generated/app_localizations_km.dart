@@ -253,14 +253,17 @@ class AppL10nKm extends AppL10n {
   String get rights => 'រក្សាសិទ្ធិគ្រប់បែបយ៉ាង';
 
   @override
-  String get loginTitle => 'ចូលប្រើគណនីរបស់អ្នក';
+  String get loginTitle => 'សូមស្វាគមន៍ត្រឡប់មកវិញ';
 
   @override
   String get loginSubtitle =>
-      'យើងផ្ញើកូដតែម្ដងទៅអ៊ីមែលរបស់អ្នក។ មិនត្រូវការពាក្យសម្ងាត់ទេ។';
+      'ចូលប្រើដោយ Google ឬអ៊ីមែល និងពាក្យសម្ងាត់របស់អ្នក។';
 
   @override
   String get emailLabel => 'អាសយដ្ឋានអ៊ីមែល';
+
+  @override
+  String get emailHint => 'you@example.com';
 
   @override
   String get sendCode => 'ផ្ញើកូដ';
@@ -415,7 +418,7 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get emailOnlyNote =>
-      'ការចូលតាមអ៊ីមែលមានកំណត់ក្នុងការសាកល្បង។ Google គ្មានកំណត់ទេ។';
+      'ការចូលតាមអ៊ីមែលមានកំណត់ក្នុងពេលសាកល្បង mailer។ Google គ្មានកំណត់ទេ។';
 
   @override
   String get codeInvalid =>
@@ -425,6 +428,159 @@ class AppL10nKm extends AppL10n {
   String devCodeHint(String code) {
     return 'របៀបសាកល្បង: គ្មានអ៊ីមែលត្រូវបានផ្ញើទេ។ សូមបញ្ចូល $code។';
   }
+
+  @override
+  String get authTabSignIn => 'ចូលប្រើ';
+
+  @override
+  String get authTabRegister => 'បង្កើតគណនី';
+
+  @override
+  String get registerTitle => 'បង្កើតគណនីរបស់អ្នក';
+
+  @override
+  String get registerSubtitle =>
+      'គណនីតែមួយសម្រាប់ការបញ្ជាទិញ សមតុល្យកាបូប និងកូដផ្តល់ជូន។';
+
+  @override
+  String get nameLabel => 'ឈ្មោះពេញ';
+
+  @override
+  String get passwordLabel => 'ពាក្យសម្ងាត់';
+
+  @override
+  String get confirmPasswordLabel => 'បញ្ជាក់ពាក្យសម្ងាត់';
+
+  @override
+  String get forgotPassword => 'ភ្លេចពាក្យសម្ងាត់?';
+
+  @override
+  String noAccountYet(String brand) {
+    return 'ថ្មីនៅ $brand?';
+  }
+
+  @override
+  String get haveAccountAlready => 'មានគណនីរួចហើយ?';
+
+  @override
+  String get orContinueWithEmail => 'ឬបន្តដោយអ៊ីមែល';
+
+  @override
+  String get signInWithCode => 'ផ្ញើកូដឲ្យខ្ញុំជំនួសវិញ';
+
+  @override
+  String get usePasswordInstead => 'ប្រើពាក្យសម្ងាត់ជំនួសវិញ';
+
+  @override
+  String get codeSignInTitle => 'ចូលប្រើដោយកូដ';
+
+  @override
+  String get codeSignInSubtitle =>
+      'មិនត្រូវការពាក្យសម្ងាត់ទេ។ យើងផ្ញើលេខ ៦ ខ្ទង់តាមអ៊ីមែល។';
+
+  @override
+  String get resendCode => 'ផ្ញើកូដថ្មី';
+
+  @override
+  String get confirmEmailTitle => 'បញ្ជាក់អ៊ីមែលរបស់អ្នក';
+
+  @override
+  String confirmEmailBody(String email) {
+    return 'យើងបានផ្ញើលេខ ៦ ខ្ទង់ទៅ $email។ សូមបញ្ចូលដើម្បីបើកគណនី។';
+  }
+
+  @override
+  String get confirmAndContinue => 'បញ្ជាក់ និងបន្ត';
+
+  @override
+  String get resetTitle => 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ';
+
+  @override
+  String get resetSubtitle =>
+      'យើងផ្ញើលេខ ៦ ខ្ទង់ បន្ទាប់មកអ្នកជ្រើសរើសពាក្យសម្ងាត់ថ្មី។';
+
+  @override
+  String get sendResetCode => 'ផ្ញើកូដឲ្យខ្ញុំ';
+
+  @override
+  String get newPasswordLabel => 'ពាក្យសម្ងាត់ថ្មី';
+
+  @override
+  String get savePassword => 'រក្សាទុក និងចូលប្រើ';
+
+  @override
+  String passwordRuleTooShort(String min) {
+    return 'ប្រើយ៉ាងតិច $min តួអក្សរ។';
+  }
+
+  @override
+  String get passwordRuleNeedsLower => 'បន្ថែមអក្សរតូច។';
+
+  @override
+  String get passwordRuleNeedsUpper => 'បន្ថែមអក្សរធំ។';
+
+  @override
+  String get passwordRuleNeedsDigit => 'បន្ថែមលេខ។';
+
+  @override
+  String get passwordMismatch => 'ពាក្យសម្ងាត់ទាំងពីរមិនដូចគ្នាទេ។';
+
+  @override
+  String get passwordTooWeak => 'ពាក្យសម្ងាត់នេះខ្សោយពេក។ សូមធ្វើឲ្យវែងជាងនេះ។';
+
+  @override
+  String get passwordStrengthWeak => 'ខ្សោយ';
+
+  @override
+  String get passwordStrengthFair => 'មធ្យម';
+
+  @override
+  String get passwordStrengthStrong => 'ខ្លាំង';
+
+  @override
+  String get referralToggle => 'មានកូដណែនាំ?';
+
+  @override
+  String get referralCodeLabel => 'កូដណែនាំ (មិនចាំបាច់)';
+
+  @override
+  String get referralHint => '៨ តួអក្សរ ឬលេខ';
+
+  @override
+  String get referralInvalid => 'កូដណែនាំមាន ៨ តួអក្សរ។';
+
+  @override
+  String get referralFailed =>
+      'បង្កើតគណនីរួចរាល់ ប៉ុន្តែកូដណែនាំមិនត្រូវបានប្រើទេ។';
+
+  @override
+  String get termsAgree =>
+      'ខ្ញុំយល់ព្រមនឹងលក្ខខណ្ឌប្រើប្រាស់ និងគោលការណ៍ឯកជនភាព។';
+
+  @override
+  String get termsRequired => 'សូមយល់ព្រមនឹងលក្ខខណ្ឌជាមុន។';
+
+  @override
+  String get nameRequired => 'សូមបញ្ចូលឈ្មោះរបស់អ្នក។';
+
+  @override
+  String get passwordRequired => 'សូមបញ្ចូលពាក្យសម្ងាត់របស់អ្នក។';
+
+  @override
+  String get codeRequired => 'សូមបញ្ចូលកូដ ៦ ខ្ទង់ពីអ៊ីមែល។';
+
+  @override
+  String get emailInUse => 'អ៊ីមែលនេះមានគណនីរួចហើយ។ សូមព្យាយាមចូលប្រើវិញ។';
+
+  @override
+  String get wrongCredentials => 'អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ។';
+
+  @override
+  String get emailNotConfirmed =>
+      'សូមបញ្ជាក់អ៊ីមែលជាមុន — យើងបានផ្ញើកូដទៅអ្នក។';
+
+  @override
+  String get codeExpired => 'កូដនេះផុតកំណត់ហើយ។ សូមសុំកូដថ្មី។';
 
   @override
   String get paywayNotConfigured =>
@@ -504,6 +660,16 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get trustSupportBody => 'ផ្ញើលេខការបញ្ជាទិញមកយើង យើងនឹងបន្តជួយ។';
+
+  @override
+  String get partnerTitle => 'ដៃគូផ្គត់ផ្គង់';
+
+  @override
+  String get partnerBody =>
+      'ការបញ្ចូលទឹកប្រាក់ជាច្រើនត្រូវបានដំណើរការដោយស្វ័យប្រវត្តិតាមរយៈដៃគូផ្គត់ផ្គង់ Bay2Game របស់យើង។';
+
+  @override
+  String get partnerBadge => 'ដំណើរការដោយស្វ័យប្រវត្តិ';
 
   @override
   String get contactSupport => 'ទាក់ទងជំនួយ';

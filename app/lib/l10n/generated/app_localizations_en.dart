@@ -253,14 +253,17 @@ class AppL10nEn extends AppL10n {
   String get rights => 'All rights reserved';
 
   @override
-  String get loginTitle => 'Sign in to your account';
+  String get loginTitle => 'Welcome back';
 
   @override
   String get loginSubtitle =>
-      'We email you a one-time code. No password to remember.';
+      'Sign in with Google, or your email and password.';
 
   @override
   String get emailLabel => 'Email address';
+
+  @override
+  String get emailHint => 'you@example.com';
 
   @override
   String get sendCode => 'Send code';
@@ -417,7 +420,7 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get emailOnlyNote =>
-      'Email sign-in is limited while testing. Google sign-in has no limit.';
+      'Email sign-in is limited while the project tests its mailer. Google has no limit.';
 
   @override
   String get codeInvalid =>
@@ -427,6 +430,159 @@ class AppL10nEn extends AppL10n {
   String devCodeHint(String code) {
     return 'Sandbox mode: no email is sent. Enter $code.';
   }
+
+  @override
+  String get authTabSignIn => 'Sign in';
+
+  @override
+  String get authTabRegister => 'Create account';
+
+  @override
+  String get registerTitle => 'Create your account';
+
+  @override
+  String get registerSubtitle =>
+      'One account for orders, wallet balance and delivery codes.';
+
+  @override
+  String get nameLabel => 'Full name';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm password';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String noAccountYet(String brand) {
+    return 'New to $brand?';
+  }
+
+  @override
+  String get haveAccountAlready => 'Already have an account?';
+
+  @override
+  String get orContinueWithEmail => 'or continue with email';
+
+  @override
+  String get signInWithCode => 'Email me a code instead';
+
+  @override
+  String get usePasswordInstead => 'Use a password instead';
+
+  @override
+  String get codeSignInTitle => 'Sign in with a code';
+
+  @override
+  String get codeSignInSubtitle => 'No password needed. We email six digits.';
+
+  @override
+  String get resendCode => 'Send a new code';
+
+  @override
+  String get confirmEmailTitle => 'Confirm your email';
+
+  @override
+  String confirmEmailBody(String email) {
+    return 'We sent six digits to $email. Enter them to switch the account on.';
+  }
+
+  @override
+  String get confirmAndContinue => 'Confirm and continue';
+
+  @override
+  String get resetTitle => 'Reset your password';
+
+  @override
+  String get resetSubtitle =>
+      'We email six digits, then you choose a new password.';
+
+  @override
+  String get sendResetCode => 'Email me a code';
+
+  @override
+  String get newPasswordLabel => 'New password';
+
+  @override
+  String get savePassword => 'Save password and sign in';
+
+  @override
+  String passwordRuleTooShort(String min) {
+    return 'Use at least $min characters.';
+  }
+
+  @override
+  String get passwordRuleNeedsLower => 'Add a lowercase letter.';
+
+  @override
+  String get passwordRuleNeedsUpper => 'Add an uppercase letter.';
+
+  @override
+  String get passwordRuleNeedsDigit => 'Add a number.';
+
+  @override
+  String get passwordMismatch => 'The two passwords do not match.';
+
+  @override
+  String get passwordTooWeak =>
+      'That password is too easy to guess. Make it longer.';
+
+  @override
+  String get passwordStrengthWeak => 'Weak';
+
+  @override
+  String get passwordStrengthFair => 'Fair';
+
+  @override
+  String get passwordStrengthStrong => 'Strong';
+
+  @override
+  String get referralToggle => 'Have a referral code?';
+
+  @override
+  String get referralCodeLabel => 'Referral code (optional)';
+
+  @override
+  String get referralHint => '8 letters or numbers';
+
+  @override
+  String get referralInvalid => 'A referral code is 8 characters.';
+
+  @override
+  String get referralFailed =>
+      'Account created, but that referral code was not applied.';
+
+  @override
+  String get termsAgree =>
+      'I agree to the Terms of Service and Privacy Policy.';
+
+  @override
+  String get termsRequired => 'Please accept the terms to continue.';
+
+  @override
+  String get nameRequired => 'Please enter your name.';
+
+  @override
+  String get passwordRequired => 'Please enter your password.';
+
+  @override
+  String get codeRequired => 'Enter the 6-digit code from the email.';
+
+  @override
+  String get emailInUse => 'That email already has an account. Try signing in.';
+
+  @override
+  String get wrongCredentials => 'Email or password is not right.';
+
+  @override
+  String get emailNotConfirmed =>
+      'Confirm your email first — we sent you a code.';
+
+  @override
+  String get codeExpired => 'That code has expired. Ask for a new one.';
 
   @override
   String get paywayNotConfigured =>
@@ -507,6 +663,16 @@ class AppL10nEn extends AppL10n {
   @override
   String get trustSupportBody =>
       'Send us your order number and we will take it from there.';
+
+  @override
+  String get partnerTitle => 'Supply partner';
+
+  @override
+  String get partnerBody =>
+      'Many top-ups are fulfilled automatically through our supply partner Bay2Game.';
+
+  @override
+  String get partnerBadge => 'Automatic fulfilment';
 
   @override
   String get contactSupport => 'Contact support';

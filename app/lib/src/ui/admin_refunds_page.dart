@@ -188,7 +188,11 @@ class _RefundCardState extends ConsumerState<_RefundCard> {
     } on OrderException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _toast(error.code == 'not_authorized' ? l10n.adminOnly : l10n.somethingWentWrong);
+      _toast(
+        error.code == 'not_authorized'
+            ? l10n.adminOnly
+            : l10n.somethingWentWrong,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);

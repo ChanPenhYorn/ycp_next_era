@@ -20,6 +20,7 @@ class StoreFooter extends ConsumerWidget {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final telegram = ref.watch(settingsProvider).valueOrNull?.supportTelegram;
     final tagline = locale == 'km' ? Brand.taglineKm : Brand.taglineEn;
+    final signedIn = ref.watch(currentUserProvider) != null;
 
     final identity = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,6 +90,18 @@ class StoreFooter extends ConsumerWidget {
           label: l10n.accountTitle,
           onTap: () => context.go('/account'),
         ),
+        // Signed-out visitors get both ways in, the way any shop with accounts
+        // does; signed-in ones would only see a link to a page that redirects.
+        if (!signedIn) ...[
+          _FooterLink(
+            label: l10n.authTabSignIn,
+            onTap: () => context.go('/login'),
+          ),
+          _FooterLink(
+            label: l10n.authTabRegister,
+            onTap: () => context.go('/register'),
+          ),
+        ],
         if (telegram != null && telegram.isNotEmpty)
           _FooterLink(
             label: l10n.contact,

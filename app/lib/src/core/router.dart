@@ -15,7 +15,7 @@ import '../ui/cart_page.dart';
 import '../ui/catalog_page.dart';
 import '../ui/checkout_page.dart';
 import '../ui/account_page.dart';
-import '../ui/login_page.dart';
+import '../ui/auth_page.dart';
 import '../ui/wallet_page.dart';
 import '../ui/order_detail_page.dart';
 import '../ui/orders_page.dart';
@@ -68,7 +68,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login?next=${Uri.encodeComponent(state.uri.toString())}';
       }
 
-      if (state.matchedLocation == '/login' && user != null) {
+      // Signed in: the auth screen has nothing to offer, so send people on
+      // rather than showing a form that immediately redirects.
+      final isAuthRoute =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
+      if (isAuthRoute && user != null) {
         final next = state.uri.queryParameters['next'];
         return next == null || next.isEmpty ? '/' : next;
       }
@@ -187,9 +192,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // Full-screen routes: no bottom navigation while paying or signing in.
+      // `/register` is the same screen started on the other tab, so links to
+      // either keep working.
       GoRoute(
         path: '/login',
-        pageBuilder: (context, state) => _fadePage(state, const LoginPage()),
+        pageBuilder: (context, state) => _fadePage(
+          state,
+          AuthPage(
+            initialMode: AuthMode.signIn,
+            next: state.uri.queryParameters['next'],
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/register',
+        pageBuilder: (context, state) => _fadePage(
+          state,
+          AuthPage(
+            initialMode: AuthMode.register,
+            next: state.uri.queryParameters['next'],
+          ),
+        ),
       ),
     ],
   );

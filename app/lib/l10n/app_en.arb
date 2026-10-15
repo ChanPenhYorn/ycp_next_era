@@ -77,7 +77,7 @@
   "statusRefunded": "Refunded",
   "statusExpired": "Expired",
   "yourCodes": "Your codes",
-  "manualWaiting": "Waiting for staff setup",
+  "manualWaiting": "Waiting for us to check your transfer",
   "orderEmpty": "No orders yet",
   "orderPaidSuccess": "Payment received",
   "about": "About us",
@@ -87,9 +87,10 @@
   "contact": "Contact",
   "weAccept": "We accept",
   "rights": "All rights reserved",
-  "loginTitle": "Sign in to your account",
-  "loginSubtitle": "We email you a one-time code. No password to remember.",
+  "loginTitle": "Welcome back",
+  "loginSubtitle": "Sign in with Google, or your email and password.",
   "emailLabel": "Email address",
+  "emailHint": "you@example.com",
   "sendCode": "Send code",
   "otpLabel": "6-digit code",
   "verify": "Verify and continue",
@@ -153,7 +154,7 @@
   "useDifferentEmail": "Use a different email",
   "emailRateLimited": "Too many sign-in emails for now. Please try again later, or use Google.",
   "providerNotEnabled": "That sign-in method is not switched on yet.",
-  "emailOnlyNote": "Email sign-in is limited while testing. Google sign-in has no limit.",
+  "emailOnlyNote": "Email sign-in is limited while the project tests its mailer. Google has no limit.",
   "codeInvalid": "That code is not right. Check the six digits and try again.",
   "devCodeHint": "Sandbox mode: no email is sent. Enter {code}.",
   "@devCodeHint": {
@@ -163,9 +164,76 @@
       }
     }
   },
+  "authTabSignIn": "Sign in",
+  "authTabRegister": "Create account",
+  "registerTitle": "Create your account",
+  "registerSubtitle": "One account for orders, wallet balance and delivery codes.",
+  "nameLabel": "Full name",
+  "passwordLabel": "Password",
+  "confirmPasswordLabel": "Confirm password",
+  "forgotPassword": "Forgot password?",
+  "noAccountYet": "New to {brand}?",
+  "@noAccountYet": {
+    "placeholders": {
+      "brand": {
+        "type": "String"
+      }
+    }
+  },
+  "haveAccountAlready": "Already have an account?",
+  "orContinueWithEmail": "or continue with email",
+  "signInWithCode": "Email me a code instead",
+  "usePasswordInstead": "Use a password instead",
+  "codeSignInTitle": "Sign in with a code",
+  "codeSignInSubtitle": "No password needed. We email six digits.",
+  "resendCode": "Send a new code",
+  "confirmEmailTitle": "Confirm your email",
+  "confirmEmailBody": "We sent six digits to {email}. Enter them to switch the account on.",
+  "@confirmEmailBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmAndContinue": "Confirm and continue",
+  "resetTitle": "Reset your password",
+  "resetSubtitle": "We email six digits, then you choose a new password.",
+  "sendResetCode": "Email me a code",
+  "newPasswordLabel": "New password",
+  "savePassword": "Save password and sign in",
+  "passwordRuleTooShort": "Use at least {min} characters.",
+  "@passwordRuleTooShort": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "passwordRuleNeedsLower": "Add a lowercase letter.",
+  "passwordRuleNeedsUpper": "Add an uppercase letter.",
+  "passwordRuleNeedsDigit": "Add a number.",
+  "passwordMismatch": "The two passwords do not match.",
+  "passwordTooWeak": "That password is too easy to guess. Make it longer.",
+  "passwordStrengthWeak": "Weak",
+  "passwordStrengthFair": "Fair",
+  "passwordStrengthStrong": "Strong",
+  "referralToggle": "Have a referral code?",
+  "referralCodeLabel": "Referral code (optional)",
+  "referralHint": "8 letters or numbers",
+  "referralInvalid": "A referral code is 8 characters.",
+  "referralFailed": "Account created, but that referral code was not applied.",
+  "termsAgree": "I agree to the Terms of Service and Privacy Policy.",
+  "termsRequired": "Please accept the terms to continue.",
+  "nameRequired": "Please enter your name.",
+  "passwordRequired": "Please enter your password.",
+  "codeRequired": "Enter the 6-digit code from the email.",
+  "emailInUse": "That email already has an account. Try signing in.",
+  "wrongCredentials": "Email or password is not right.",
+  "emailNotConfirmed": "Confirm your email first — we sent you a code.",
+  "codeExpired": "That code has expired. Ask for a new one.",
   "paywayNotConfigured": "KHQR payments are not switched on for this project yet. Please use another payment method.",
   "paywayRejected": "ABA did not accept that payment. Please try again, or use another method.",
-
   "navHome": "Home",
   "navGames": "Games",
   "searchGames": "Search games...",
@@ -188,6 +256,9 @@
   "trustRefundBody": "If a top-up cannot be delivered, the amount is returned to your wallet. Refunds to a bank account are handled by support.",
   "trustSupportTitle": "Support",
   "trustSupportBody": "Send us your order number and we will take it from there.",
+  "partnerTitle": "Supply partner",
+  "partnerBody": "Many top-ups are fulfilled automatically through our supply partner Bay2Game.",
+  "partnerBadge": "Automatic fulfilment",
   "contactSupport": "Contact support",
   "statusRefundPending": "Refund pending",
   "fieldHelpTooltip": "How to find this",
@@ -210,7 +281,6 @@
   "transferRemarkHint": "so we can match your payment",
   "iHavePaid": "I have paid — check it",
   "manualRequested": "Thank you. Your payment is waiting to be checked by hand. You can close this page; the order will update when it is confirmed.",
-  "manualWaiting": "Waiting for us to check your transfer",
   "manualWaitingBody": "If it has been a while, contact support with your order number.",
   "adminManualPayments": "Transfers to check",
   "adminManualQueue": "Orders where the buyer has asked to pay by bank transfer.",

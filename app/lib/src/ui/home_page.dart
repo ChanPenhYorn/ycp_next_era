@@ -133,6 +133,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             builder: (value) => TrustAndSupportSection(settings: value),
           ),
           const SizedBox(height: 26),
+          const PartnerCard(),
+          const SizedBox(height: 26),
           SectionTitle(l10n.allProducts, trailing: l10n.allProducts),
           const SizedBox(height: 10),
           AsyncValueView(

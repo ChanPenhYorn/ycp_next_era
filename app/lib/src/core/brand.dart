@@ -10,6 +10,9 @@ class Brand {
   static const name = 'Chanpenh';
   static const nameKm = 'ចាន់ពេញ';
 
+  /// Supplier named on the home partner card. Change only with written approval.
+  static const supplierName = 'Bay2Game';
+
   static const taglineKm = 'ទិញភ្លាមៗ ទទួលភ្លាមៗ';
   static const taglineEn = 'Buy now, delivered now';
 

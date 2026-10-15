@@ -500,23 +500,23 @@ class AdminOverview {
   final double refunded30dUsd;
 
   factory AdminOverview.fromJson(Map<String, dynamic> json) => AdminOverview(
-        timezone: json['timezone'] as String? ?? 'UTC',
-        generatedAt: DateTime.tryParse(json['generated_at'] as String? ?? '') ??
-            DateTime.now(),
-        ordersPending: (json['orders_pending'] as num?)?.toInt() ?? 0,
-        ordersRefundPending:
-            (json['orders_refund_pending'] as num?)?.toInt() ?? 0,
-        transfersWaiting: (json['transfers_waiting'] as num?)?.toInt() ?? 0,
-        supportOpen: (json['support_open'] as num?)?.toInt() ?? 0,
-        itemsManualWaiting: (json['items_manual_waiting'] as num?)?.toInt() ?? 0,
-        receivedToday: (json['received_today'] as num?)?.toInt() ?? 0,
-        receivedTodayUsd: (json['received_today_usd'] as num?)?.toDouble() ?? 0,
-        received7dUsd: (json['received_7d_usd'] as num?)?.toDouble() ?? 0,
-        received30dUsd: (json['received_30d_usd'] as num?)?.toDouble() ?? 0,
-        walletSpent30dUsd: (json['wallet_spent_30d_usd'] as num?)?.toDouble() ?? 0,
-        refunds30d: (json['refunds_30d'] as num?)?.toInt() ?? 0,
-        refunded30dUsd: (json['refunded_30d_usd'] as num?)?.toDouble() ?? 0,
-      );
+    timezone: json['timezone'] as String? ?? 'UTC',
+    generatedAt:
+        DateTime.tryParse(json['generated_at'] as String? ?? '') ??
+        DateTime.now(),
+    ordersPending: (json['orders_pending'] as num?)?.toInt() ?? 0,
+    ordersRefundPending: (json['orders_refund_pending'] as num?)?.toInt() ?? 0,
+    transfersWaiting: (json['transfers_waiting'] as num?)?.toInt() ?? 0,
+    supportOpen: (json['support_open'] as num?)?.toInt() ?? 0,
+    itemsManualWaiting: (json['items_manual_waiting'] as num?)?.toInt() ?? 0,
+    receivedToday: (json['received_today'] as num?)?.toInt() ?? 0,
+    receivedTodayUsd: (json['received_today_usd'] as num?)?.toDouble() ?? 0,
+    received7dUsd: (json['received_7d_usd'] as num?)?.toDouble() ?? 0,
+    received30dUsd: (json['received_30d_usd'] as num?)?.toDouble() ?? 0,
+    walletSpent30dUsd: (json['wallet_spent_30d_usd'] as num?)?.toDouble() ?? 0,
+    refunds30d: (json['refunds_30d'] as num?)?.toInt() ?? 0,
+    refunded30dUsd: (json['refunded_30d_usd'] as num?)?.toDouble() ?? 0,
+  );
 }
 
 /// One row of the staff order list. Deliberately lighter than `Order`: the list
@@ -557,15 +557,17 @@ class AdminOrderSummary {
         status: orderStatusFrom(json['status'] as String? ?? 'pending'),
         kind: json['kind'] as String? ?? 'purchase',
         totalUsd: (json['total_usd'] as num?)?.toDouble() ?? 0,
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+        createdAt:
+            DateTime.tryParse(json['created_at'] as String? ?? '') ??
             DateTime.now(),
         itemCount: ((json['items'] as List?) ?? const []).length,
         paidAt: DateTime.tryParse(json['paid_at'] as String? ?? ''),
         refundedAt: DateTime.tryParse(json['refunded_at'] as String? ?? ''),
         refundReason: json['refund_reason'] as String?,
         contactEmail: json['contact_email'] as String?,
-        manualPaymentRequestedAt:
-            DateTime.tryParse(json['manual_payment_requested_at'] as String? ?? ''),
+        manualPaymentRequestedAt: DateTime.tryParse(
+          json['manual_payment_requested_at'] as String? ?? '',
+        ),
       );
 }
 
@@ -600,20 +602,22 @@ class AdminOrderItem {
   final DateTime? supplierNextAttemptAt;
 
   factory AdminOrderItem.fromJson(Map<String, dynamic> json) => AdminOrderItem(
-        id: (json['id'] as num).toInt(),
-        productName: json['product_name'] as String? ?? '',
-        variantLabel: json['variant_label'] as String? ?? '',
-        qty: (json['qty'] as num?)?.toInt() ?? 0,
-        unitPriceUsd: (json['unit_price_usd'] as num?)?.toDouble() ?? 0,
-        lineTotalUsd: (json['line_total_usd'] as num?)?.toDouble() ?? 0,
-        deliveryStatus:
-            deliveryStatusFrom(json['delivery_status'] as String? ?? 'pending'),
-        supplierAttempts: (json['supplier_attempts'] as num?)?.toInt() ?? 0,
-        supplierLastError: json['supplier_last_error'] as String?,
-        supplierRef: json['supplier_ref'] as String?,
-        supplierNextAttemptAt:
-            DateTime.tryParse(json['supplier_next_attempt_at'] as String? ?? ''),
-      );
+    id: (json['id'] as num).toInt(),
+    productName: json['product_name'] as String? ?? '',
+    variantLabel: json['variant_label'] as String? ?? '',
+    qty: (json['qty'] as num?)?.toInt() ?? 0,
+    unitPriceUsd: (json['unit_price_usd'] as num?)?.toDouble() ?? 0,
+    lineTotalUsd: (json['line_total_usd'] as num?)?.toDouble() ?? 0,
+    deliveryStatus: deliveryStatusFrom(
+      json['delivery_status'] as String? ?? 'pending',
+    ),
+    supplierAttempts: (json['supplier_attempts'] as num?)?.toInt() ?? 0,
+    supplierLastError: json['supplier_last_error'] as String?,
+    supplierRef: json['supplier_ref'] as String?,
+    supplierNextAttemptAt: DateTime.tryParse(
+      json['supplier_next_attempt_at'] as String? ?? '',
+    ),
+  );
 }
 
 class AdminPaymentRow {
@@ -638,7 +642,8 @@ class AdminPaymentRow {
   final DateTime? verifiedAt;
   final DateTime? refundedAt;
 
-  factory AdminPaymentRow.fromJson(Map<String, dynamic> json) => AdminPaymentRow(
+  factory AdminPaymentRow.fromJson(Map<String, dynamic> json) =>
+      AdminPaymentRow(
         provider: json['provider'] as String? ?? '',
         status: json['status'] as String? ?? '',
         amountUsd: (json['amount_usd'] as num?)?.toDouble() ?? 0,
@@ -667,10 +672,12 @@ class AdminOrderEvent {
   final OrderStatus? toStatus;
   final Map<String, dynamic>? detail;
 
-  factory AdminOrderEvent.fromJson(Map<String, dynamic> json) => AdminOrderEvent(
+  factory AdminOrderEvent.fromJson(Map<String, dynamic> json) =>
+      AdminOrderEvent(
         event: json['event'] as String? ?? '',
         actor: json['actor'] as String? ?? 'system',
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+        createdAt:
+            DateTime.tryParse(json['created_at'] as String? ?? '') ??
             DateTime.now(),
         fromStatus: json['from_status'] == null
             ? null
@@ -703,18 +710,18 @@ class AdminOrderDetail {
     Map<String, dynamic> order,
     List<Map<String, dynamic>> payments,
     List<Map<String, dynamic>> events,
-  ) =>
-      AdminOrderDetail(
-        summary: AdminOrderSummary.fromJson(order),
-        items: ((order['items'] as List?) ?? const [])
-            .map((e) => AdminOrderItem.fromJson((e as Map).cast<String, dynamic>()))
-            .toList(),
-        payments: payments.map(AdminPaymentRow.fromJson).toList(),
-        events: events.map(AdminOrderEvent.fromJson).toList(),
-        customerNote: order['customer_note'] as String?,
-        customerFields: ((order['customer_fields'] as Map?) ?? const {})
-            .map((key, value) => MapEntry(key.toString(), value.toString())),
-      );
+  ) => AdminOrderDetail(
+    summary: AdminOrderSummary.fromJson(order),
+    items: ((order['items'] as List?) ?? const [])
+        .map((e) => AdminOrderItem.fromJson((e as Map).cast<String, dynamic>()))
+        .toList(),
+    payments: payments.map(AdminPaymentRow.fromJson).toList(),
+    events: events.map(AdminOrderEvent.fromJson).toList(),
+    customerNote: order['customer_note'] as String?,
+    customerFields: ((order['customer_fields'] as Map?) ?? const {}).map(
+      (key, value) => MapEntry(key.toString(), value.toString()),
+    ),
+  );
 }
 
 /// A `support_tickets` row. Status and priority stay as the database's own
@@ -751,21 +758,23 @@ class SupportTicket {
   bool get isOpen => status == 'open' || status == 'in_progress';
 
   factory SupportTicket.fromJson(Map<String, dynamic> json) => SupportTicket(
-        id: (json['id'] as num).toInt(),
-        subject: json['subject'] as String? ?? '',
-        status: json['status'] as String? ?? 'open',
-        priority: json['priority'] as String? ?? 'normal',
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
-            DateTime.now(),
-        updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
-            DateTime.now(),
-        body: json['body'] as String?,
-        contact: json['contact'] as String?,
-        adminNote: json['admin_note'] as String?,
-        orderId: json['order_id'] as String?,
-        orderNo: (json['orders'] as Map?)?['order_no'] as String?,
-        resolvedAt: DateTime.tryParse(json['resolved_at'] as String? ?? ''),
-      );
+    id: (json['id'] as num).toInt(),
+    subject: json['subject'] as String? ?? '',
+    status: json['status'] as String? ?? 'open',
+    priority: json['priority'] as String? ?? 'normal',
+    createdAt:
+        DateTime.tryParse(json['created_at'] as String? ?? '') ??
+        DateTime.now(),
+    updatedAt:
+        DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+        DateTime.now(),
+    body: json['body'] as String?,
+    contact: json['contact'] as String?,
+    adminNote: json['admin_note'] as String?,
+    orderId: json['order_id'] as String?,
+    orderNo: (json['orders'] as Map?)?['order_no'] as String?,
+    resolvedAt: DateTime.tryParse(json['resolved_at'] as String? ?? ''),
+  );
 }
 
 /// One entry in the wallet ledger. Append-only, so this reads as a statement.

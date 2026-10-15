@@ -29,10 +29,7 @@ class AdminPage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            AdminHeader(
-              title: l10n.adminTitle,
-              subtitle: l10n.adminOverview,
-            ),
+            AdminHeader(title: l10n.adminTitle, subtitle: l10n.adminOverview),
             const SizedBox(height: 14),
             AsyncValueView(
               value: overview,
@@ -50,7 +47,8 @@ class AdminPage extends ConsumerWidget {
                         AdminStat(
                           label: l10n.adminPendingOrders,
                           value: '${data.ordersPending}',
-                          onTap: () => context.go('/admin/orders?status=pending'),
+                          onTap: () =>
+                              context.go('/admin/orders?status=pending'),
                         ),
                         AdminStat(
                           label: l10n.statusRefundPending,

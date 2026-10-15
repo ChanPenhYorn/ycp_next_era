@@ -1,4 +1,4 @@
-# Sela
+# Chanpenh
 
 Khmer-first digital storefront: game top-ups and gift cards, paid with **ABA KHQR**, delivered instantly.
 
@@ -180,8 +180,8 @@ cd app
 flutter build web --dart-define-from-file=config/prod.json
 ```
 
-VS Code gets the same setups in `.vscode/launch.json`: *Sela dev* and
-*Sela prod*, each for Chrome and for a device. Use dev while building screens —
+VS Code gets the same setups in `.vscode/launch.json`: *Chanpenh dev* and
+*Chanpenh prod*, each for Chrome and for a device. Use dev while building screens —
 a few careless prod runs against the 2-per-hour mailer lock sign-in for the
 whole project until the window rolls over.
 
@@ -198,7 +198,7 @@ The money logic has a runnable test harness that needs nothing but Docker:
 supabase/tests/run.sh
 ```
 
-It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue and asserts the things that matter: RLS isolation, the oversell guard, quantity limits, required buyer fields, coupon limits, the wallet ledger, and the short-pick rollback.
+It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue and asserts the things that matter: RLS isolation, the oversell guard, quantity limits, required buyer fields, coupon limits, the wallet ledger, the short-pick rollback, the order event log, the support-ticket guards, and the refund states.
 
 ## Stages
 
@@ -210,8 +210,12 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 1 | PayWay adapter: purchase hash, check-transaction, callback verify | `[x]` |
 | 2 | Flutter shell: Khmer/English i18n, theme, routing, Riverpod state | `[x]` |
 | 3 | Catalogue: home, category filter, search, product detail, reviews | `[~]` |
+| 3a | Home aligned to `implement.md` §6: prominent search, popular-by-sales, data-driven promotions, how it works, trust and support | `[x]` |
 | 4 | Cart + checkout, coupon preview, wallet payment | `[~]` |
+| 4a | Buyer fields end to end: shared `RequiredFieldsForm`, per-field error under the field it belongs to, keyboard and length driven by the catalogue's `pattern`, per-field "where do I find this?" help, and the pattern enforced in `create_order` rather than only in the app | `[x]` |
 | 5 | **Native KHQR sheet**: render QR, deep-link to ABA Mobile, poll and settle | `[~]` |
+| 5a | Manual transfer fallback: buyer asks, staff confirm against the bank, one settlement path | `[x]` |
+| 5b | Staff operations at `/admin`: overview, orders, refunds, support | `[x]` |
 | 6 | Orders: history, detail, reveal codes | `[~]` |
 | 7 | Auth: passwordless email OTP | `[~]` |
 | 8 | Wallet top-up (RPC + settlement path) | `[x]` |
@@ -230,7 +234,11 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 17 | Ops: backups, uptime alerts, fraud velocity rules | `[ ]` |
 | 19 | Play Store / App Store submission, Khmer store listing | `[ ]` |
 
-The database row of this table is the part that is genuinely verified: `supabase/tests/run.sh` asserts RLS isolation, the oversell guard, quantity limits, required buyer fields, coupon limits, the wallet ledger, the short-pick rollback, top-up limits, the review guard, and the supplier refund path.
+The database row of this table is the part that is genuinely verified: `supabase/tests/run.sh` asserts RLS isolation, the oversell guard, quantity limits, required buyer fields, buyer-field patterns, coupon limits, the wallet ledger, the short-pick rollback, top-up limits, the review guard, the supplier refund path, the append-only order history, the support-ticket guards, `refund_pending -> refunded`, and the manual-transfer guards.
+
+Rows 3a, 4a and 5a mean what they say and no more: `flutter analyze` is clean,
+`flutter test` passes, and `flutter build web` compiles. They have not been walked
+through against the running stack by hand.
 
 Stage 5 is the one to exercise next: it needs live sandbox credentials, and payment flows are where assumptions go to die.
 
@@ -298,7 +306,7 @@ six-digit field has nothing to accept.
 4. Paste the client ID and secret into Authentication → Providers → Google.
 5. Add these redirect URLs under Authentication → URL Configuration:
    - `http://localhost:8080`
-   - `sela://auth-callback` (mobile deep link, see `Brand.urlScheme`)
+   - `chanpenh://auth-callback` (mobile deep link, see `Brand.urlScheme`)
 
 For Android you also need a second OAuth client of type Android, registered with
 your keystore's SHA-1 fingerprint. There is a different fingerprint for debug
@@ -372,5 +380,169 @@ Netflix, Spotify, YouTube, Canva and CapCut run no reseller programme. A store s
 ## Notes
 
 - Product images: `product-images` is a public storage bucket, configured in `supabase/config.toml`.
+- `order_events` is the append-only order history. A trigger on `orders` writes every status transition, and no client grant can insert, change or delete a row, so the history cannot be forged from the app.
+- Two refund paths, deliberately separate. An automatic refund of a failed supplier line credits the buyer's **wallet** in `supplier_complete_item`. `admin_order_set_refund_pending` then `admin_order_mark_refunded` record a refund made outside that path, such as an ABA reversal, and neither moves money — which is what stops one refund being paid twice.
 - Stock payloads are encrypted at rest with `pgp_sym_encrypt`. The key lives in `private.secrets`; only `reveal_order` can decrypt, and it re-checks ownership and paid status on every call.
 - `supabase/tests/` is a local harness, not part of the deployed schema.
+
+## Storefront claims
+
+The home page follows the pattern Cambodian buyers already know from SEA Gamer Mall
+and the local shops: a search field at the top, then a popular grid, then
+promotions, then how it works, then trust. Three rules keep it honest, and they
+are the reason a section can be empty:
+
+| Section | Source | When there is nothing |
+|---|---|---|
+| Popular games | `products.sold_count`, incremented on delivery | Falls back to the staff-curated `is_featured` list, and the heading changes from **Popular games** to **Popular** so the label matches the data |
+| Promotions | a variant whose `compare_at_price_usd` beats its live price | The section is omitted. There is no banner the database cannot back up |
+| Trust and support | `support_telegram` / `support_email` from `public_settings` | No contact button is drawn, rather than a dead one |
+
+Nothing on the page is a fixed number: no countdown timer, no invented stock
+counter, no discount the catalogue does not carry. `test/storefront_test.dart`
+holds that: the discount predicate rejects a compare price that is not a
+reduction, `refund_pending` is asserted not to read as `pending`, and both
+contact buttons are asserted not to overflow at 320px.
+
+Two claims were **removed** from the copy because the store cannot support them:
+"24/7" delivery and "24/7" support. Reinstating either is a business decision,
+not a translation one.
+
+Internal errors are rendered only in debug builds. A PostgREST message can name
+tables and policies, and `implement.md` §7 forbids showing that to a customer.
+
+## Buyer fields
+
+A product that needs an account id declares it on `products.requires_fields`:
+
+```json
+[{"key":"userid","label_en":"Game ID","placeholder":"123456789",
+  "pattern":"^[0-9]{6,12}$","help_en":"...","guide_image_url":"..."}]
+```
+
+`key` must match the supplier's own parameter name — Bay2Game's `userid` and
+`serverid` — or the adapter cannot map it. Labels are free text.
+
+Three rules, and they exist because the wrong id is a top-up delivered to a
+stranger:
+
+| Rule | Where |
+|---|---|
+| A required field must be present **and** match its `pattern`, and be at most 64 characters | `create_order`, before the stock check. Raises `missing_fields` / `invalid_fields` with the offending keys in `detail` |
+| The buyer is told the same thing before paying | `core/field_validation.dart`, used by the shared `RequiredFieldsForm` on both the product page and checkout |
+| An unusable `pattern` is treated as no pattern | Both places. A pattern is data, so it can be malformed, and `~`/`RegExp` raise on one — that would make a whole game unsellable over a typo in a validation string |
+
+Until this was added, the pattern was enforced in the app **only**. A crafted
+request — or simply an older build of the app — sent `userid = 'abc'`, which the
+RPC accepted. The buyer paid, the supplier rejected the id, and the automatic
+path refunded the wallet: the store found out about a bad id after taking money
+for it.
+
+Help text resolves in order of who knows best: the catalogue's own `help_km` /
+`help_en`, then the copy for a field key the app recognises (`userid`,
+`serverid` and their supplier aliases), then a general answer. **No screenshots
+ship with the app**, and none are seeded: a screenshot of a game's profile
+screen is a claim about that game's current UI, and there is no way to verify one
+from here. `guide_image_url` is rendered when the catalogue carries one.
+
+## Manual transfer fallback
+
+PayWay is the path to prefer. It exists only if the project has PayWay
+credentials, and a buyer whose bank app will not open the deeplink is stuck on a
+pending order with nothing to do. So the order page also offers a transfer to the
+store's ABA account, which a human confirms.
+
+Three things make it safe to have a second way in:
+
+1. **One settlement path.** `admin_confirm_manual_payment` calls the same
+   `mark_order_paid` the PayWay callback calls, with provider `manual` (that enum
+   value existed, unused). Stock allocation, coupon redemption, the wallet
+   top-up branch and the supplier queue behave exactly as after a PayWay
+   settlement. A second settlement implementation is how the two drift and money
+   moves twice.
+2. **The amount is stated, not assumed.** PayWay asks ABA what was paid and
+   refuses to deliver on a shortfall; a human does the same. Staff type what the
+   bank app shows, and the RPC refuses anything below `orders.total_usd`
+   (`manual_underpaid`). "The buyer said they paid" is not an amount, and a
+   screenshot is never evidence.
+3. **A reference settles one order.** `payments` is unique on
+   `(provider, provider_ref)`. Confirming a second order with a reference already
+   on a first would silently re-point that row while still settling the second —
+   one transfer paying for two orders. The RPC refuses it
+   (`manual_reference_used`).
+
+| Step | Effect |
+|---|---|
+| Buyer taps "I have paid" | `request_manual_payment`: own pending order only, once per order, 3 per hour per user. No money moves. Extends `expires_at` by `manual_grace_minutes` (default 1440) — without that, housekeeping cancels the order at 15 minutes while the transfer is still in flight |
+| Staff confirm in `/admin` | `admin_confirm_manual_payment`: staff-only, pending and unexpired, amount ≥ total, reference required and unused |
+| Staff dismiss | `admin_clear_manual_payment_request`: clears the flag with a required reason. Nothing is refunded — the order simply goes back to being unpaid |
+| Double click | A no-op: `mark_order_paid` only moves money on `pending` |
+
+An **expired** order is not settled by hand (`order_expired`). The money is real,
+so it goes down the external-refund path
+(`admin_order_set_refund_pending` → `admin_order_mark_refunded`) where a person
+handles it, rather than being quietly accepted into an order housekeeping has
+already cancelled.
+
+`staff_manual_payments` is a **`security_invoker`** view. That is not decoration:
+a plain view belongs to its owner and reads the base table as that owner, which
+would hand every customer's order to any signed-in caller. With
+`security_invoker`, the policies on `orders` apply to whoever queries it —
+harness section 70 pins that a customer sees `0` rows while staff see `1`.
+
+The panel renders only when settings carry both `khqr_account_id` and
+`khqr_merchant_name`; a store that has not filled them in shows nothing rather
+than an instruction the buyer cannot act on. The demo seed's `chanpenh@aclb` / `CHANPENH`
+are placeholders and must be replaced before taking real money.
+
+## Staff operations (`/admin`)
+
+A hub and four screens, all inside the same app and behind one gate
+(`AdminGate`): orders, refunds, support, and M4's transfer queue. The gate is a
+convenience — a non-staff session never reaches the queries, and every RPC behind
+it re-checks `is_staff()` in the database, so a route reached by hand yields
+nothing.
+
+### The overview does not estimate
+
+`admin_overview()` counts rows and sums payments, and the migration says what it
+will not do. Three rules are worth stating because each one is a way to double
+count or rewrite history:
+
+- **Received is summed from `payments`, not from `orders`.** A wallet top-up and
+  the purchase it later pays for both carry an order total; summing orders
+  counts one barrel of money twice.
+- **Wallet spend is separate, and it is not new money.** The cash arrived when
+  the balance was topped up.
+- **Refunds are reported beside received, never netted off it.** A refunded
+  payment still arrived; subtracting it from the window it arrived in changes
+  what last week's figure says.
+
+There is no growth rate, no "active users" and no conversion figure, because each
+would have to be invented. "Today" is a **Phnom Penh** day: `now()` is UTC, so the
+boundary is computed in the store's timezone and the timezone is shown on screen
+next to the numbers.
+
+### Refunds stay two steps
+
+`refund_pending` says staff agreed; `refunded` says the money went back.
+`/admin/refunds` and the order screen only ever call `admin_order_mark_refunded`,
+which **moves no money** — the reversal happens in the bank, where a person does
+it. The screen says so out loud rather than leaving staff to guess.
+
+### One function had to be fixed
+
+`admin_support_set_status` coalesces its parameters so a caller can update one
+field, but it wrote `resolved_at` unconditionally: a note-only call passed
+`p_status = null`, the `case` fell through to `else null`, and the time a ticket
+was resolved was erased. `20261015001200_support_note_fix.sql` re-creates it so
+`resolved_at` only moves when a status is actually set. Harness §75 pins it.
+
+### Known gap: dead staff policies
+
+`audit_log`, `suppliers`, `supplier_skus`, `settings`, `coupons` and
+`coupon_redemptions` have staff policies but **no grant to `authenticated`**, so
+the policies protect a table nobody can read. Products, variants and categories
+have write policies but no write grants. M5a needed none of these; fixing them
+belongs with the screens that will use them (catalogue and settings editing).
+Until then, edit those tables with SQL.

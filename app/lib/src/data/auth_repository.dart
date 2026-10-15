@@ -76,7 +76,7 @@ class AuthRepository {
   }
 
   /// Web/desktop redirects in the same tab; on mobile Supabase opens a browser
-  /// and returns via the `sela://` scheme registered in the native projects.
+  /// and returns via the `chanpenh://` scheme registered in the native projects.
   Future<void> signInWithGoogle() async {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,

@@ -10,11 +10,11 @@ on conflict (name) do update set value = excluded.value;
 
 -- Public contact settings.
 update public.settings
-   set site_name        = 'Sela',
+   set site_name        = 'Chanpenh',
        support_telegram = 'https://t.me/example',
        usd_to_khr       = 4100,
-       khqr_account_id  = 'sela@aclb',
-       khqr_merchant_name = 'SELA',
+       khqr_account_id  = 'chanpenh@aclb',
+       khqr_merchant_name = 'CHANPENH',
        telegram_bot_username = 'ycp_store_bot';
 
 insert into public.categories (slug, name_km, name_en, sort_order) values

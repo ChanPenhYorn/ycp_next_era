@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/format.dart';
+import '../data/admin_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/catalog_repository.dart';
 import '../data/models.dart';
@@ -42,11 +44,82 @@ final paymentRepositoryProvider = Provider<PaymentRepository>(
   (ref) => PaymentRepository(ref.watch(supabaseProvider)),
 );
 
-final localeControllerProvider =
-    NotifierProvider<LocaleController, Locale>(LocaleController.new);
+final adminRepositoryProvider = Provider<AdminRepository>(
+  (ref) => AdminRepository(ref.watch(supabaseProvider)),
+);
 
-final cartControllerProvider =
-    NotifierProvider<CartController, List<CartLine>>(CartController.new);
+/// Orders waiting for a human to check a bank transfer. Staff-only in the
+/// database: a non-staff session gets an empty list, not an error.
+final manualPaymentRequestsProvider =
+    FutureProvider<List<ManualPaymentRequest>>((ref) {
+      ref.watch(currentUserProvider);
+      return ref.watch(adminRepositoryProvider).manualPaymentRequests();
+    });
+
+/// The overview figures. Refetched rather than cached across sign-in: the
+/// numbers are money, and a stale figure is worse than a spinner.
+final adminOverviewProvider = FutureProvider<AdminOverview>((ref) {
+  ref.watch(currentUserProvider);
+  return ref.watch(adminRepositoryProvider).overview();
+});
+
+/// Filter for the staff order list. Value equality so Riverpod caches one
+/// result per distinct filter.
+class AdminOrderQuery {
+  const AdminOrderQuery({this.status, this.search});
+
+  /// A raw `order_status` value, or null for every status.
+  final String? status;
+  final String? search;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AdminOrderQuery &&
+      other.status == status &&
+      other.search == search;
+
+  @override
+  int get hashCode => Object.hash(status, search);
+}
+
+final adminOrdersProvider =
+    FutureProvider.family<List<AdminOrderSummary>, AdminOrderQuery>((
+      ref,
+      query,
+    ) {
+      ref.watch(currentUserProvider);
+      return ref
+          .watch(adminRepositoryProvider)
+          .orders(status: query.status, search: query.search);
+    });
+
+/// Orders staff have agreed to refund but not yet reversed. Same query as the
+/// list, different question.
+final adminRefundQueueProvider = FutureProvider<List<AdminOrderSummary>>((ref) {
+  ref.watch(currentUserProvider);
+  return ref.watch(adminRepositoryProvider).orders(status: 'refund_pending');
+});
+
+final adminOrderDetailProvider =
+    FutureProvider.family<AdminOrderDetail?, String>((ref, orderId) {
+      return ref.watch(adminRepositoryProvider).orderDetail(orderId);
+    });
+
+/// A `support_tickets` status filter, or null for everything. `'open'` means
+/// both open and in_progress.
+final adminTicketsProvider =
+    FutureProvider.family<List<SupportTicket>, String?>((ref, status) {
+      ref.watch(currentUserProvider);
+      return ref.watch(adminRepositoryProvider).supportTickets(status: status);
+    });
+
+final localeControllerProvider = NotifierProvider<LocaleController, Locale>(
+  LocaleController.new,
+);
+
+final cartControllerProvider = NotifierProvider<CartController, List<CartLine>>(
+  CartController.new,
+);
 
 /// Emits on sign-in, sign-out and token refresh.
 final authStateProvider = StreamProvider<AuthState>(
@@ -69,39 +142,84 @@ final categoriesProvider = FutureProvider<List<Category>>(
 /// Arguments for the product grid. Equality is value-based so Riverpod caches
 /// one result per distinct filter combination.
 class ProductQuery {
-  const ProductQuery({this.categorySlug, this.search, this.featuredOnly = false});
+  const ProductQuery({
+    this.categorySlug,
+    this.search,
+    this.featuredOnly = false,
+    this.popularFirst = false,
+  });
 
   final String? categorySlug;
   final String? search;
   final bool featuredOnly;
+
+  /// Order by real `sold_count` instead of the staff `sort_order`.
+  final bool popularFirst;
 
   @override
   bool operator ==(Object other) =>
       other is ProductQuery &&
       other.categorySlug == categorySlug &&
       other.search == search &&
-      other.featuredOnly == featuredOnly;
+      other.featuredOnly == featuredOnly &&
+      other.popularFirst == popularFirst;
 
   @override
-  int get hashCode => Object.hash(categorySlug, search, featuredOnly);
+  int get hashCode =>
+      Object.hash(categorySlug, search, featuredOnly, popularFirst);
 }
 
-final productsProvider =
-    FutureProvider.family<List<ProductCard>, ProductQuery>((ref, query) {
-  return ref.watch(catalogRepositoryProvider).products(
-        categorySlug: query.categorySlug,
-        search: query.search,
-        featuredOnly: query.featuredOnly,
-      );
+final productsProvider = FutureProvider.family<List<ProductCard>, ProductQuery>(
+  (ref, query) {
+    return ref
+        .watch(catalogRepositoryProvider)
+        .products(
+          categorySlug: query.categorySlug,
+          search: query.search,
+          featuredOnly: query.featuredOnly,
+          popularFirst: query.popularFirst,
+        );
+  },
+);
+
+/// Games ordered by units actually sold. `sold_count` moves on delivery, so
+/// this can be empty on a store with no orders — that is honest, and the home
+/// page falls back to the featured grid rather than inventing a ranking.
+final popularGamesProvider = FutureProvider<List<ProductCard>>((ref) {
+  return ref
+      .watch(catalogRepositoryProvider)
+      .products(popularFirst: true, limit: 12);
+});
+
+/// True when a product carries a genuine, in-stock discount: a
+/// `compare_at_price_usd` that beats the live price. Extracted so the rule is
+/// testable without a database, and so "promotions" can never drift into
+/// showing a price that is not a reduction.
+bool isPromoted(ProductCard product) =>
+    discountPercent(product.minPriceUsd, product.compareAtPriceUsd) != null &&
+    !product.isSoldOut;
+
+/// Products with a genuine discount: a variant whose `compare_at_price_usd`
+/// beats its live price. Nothing is hardcoded here, so an empty list means the
+/// promotions section is omitted entirely instead of showing a fake banner.
+final promotionsProvider = FutureProvider<List<ProductCard>>((ref) async {
+  final all = await ref.watch(catalogRepositoryProvider).products(limit: 48);
+
+  return all.where(isPromoted).toList()..sort((a, b) {
+    final offA = discountPercent(a.minPriceUsd, a.compareAtPriceUsd)!;
+    final offB = discountPercent(b.minPriceUsd, b.compareAtPriceUsd)!;
+    return offB.compareTo(offA);
+  });
 });
 
 /// Locale matters because the DB stores both km and en copy.
 final productDetailProvider =
-    FutureProvider.family<ProductDetail?, (String slug, String locale)>((ref, arg) {
-  return ref
-      .watch(catalogRepositoryProvider)
-      .productBySlug(arg.$1, arg.$2);
-});
+    FutureProvider.family<ProductDetail?, (String slug, String locale)>((
+      ref,
+      arg,
+    ) {
+      return ref.watch(catalogRepositoryProvider).productBySlug(arg.$1, arg.$2);
+    });
 
 final reviewsProvider = FutureProvider.family<List<Review>, int>(
   (ref, productId) => ref.watch(catalogRepositoryProvider).reviews(productId),
@@ -117,15 +235,19 @@ final ordersProvider = FutureProvider<List<Order>>((ref) {
   return ref.watch(orderRepositoryProvider).listOrders();
 });
 
-final walletTransactionsProvider = FutureProvider<List<WalletTransaction>>((ref) {
+final walletTransactionsProvider = FutureProvider<List<WalletTransaction>>((
+  ref,
+) {
   ref.watch(currentUserProvider);
   return ref.watch(orderRepositoryProvider).walletTransactions();
 });
 
 /// Product ids already reviewed within one order, so the UI can hide the
 /// button instead of letting the unique index reject the insert.
-final reviewedProductsProvider =
-    FutureProvider.family<Set<int>, String>((ref, orderId) {
+final reviewedProductsProvider = FutureProvider.family<Set<int>, String>((
+  ref,
+  orderId,
+) {
   return ref.watch(orderRepositoryProvider).reviewedProductIds(orderId);
 });
 

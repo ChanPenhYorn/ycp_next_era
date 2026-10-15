@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/khqr_sheet.dart';
+import 'widgets/manual_payment_panel.dart';
 import 'widgets/review_sheet.dart';
 import 'widgets/status_chip.dart';
 
@@ -32,10 +33,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     final order = ref.watch(orderProvider(widget.orderId));
     // Falls back to empty so the review button simply stays hidden until the
     // set of already-reviewed products has loaded.
-    final reviewed = ref.watch(reviewedProductsProvider(widget.orderId)).maybeWhen(
-          data: (ids) => ids,
-          orElse: () => const <int>{},
-        );
+    final reviewed = ref
+        .watch(reviewedProductsProvider(widget.orderId))
+        .maybeWhen(data: (ids) => ids, orElse: () => const <int>{});
 
     return AsyncValueView(
       value: order,
@@ -68,7 +68,8 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 item: item,
                 codes: _codes[item.id] ?? const [],
                 l10n: l10n,
-                canReview: value.status == OrderStatus.delivered &&
+                canReview:
+                    value.status == OrderStatus.delivered &&
                     item.canBeReviewed &&
                     !reviewed.contains(item.productId),
                 onReview: () => _writeReview(value, item),
@@ -85,8 +86,11 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 children: [
                   _row(l10n.subtotal, money(value.subtotalUsd)),
                   if (value.discountUsd > 0)
-                    _row(l10n.discount, '-${money(value.discountUsd)}',
-                        color: AppColors.accent),
+                    _row(
+                      l10n.discount,
+                      '-${money(value.discountUsd)}',
+                      color: AppColors.accent,
+                    ),
                   _row(l10n.total, money(value.totalUsd), bold: true),
                 ],
               ),
@@ -99,6 +103,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 label: Text(l10n.payWithKhqr),
               ),
               const SizedBox(height: 8),
+              // The fallback, under the QR rather than instead of it. Renders
+              // only when settings carry an account to transfer to.
+              ManualPaymentPanel(order: value),
             ],
             if (value.isPaid) ...[
               OutlinedButton.icon(
@@ -146,8 +153,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     } on OrderException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.code)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.code)));
     }
   }
 
@@ -177,8 +185,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
 
     setState(() => _busy = true);
     try {
-      final payment =
-          await ref.read(paymentRepositoryProvider).initKhqr(order.id);
+      final payment = await ref
+          .read(paymentRepositoryProvider)
+          .initKhqr(order.id);
       if (!mounted) return;
       setState(() => _busy = false);
 
@@ -255,7 +264,11 @@ class _OrderItemTile extends StatelessWidget {
             if (needsSetup)
               Row(
                 children: [
-                  const Icon(Icons.support_agent, size: 14, color: AppColors.warn),
+                  const Icon(
+                    Icons.support_agent,
+                    size: 14,
+                    color: AppColors.warn,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     l10n.manualWaiting,
@@ -276,7 +289,10 @@ class _OrderItemTile extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: onReview,
                   icon: const Icon(Icons.rate_review_outlined, size: 16),
-                  label: Text(l10n.writeReview, style: const TextStyle(fontSize: 12)),
+                  label: Text(
+                    l10n.writeReview,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
           ],
@@ -320,9 +336,9 @@ class _CodeChip extends StatelessWidget {
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: code));
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Copied')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Copied')));
               }
             },
           ),

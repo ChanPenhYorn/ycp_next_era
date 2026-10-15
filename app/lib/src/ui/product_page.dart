@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/field_validation.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/required_fields_form.dart';
 
 class ProductPage extends ConsumerStatefulWidget {
   const ProductPage({required this.slug, super.key});
@@ -24,6 +26,10 @@ class _ProductPageState extends ConsumerState<ProductPage> {
   int _qty = 1;
   final _fieldControllers = <String, TextEditingController>{};
 
+  /// Message per field key, so the reason lands under the field that caused it
+  /// rather than in a toast at the bottom of the page.
+  Map<String, String?> _fieldErrors = const {};
+
   @override
   void dispose() {
     for (final controller in _fieldControllers.values) {
@@ -31,6 +37,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
     }
     super.dispose();
   }
+
+  TextEditingController _controllerFor(RequiredField field) =>
+      _fieldControllers.putIfAbsent(field.key, TextEditingController.new);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +49,8 @@ class _ProductPageState extends ConsumerState<ProductPage> {
 
     return AsyncValueView(
       value: detail,
-      onRetry: () => ref.invalidate(productDetailProvider((widget.slug, locale))),
+      onRetry: () =>
+          ref.invalidate(productDetailProvider((widget.slug, locale))),
       builder: (product) {
         if (product == null) {
           return Padding(
@@ -126,9 +136,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                       onSelected: variant.isSoldOut
                           ? null
                           : (_) => setState(() {
-                                _selectedVariantId = variant.id;
-                                _qty = variant.minQty;
-                              }),
+                              _selectedVariantId = variant.id;
+                              _qty = variant.minQty;
+                            }),
                     ),
                 ],
               ),
@@ -137,23 +147,25 @@ class _ProductPageState extends ConsumerState<ProductPage> {
               const SizedBox(height: 20),
               Text(
                 l10n.requiredInfo,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 10),
-              for (final field in product.requiresFields) ...[
-                TextField(
-                  controller: _fieldControllers.putIfAbsent(
-                    field.key,
-                    TextEditingController.new,
-                  ),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: field.label(locale),
-                    hintText: field.placeholder,
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
+              RequiredFieldsForm(
+                fields: product.requiresFields,
+                locale: locale,
+                controllerFor: _controllerFor,
+                errors: _fieldErrors,
+                onChanged: (field) {
+                  if (_fieldErrors[field.key] != null) {
+                    setState(
+                      () => _fieldErrors = {..._fieldErrors}..remove(field.key),
+                    );
+                  }
+                },
+              ),
             ],
             const SizedBox(height: 20),
             _QuantityRow(
@@ -177,8 +189,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton(
-                    onPressed:
-                        selected.isSoldOut ? null : () => _buyNow(l10n, product, selected),
+                    onPressed: selected.isSoldOut
+                        ? null
+                        : () => _buyNow(l10n, product, selected),
                     child: Text(l10n.buyNow),
                   ),
                 ),
@@ -193,36 +206,42 @@ class _ProductPageState extends ConsumerState<ProductPage> {
     );
   }
 
-  /// Returns the collected values, or null if a required field is missing or
-  /// does not match the pattern the catalogue declares.
+  /// Returns the collected values, or null when a required field is missing or
+  /// is not the shape the catalogue declares.
+  ///
+  /// The rule itself lives in `core/field_validation.dart`, which checkout uses
+  /// too: the two pages each had their own copy, and they had already drifted.
   Map<String, String>? _collectFields(AppL10n l10n, ProductDetail product) {
     final values = <String, String>{};
+    final problems = <String, String?>{};
 
     for (final field in product.requiresFields) {
-      final raw = _fieldControllers[field.key]?.text.trim() ?? '';
+      final raw = _fieldControllers[field.key]?.text ?? '';
+      final problem = fieldProblem(field, raw);
 
-      if (raw.isEmpty) {
-        _toast('${l10n.requiredInfo}: ${field.label(_locale())}');
-        return null;
+      if (problem != null) {
+        problems[field.key] = fieldProblemMessage(l10n, field, problem);
+        continue;
       }
 
-      final pattern = field.pattern;
-      if (pattern != null && !RegExp(pattern).hasMatch(raw)) {
-        _toast('${field.label(_locale())}: ${field.placeholder ?? pattern}');
-        return null;
-      }
-
-      values[field.key] = raw;
+      values[field.key] = raw.trim();
     }
 
+    if (problems.isNotEmpty) {
+      setState(() => _fieldErrors = problems);
+      return null;
+    }
+
+    setState(() => _fieldErrors = const {});
     return values;
   }
 
   String _locale() => ref.read(localeControllerProvider).languageCode;
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _addToCart(AppL10n l10n, ProductDetail product, Variant variant) {
@@ -230,7 +249,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
     if (fields == null) return;
     final locale = _locale();
 
-    ref.read(cartControllerProvider.notifier).add(
+    ref
+        .read(cartControllerProvider.notifier)
+        .add(
           variantId: variant.id,
           productSlug: product.card.slug,
           productName: product.name(locale),
@@ -250,7 +271,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
     final fields = _collectFields(l10n, product);
     if (fields == null) return;
 
-    ref.read(cartControllerProvider.notifier).add(
+    ref
+        .read(cartControllerProvider.notifier)
+        .add(
           variantId: variant.id,
           productSlug: product.card.slug,
           productName: product.name(_locale()),
@@ -288,7 +311,10 @@ class _QuantityRow extends StatelessWidget {
 
     return Row(
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(width: 14),
         IconButton.filledTonal(
           onPressed: qty > variant.minQty ? () => onChanged(qty - 1) : null,
@@ -331,10 +357,11 @@ class _MetaRow extends StatelessWidget {
             '★ ${card.ratingAvg.toStringAsFixed(1)} (${card.ratingCount})',
             style: const TextStyle(fontSize: 12, color: AppColors.warn),
           ),
-        Text(
-          l10n.soldCount(card.soldCount),
-          style: const TextStyle(fontSize: 12, color: AppColors.ink400),
-        ),
+        if (card.soldCount > 0)
+          Text(
+            l10n.soldCount(compactCount(card.soldCount)),
+            style: const TextStyle(fontSize: 12, color: AppColors.ink400),
+          ),
         Text(
           card.isSoldOut ? l10n.outOfStock : '✓ ${l10n.inStock}',
           style: TextStyle(
@@ -361,12 +388,15 @@ class _Gallery extends StatelessWidget {
         child: product.card.imageUrl == null
             ? const ColoredBox(
                 color: AppColors.ink850,
-                child: Center(child: Text('📦', style: TextStyle(fontSize: 44))),
+                child: Center(
+                  child: Text('📦', style: TextStyle(fontSize: 44)),
+                ),
               )
             : CachedNetworkImage(
                 imageUrl: product.card.imageUrl!,
                 fit: BoxFit.cover,
-                placeholder: (_, _) => const ColoredBox(color: AppColors.ink850),
+                placeholder: (_, _) =>
+                    const ColoredBox(color: AppColors.ink850),
               ),
       ),
     );

@@ -1,6 +1,10 @@
 import 'package:intl/intl.dart';
 
-final _usd = NumberFormat.currency(locale: 'en_US', symbol: r'$', decimalDigits: 2);
+final _usd = NumberFormat.currency(
+  locale: 'en_US',
+  symbol: r'$',
+  decimalDigits: 2,
+);
 final _khr = NumberFormat.decimalPattern('en_US');
 
 String money(num value) => _usd.format(value);

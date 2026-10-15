@@ -18,11 +18,7 @@ import '../../state/providers.dart';
 /// PayWay API key. This widget renders it and polls `payway-verify`; it never
 /// sees a secret and never decides on its own that a payment succeeded.
 class KhqrSheet extends ConsumerStatefulWidget {
-  const KhqrSheet({
-    required this.orderId,
-    required this.payment,
-    super.key,
-  });
+  const KhqrSheet({required this.orderId, required this.payment, super.key});
 
   final String orderId;
   final KhqrPayment payment;
@@ -70,19 +66,19 @@ class _KhqrSheetState extends ConsumerState<KhqrSheet> {
         .read(paymentRepositoryProvider)
         .poll(widget.orderId, deadline: widget.payment.expiresAt)
         .listen((result) {
-      if (!mounted) return;
+          if (!mounted) return;
 
-      setState(() {
-        _state = result.state;
-        _failure = result.reason;
-      });
+          setState(() {
+            _state = result.state;
+            _failure = result.reason;
+          });
 
-      if (result.ok) {
-        Navigator.of(context).pop(true);
-      } else if (result.isFinal) {
-        Navigator.of(context).pop(false);
-      }
-    });
+          if (result.ok) {
+            Navigator.of(context).pop(true);
+          } else if (result.isFinal) {
+            Navigator.of(context).pop(false);
+          }
+        });
   }
 
   @override

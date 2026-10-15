@@ -64,7 +64,7 @@ class Env {
   /// OAuth returns here after the provider round trip.
   ///
   /// On web the browser lands back on the site. On mobile there is no origin,
-  /// so it uses the `sela://` scheme registered in the native projects.
+  /// so it uses the `chanpenh://` scheme registered in the native projects.
   static String get oauthRedirectUrl {
     if (!kIsWeb) return '${Brand.urlScheme}://auth-callback';
     const site = String.fromEnvironment('SITE_URL', defaultValue: '');

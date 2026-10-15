@@ -12,10 +12,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>kh.sela.store</string>
+			<string>kh.chanpenh.store</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>sela</string>
+				<string>chanpenh</string>
 			</array>
 		</dict>
 	</array>
@@ -28,9 +28,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sela</string>
+	<string>Chanpenh</string>
 	<key>CFBundleName</key>
-	<string>Sela</string>
+	<string>Chanpenh</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

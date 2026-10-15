@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -45,11 +46,16 @@ class AsyncValueView<T> extends StatelessWidget {
               AppL10n.of(context).somethingWentWrong,
               style: const TextStyle(color: AppColors.danger, fontSize: 13),
             ),
-            const SizedBox(height: 6),
-            Text(
-              '$error',
-              style: const TextStyle(fontSize: 11, color: AppColors.ink400),
-            ),
+            // `implement.md` §7: never surface internal detail to a customer.
+            // PostgREST messages can name tables and policies. Keep it where
+            // it helps the developer and nowhere else.
+            if (kDebugMode) ...[
+              const SizedBox(height: 6),
+              Text(
+                '$error',
+                style: const TextStyle(fontSize: 11, color: AppColors.ink400),
+              ),
+            ],
             if (onRetry != null) ...[
               const SizedBox(height: 10),
               OutlinedButton(

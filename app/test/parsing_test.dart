@@ -59,7 +59,9 @@ void main() {
       expect(variant.isUnlimited, isTrue);
       expect(variant.isSoldOut, isFalse);
 
-      final category = Category.fromJson(row['category'] as Map<String, dynamic>);
+      final category = Category.fromJson(
+        row['category'] as Map<String, dynamic>,
+      );
       expect(category.slug, 'game-topup');
     });
 
@@ -150,7 +152,7 @@ void main() {
 
     test('settings row with nullable contact fields', () {
       final settings = PublicSettings.fallback;
-      expect(settings.siteName, 'Sela');
+      expect(settings.siteName, 'Chanpenh');
       expect(settings.topupMinUsd, 1);
       expect(settings.topupMaxUsd, 1000);
     });
@@ -250,7 +252,8 @@ void main() {
         expect(
           variantColumns,
           contains(field),
-          reason: 'variantColumns is missing "$field", which Variant.fromJson reads',
+          reason:
+              'variantColumns is missing "$field", which Variant.fromJson reads',
         );
       }
     });
@@ -260,7 +263,8 @@ void main() {
         expect(
           categoryColumns,
           contains(field),
-          reason: 'categoryColumns is missing "$field", which Category.fromJson reads',
+          reason:
+              'categoryColumns is missing "$field", which Category.fromJson reads',
         );
       }
     });

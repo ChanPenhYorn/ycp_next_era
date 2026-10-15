@@ -20,7 +20,10 @@ class AppShell extends ConsumerWidget {
     final l10n = AppL10n.of(context);
     final isWide = MediaQuery.sizeOf(context).width >= 900;
 
-    const tabs = ['/', '/products', '/cart', '/wallet', '/orders'];
+    // Four tabs, as `implement.md` §5 names them. The cart keeps its home in
+    // the app bar, and the wallet is reached from Account, so neither is lost
+    // by dropping it from here.
+    const tabs = ['/', '/products', '/orders', '/account'];
     final index = tabs.indexWhere(
       (tab) => tab == '/' ? location == '/' : location.startsWith(tab),
     );
@@ -82,27 +85,22 @@ class AppShell extends ConsumerWidget {
                 NavigationDestination(
                   icon: const Icon(Icons.home_outlined),
                   selectedIcon: const Icon(Icons.home),
-                  label: l10n.appTitle,
+                  label: l10n.navHome,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.grid_view_outlined),
                   selectedIcon: const Icon(Icons.grid_view),
-                  label: l10n.allProducts,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.shopping_bag_outlined),
-                  selectedIcon: const Icon(Icons.shopping_bag),
-                  label: l10n.cart,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.account_balance_wallet_outlined),
-                  selectedIcon: const Icon(Icons.account_balance_wallet),
-                  label: l10n.walletTitle,
+                  label: l10n.navGames,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.receipt_long_outlined),
                   selectedIcon: const Icon(Icons.receipt_long),
                   label: l10n.orders,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.person_outline),
+                  selectedIcon: const Icon(Icons.person),
+                  label: l10n.accountTitle,
                 ),
               ],
             ),

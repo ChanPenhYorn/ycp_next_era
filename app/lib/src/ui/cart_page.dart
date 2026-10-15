@@ -89,8 +89,8 @@ class CartPage extends ConsumerWidget {
                     IconButton(
                       onPressed: line.qty > line.minQty
                           ? () => ref
-                              .read(cartControllerProvider.notifier)
-                              .setQty(line.variantId, line.qty - 1)
+                                .read(cartControllerProvider.notifier)
+                                .setQty(line.variantId, line.qty - 1)
                           : null,
                       icon: const Icon(Icons.remove, size: 16),
                     ),
@@ -98,8 +98,8 @@ class CartPage extends ConsumerWidget {
                     IconButton(
                       onPressed: line.qty < line.maxQty
                           ? () => ref
-                              .read(cartControllerProvider.notifier)
-                              .setQty(line.variantId, line.qty + 1)
+                                .read(cartControllerProvider.notifier)
+                                .setQty(line.variantId, line.qty + 1)
                           : null,
                       icon: const Icon(Icons.add, size: 16),
                     ),

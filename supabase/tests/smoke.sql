@@ -432,3 +432,424 @@ select (select count(*) from public.orders)  as orders,
        (select count(*) from public.reviews) as reviews;
 select v.sku, vs.in_stock from public.product_variants v
   join public.variant_stock vs on vs.variant_id = v.id order by v.sku;
+
+-- ============================================================================
+-- order_events, support tickets and the refund states
+-- ============================================================================
+reset role;
+
+\echo '### 41. every status transition is in the history, in order'
+-- :oid went pending -> paid -> delivering -> delivered. Nothing wrote an
+-- event by hand; the trigger on public.orders did, which is the point.
+select event, from_status, to_status, actor
+  from public.order_events where order_id = :'oid' order by id;
+
+\echo '### 42. a repeated settlement does not add a duplicate event'
+-- Section 5 settled :oid twice. One transition means one row.
+select count(*) as paid_events
+  from public.order_events where order_id = :'oid' and to_status = 'paid';
+
+\echo '### 43. the history is append-only for a customer'
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+do $$
+begin
+  insert into public.order_events (order_id, to_status, event)
+  values ((select id from public.orders order by created_at limit 1), 'paid', 'forged');
+  raise exception 'FAIL [order_events]: a customer inserted a history row';
+exception
+  when others then
+    if sqlerrm like '%permission denied%' then
+      raise notice 'PASS [order_events]: insert refused';
+    else
+      raise;
+    end if;
+end $$;
+
+\echo '### 44. a customer reads only their own order s history'
+select count(*) as own_events
+  from public.order_events where order_id = :'oid';
+
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false);
+select count(*) as stranger_events
+  from public.order_events where order_id = :'oid';
+
+\echo '### 45. a buyer opens a support ticket against their own order'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select public.create_support_ticket(
+  'Diamonds did not arrive',
+  'Order shows delivered but the ID is empty.',
+  :'oid',
+  'buyer@example.test'
+) as ticket_created;
+
+select id as tid from public.support_tickets order by id desc limit 1 \gset
+
+\echo '### 46. a second ticket seconds later is rate limited'
+-- The order id has to come from psql, not from a subquery: RLS correctly hides
+-- every order from a stranger, so `select id from orders` would hand the
+-- function a NULL and skip the very check under test.
+create or replace function pg_temp.expect_support_fail(
+  p_order   uuid,
+  p_subject text,
+  p_expect  text
+) returns text
+language plpgsql
+as $$
+begin
+  perform public.create_support_ticket(p_subject, 'body', p_order, null);
+  return 'FAIL [support ' || p_subject || ']: no error raised';
+exception
+  when others then
+    if sqlerrm like p_expect then
+      return 'PASS [support ' || p_subject || ']: ' || sqlerrm;
+    end if;
+    return 'FAIL [support ' || p_subject || ']: got "' || sqlerrm || '"';
+end $$;
+
+select pg_temp.expect_support_fail(null, 'again', 'ticket_rate_limited%');
+
+\echo '### 47. a ticket cannot be raised against a stranger s order'
+select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false);
+select pg_temp.expect_support_fail(:'oid', 'not mine', 'order_not_found%');
+
+\echo '### 48. the stranger cannot see the buyer s tickets either'
+select count(*) as stranger_tickets
+  from public.support_tickets where id = :'tid';
+
+\echo '### 49. staff see it and resolve it'
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select public.admin_support_set_status(:'tid', 'resolved', 'Refund offered.', 'high') as staff_resolved;
+select subject, status, priority, resolved_at is not null as closed
+  from public.support_tickets where id = :'tid';
+
+\echo '### 50. a customer cannot resolve their own ticket'
+reset role;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+do $$
+begin
+  perform public.admin_support_set_status(
+    (select id from public.support_tickets order by id desc limit 1), 'closed', null, null);
+  raise exception 'FAIL [support]: a customer resolved their own ticket';
+exception
+  when others then
+    if sqlerrm = 'not_authorized' then raise notice 'PASS [support]: staff-only';
+    else raise; end if;
+end $$;
+
+\echo '### 51. a customer cannot declare a refund either'
+do $$
+begin
+  perform public.admin_order_set_refund_pending((select id from public.orders order by created_at limit 1), 'because');
+  raise exception 'FAIL [refund]: a customer set refund_pending';
+exception
+  when others then
+    if sqlerrm = 'not_authorized' then raise notice 'PASS [refund]: staff-only';
+    else raise; end if;
+end $$;
+
+\echo '### 52. staff move the failed order through refund_pending to refunded'
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+
+select public.admin_order_set_refund_pending(:'roid', 'supplier could not deliver') as set_pending;
+select status, refund_reason from public.orders where id = :'roid';
+
+-- The guard runs the other way too: only refund_pending may become refunded,
+-- so a live order that is still being delivered cannot be written off.
+select public.admin_order_mark_refunded(:'oid', 'not agreed') as refused_on_live_order;
+select status from public.orders where id = :'oid';
+
+select public.admin_order_mark_refunded(:'roid', 'ABA reversal 88213') as marked_refunded;
+select status, refunded_at is not null as refunded from public.orders where id = :'roid';
+
+\echo '### 53. the settled payment is marked refunded too'
+select provider, status, refunded_at is not null as refunded
+  from public.payments where order_id = :'roid';
+
+\echo '### 54. the refund transitions are in the order history'
+select event, from_status, to_status, actor
+  from public.order_events where order_id = :'roid' order by id;
+
+\echo '### 55. schema additions in place'
+select
+  (select count(*) from public.order_events) as order_events,
+  (select count(*) from public.support_tickets) as support_tickets,
+  (select count(*) from public.orders where status = 'refund_pending') as still_pending,
+  (select count(*) from public.orders where status = 'refunded') as refunded;
+
+\echo '### 56. a buyer field that does not match the catalogue pattern is refused'
+-- The app checks this too, but the RPC is reachable on its own and an older
+-- build is a normal thing to be running. 'abc' as a game id used to be
+-- accepted here: the buyer paid, the supplier rejected it, and the automatic
+-- path refunded the wallet for a sale that could never have happened.
+select pg_temp.expect_fail(
+  'game_id_not_numeric', jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', 'abc', 'serverid', '2001'), 'invalid_fields%');
+select pg_temp.expect_fail(
+  'server_too_short', jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '20'), 'invalid_fields%');
+
+\echo '### 57. an over-long value is refused before it reaches a supplier'
+select pg_temp.expect_fail(
+  'game_id_too_long', jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', repeat('9', 200), 'serverid', '2001'), 'invalid_fields%');
+
+\echo '### 58. the same field with a value it expects still creates the order'
+-- The gate must refuse the bad value without refusing the good one. This
+-- product has unlimited stock, so a successful call is the only outcome that
+-- proves the pattern check passed rather than the stock check firing first.
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '2001'), null, null) as valid_id_order;
+
+\echo '### 59. an unusable pattern is no constraint rather than a dead product'
+-- A pattern is data: staff or an adapter writes it, so it can be wrong. If a
+-- broken one raised, every order for that product would fail and the game
+-- would be unsellable over a typo in a validation string.
+reset role;
+select public.field_pattern_matches('abc', '([unclosed')          as broken_pattern_fails_open,
+       public.field_pattern_matches('abc', '^[0-9]+$')            as non_matching,
+       public.field_pattern_matches('262856740', '^[0-9]{6,12}$') as matching,
+       public.field_pattern_matches('anything', '')               as no_pattern,
+       public.field_pattern_matches(null, '^[0-9]+$')             as null_value;
+
+
+-- ---------------------------------------------------------------------------
+-- Manual KHQR fallback (M4). The automated path must keep working, and this
+-- path has to move money exactly once, against a reference nobody has used.
+-- ---------------------------------------------------------------------------
+-- psql does not interpolate a variable inside a string literal, so the order id
+-- is passed as an argument rather than built into the SQL text.
+create or replace function pg_temp.expect_request_fail(
+  p_label text, p_order uuid, p_expect text
+) returns text
+language plpgsql
+as $$
+begin
+  perform public.request_manual_payment(p_order, null);
+  return 'FAIL [' || p_label || ']: no error raised';
+exception
+  when others then
+    if sqlerrm like p_expect then return 'PASS [' || p_label || ']: ' || sqlerrm; end if;
+    return 'FAIL [' || p_label || ']: got "' || sqlerrm || '"';
+end $$;
+
+create or replace function pg_temp.expect_confirm_fail(
+  p_label text, p_order uuid, p_amount numeric, p_ref text, p_expect text
+) returns text
+language plpgsql
+as $$
+begin
+  perform public.admin_confirm_manual_payment(p_order, p_amount, p_ref, null);
+  return 'FAIL [' || p_label || ']: no error raised';
+exception
+  when others then
+    if sqlerrm like p_expect then return 'PASS [' || p_label || ']: ' || sqlerrm; end if;
+    return 'FAIL [' || p_label || ']: got "' || sqlerrm || '"';
+end $$;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+
+\echo '### 60. asking to pay by transfer keeps the order payable, and moves no money'
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '2001'), null, null) as manual_a;
+select id as maid from public.orders order by created_at desc limit 1 \gset
+
+select public.request_manual_payment(:'maid', 'paid from ABA at 10:20') as requested_a;
+-- Extended well past the 15-minute TTL, because an instant transfer is not
+-- instant, and no payment row is created just by asking.
+select o.status,
+       o.manual_payment_requested_at is not null as flagged,
+       o.expires_at > now() + interval '1 hour' as payable_longer,
+       (select count(*) from public.payments where order_id = o.id) as payment_rows
+  from public.orders o where o.id = :'maid';
+select event, actor, to_status from public.order_events
+ where order_id = :'maid' order by id;
+
+\echo '### 61. asking twice keeps the first request, and does not push the expiry out'
+select public.request_manual_payment(:'maid') as second_request;
+select count(*) as request_events from public.order_events
+ where order_id = :'maid' and event = 'manual_payment_requested';
+
+\echo '### 62. a customer cannot confirm a payment'
+select pg_temp.expect_confirm_fail('customer_cannot_confirm', :'maid', 1.89, 'ABA-REF-X', 'not_authorized%');
+
+\echo '### 63. staff state the amount, and it must cover the total'
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+-- Staff can read the order, but asking is for the buyer: the RPC must not treat
+-- a staff session as the owner.
+select pg_temp.expect_request_fail('staff_is_not_the_buyer', :'maid', 'order_not_found%');
+select total_usd as total_owed from public.orders where id = :'maid';
+select pg_temp.expect_confirm_fail('underpaid', :'maid', 1.00, 'ABA-REF-X', 'manual_underpaid%');
+select pg_temp.expect_confirm_fail('no_reference', :'maid', 5.00, '   ', 'manual_reference_required%');
+select pg_temp.expect_confirm_fail('zero_amount', :'maid', 0, 'ABA-REF-X', 'amount_required%');
+
+\echo '### 64. one transfer can only settle one order'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '2001'), null, null) as manual_b;
+select id as mbid from public.orders order by created_at desc limit 1 \gset
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+
+select public.admin_confirm_manual_payment(:'mbid', 1.89, 'ABA-REF-1') as confirmed_b;
+select pg_temp.expect_confirm_fail('reference_already_used', :'maid', 1.89, 'ABA-REF-1', 'manual_reference_used%');
+
+\echo '### 65. confirming settles once, through the path PayWay uses'
+select public.admin_confirm_manual_payment(:'maid', 2.00, 'ABA-REF-2', 'bank app shows 2.00') as confirmed_a;
+select status, paid_at is not null as paid from public.orders where id = :'maid';
+select provider, status, amount_usd, provider_ref, verified_at is not null as verified
+  from public.payments where order_id = :'maid';
+-- Delivery is the same hand-off a PayWay settlement performs: an auto_topup line
+-- goes to the supplier queue, so the order is past 'pending' but not 'delivered'.
+select status as order_status from public.orders where id = :'maid';
+select event, actor, from_status, to_status from public.order_events
+ where order_id = :'maid' order by id;
+
+\echo '### 66. confirming again is a no-op, not a second delivery'
+select public.admin_confirm_manual_payment(:'maid', 1.89, 'ABA-REF-2') as confirmed_again;
+select count(*) as payment_rows_for_order from public.payments where order_id = :'maid';
+select count(*) as delivery_events from public.order_events
+ where order_id = :'maid' and event in ('delivering', 'delivered');
+select count(*) as confirm_events from public.order_events
+ where order_id = :'maid' and event = 'manual_payment_confirmed';
+
+\echo '### 67. an expired order is not settled by hand'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '2001'), null, null) as manual_c;
+select id as mcid from public.orders order by created_at desc limit 1 \gset
+reset role;
+update public.orders set expires_at = now() - interval '1 minute' where id = :'mcid';
+set role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+select pg_temp.expect_confirm_fail('expired_order_refused', :'mcid', 1.89, 'ABA-REF-3', 'order_expired%');
+
+\echo '### 68. asking on a settled order is refused, and a request can be dismissed'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select pg_temp.expect_request_fail('not_pending', :'maid', 'order_not_pending%');
+select public.request_manual_payment(:'mcid', 'transfer from ABA 88') as requested_c;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+-- Confirming order A took it out of the queue; asking on order C put one row in.
+select count(*) as queue_rows_before_clear from public.staff_manual_payments;
+select public.admin_clear_manual_payment_request(:'mcid', 'no transfer received') as cleared_c;
+select manual_payment_requested_at is null as cleared from public.orders where id = :'mcid';
+select count(*) as queue_rows_after_clear from public.staff_manual_payments;
+
+\echo '### 69. a manual top-up credits the wallet exactly once'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select public.create_wallet_topup(25.00, 'buyer@example.test') as manual_topup;
+select id as mtid from public.orders order by created_at desc limit 1 \gset
+select wallet_balance as before_topup from public.profiles
+ where id = '22222222-2222-2222-2222-222222222222';
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+select public.admin_confirm_manual_payment(:'mtid', 25.00, 'ABA-REF-4') as confirmed_topup;
+select wallet_balance as after_topup from public.profiles
+ where id = '22222222-2222-2222-2222-222222222222';
+select status, kind from public.orders where id = :'mtid';
+
+\echo '### 70. the staff queue is not a way around RLS'
+-- A staff user puts their OWN order in the queue, then the customer reads the
+-- same view. The view is `security_invoker`, so the policies on `orders` decide
+-- what each of them sees: the customer's own rows, and nothing of anyone
+-- else's. A plain view would have handed the whole table over.
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '2001'), null, null) as manual_d;
+select id as mdid from public.orders order by created_at desc limit 1 \gset
+select public.request_manual_payment(:'mdid', 'staff order') as requested_d;
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select count(*) as customer_sees_in_queue from public.staff_manual_payments;
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+select count(*) as staff_sees_in_queue from public.staff_manual_payments;
+select public.admin_clear_manual_payment_request(:'mdid', 'test cleanup') as cleared_d;
+select count(*) as queue_rows_at_end from public.staff_manual_payments;
+
+
+-- ---------------------------------------------------------------------------
+-- Staff overview (M5a). The point of these sections is the accounting rule, not
+-- the plumbing: money that reached the bank is counted once, a wallet payment is
+-- not new money, and a refund is reported beside the receipt rather than netted
+-- out of it.
+-- ---------------------------------------------------------------------------
+create or replace function pg_temp.expect_error(p_label text, p_sql text, p_expect text)
+returns text
+language plpgsql
+as $$
+begin
+  execute p_sql;
+  return 'FAIL [' || p_label || ']: no error raised';
+exception
+  when others then
+    if sqlerrm like p_expect then return 'PASS [' || p_label || ']: ' || sqlerrm; end if;
+    return 'FAIL [' || p_label || ']: got "' || sqlerrm || '"';
+end $$;
+
+\echo '### 71. the overview is staff-only'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select pg_temp.expect_error(
+  'customer_cannot_read_overview',
+  'select public.admin_overview()',
+  'not_authorized%');
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+
+\echo '### 72. it reports the store day it is counting, and real rows only'
+select public.admin_overview() ->> 'timezone' as timezone,
+       (public.admin_overview() ->> 'generated_at') is not null as stamped,
+       (public.admin_overview() -> 'orders_pending') is not null as has_queue_counts;
+
+\echo '### 73. a settlement adds its amount to received, exactly once'
+select (public.admin_overview() ->> 'received_today_usd')::numeric as received_before,
+       (public.admin_overview() ->> 'orders_pending')::int          as pending_before
+\gset
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb172, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '2001'), null, null) as overview_order;
+select id as ovid from public.orders order by created_at desc limit 1 \gset
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+
+select public.admin_confirm_manual_payment(:'ovid', 1.89, 'ABA-REF-OV1') as settled;
+-- One order total, no more: the payment row is the money, and the order it pays
+-- for must not be added on top of it.
+select (public.admin_overview() ->> 'received_today_usd')::numeric - :received_before as received_delta,
+       (public.admin_overview() ->> 'orders_pending')::int - :pending_before          as pending_delta,
+       (public.admin_overview() ->> 'received_today')::int                             as received_count_today;
+
+\echo '### 74. a refund is reported beside the receipt, not netted out of it'
+select (public.admin_overview() ->> 'received_30d_usd')::numeric  as received_30d_before,
+       (public.admin_overview() ->> 'refunded_30d_usd')::numeric  as refunded_30d_before,
+       (public.admin_overview() ->> 'orders_refund_pending')::int as refund_pending_before
+\gset
+
+select public.admin_order_set_refund_pending(:'ovid', 'supplier could not deliver') as flagged;
+select (public.admin_overview() ->> 'orders_refund_pending')::int - :refund_pending_before as refund_pending_delta;
+select public.admin_order_mark_refunded(:'ovid', 'EXT-REF-1') as refunded;
+select (public.admin_overview() ->> 'received_30d_usd')::numeric - :received_30d_before as received_unchanged_by_refund,
+       (public.admin_overview() ->> 'refunded_30d_usd')::numeric - :refunded_30d_before as refunded_delta,
+       (public.admin_overview() ->> 'orders_refund_pending')::int                          as refund_pending_now;
+
+\echo '### 75. a note on a resolved ticket keeps its resolution time'
+-- `admin_support_set_status` coalesces every parameter so a caller can update
+-- one field. Before this was fixed, `resolved_at = case when p_status in
+-- ('resolved','closed') then now() else null end` evaluated to null on a
+-- note-only call, silently erasing when the ticket was resolved.
+select status as t_status, priority as t_priority, resolved_at as t_resolved
+  from public.support_tickets where id = :'tid' \gset
+select public.admin_support_set_status(:'tid', null, 'Called the buyer back.', null) as noted;
+select status = :'t_status' as status_kept,
+       priority = :'t_priority' as priority_kept,
+       resolved_at = :'t_resolved' as resolved_at_kept,
+       admin_note
+  from public.support_tickets where id = :'tid';

@@ -1,4 +1,4 @@
-package kh.sela.store
+package kh.chanpenh.store
 
 import io.flutter.embedding.android.FlutterActivity
 

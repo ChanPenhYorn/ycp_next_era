@@ -92,7 +92,9 @@ class PaymentRepository {
     final response = await _client.functions.invoke(name, body: body);
     final data = (response.data as Map?)?.cast<String, dynamic>() ?? const {};
 
-    if (response.status < 200 || response.status >= 300 || data['error'] != null) {
+    if (response.status < 200 ||
+        response.status >= 300 ||
+        data['error'] != null) {
       throw PaymentException(
         data['error'] as String? ?? 'http_${response.status}',
         detail: data['detail'],

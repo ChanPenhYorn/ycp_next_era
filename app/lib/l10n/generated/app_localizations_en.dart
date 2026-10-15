@@ -9,7 +9,7 @@ class AppL10nEn extends AppL10n {
   AppL10nEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Sela';
+  String get appTitle => 'Chanpenh';
 
   @override
   String get searchHint => 'Search products';
@@ -54,18 +54,12 @@ class AppL10nEn extends AppL10n {
   String get instant => 'Instant';
 
   @override
-  String soldCount(int count) {
+  String soldCount(String count) {
     return '$count sold';
   }
 
   @override
   String get from => 'From';
-
-  @override
-  String get heroTitle => 'Game top-ups and digital cards, instantly';
-
-  @override
-  String get heroSubtitle => 'Pay with ABA KHQR, receive your code in seconds';
 
   @override
   String get featured => 'Popular';
@@ -80,13 +74,13 @@ class AppL10nEn extends AppL10n {
   String get noProducts => 'Nothing here yet';
 
   @override
-  String get trustInstant => 'Automatic 24/7 delivery';
+  String get trustInstant => 'Automatic delivery';
 
   @override
   String get trustPayment => 'Pay with ABA KHQR';
 
   @override
-  String get trustSupport => '24/7 support on Telegram';
+  String get trustSupport => 'Support on Telegram';
 
   @override
   String get description => 'Description';
@@ -209,7 +203,7 @@ class AppL10nEn extends AppL10n {
   String get yourCodes => 'Your codes';
 
   @override
-  String get manualWaiting => 'Waiting for staff setup';
+  String get manualWaiting => 'Waiting for us to check your transfer';
 
   @override
   String get orderEmpty => 'No orders yet';
@@ -422,4 +416,379 @@ class AppL10nEn extends AppL10n {
   @override
   String get paywayRejected =>
       'ABA did not accept that payment. Please try again, or use another method.';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navGames => 'Games';
+
+  @override
+  String get searchGames => 'Search games...';
+
+  @override
+  String get popularGames => 'Popular games';
+
+  @override
+  String get promotions => 'Promotions';
+
+  @override
+  String get promotionsSubtitle => 'Live discounts on selected packages';
+
+  @override
+  String get howItWorks => 'How it works';
+
+  @override
+  String get howStep1Title => 'Choose your game and package';
+
+  @override
+  String get howStep1Body => 'Pick the game, then the package you want.';
+
+  @override
+  String get howStep2Title => 'Enter your player ID';
+
+  @override
+  String get howStep2Body =>
+      'Type the ID exactly as it shows in the game. Never your password.';
+
+  @override
+  String get howStep3Title => 'Pay and track your top-up';
+
+  @override
+  String get howStep3Body =>
+      'Pay by ABA KHQR, then follow the order to delivery.';
+
+  @override
+  String get trustAndSupport => 'Trust and support';
+
+  @override
+  String get trustDeliveryTitle => 'Delivery';
+
+  @override
+  String get trustDeliveryBody =>
+      'Codes and top-ups are delivered automatically once payment is confirmed. A supplier top-up can take a few minutes.';
+
+  @override
+  String get trustPaymentTitle => 'Payment';
+
+  @override
+  String get trustPaymentBody =>
+      'ABA confirms your payment on the server. A screenshot is never treated as proof of payment.';
+
+  @override
+  String get trustRefundTitle => 'Refunds';
+
+  @override
+  String get trustRefundBody =>
+      'If a top-up cannot be delivered, the amount is returned to your wallet. Refunds to a bank account are handled by support.';
+
+  @override
+  String get trustSupportTitle => 'Support';
+
+  @override
+  String get trustSupportBody =>
+      'Send us your order number and we will take it from there.';
+
+  @override
+  String get contactSupport => 'Contact support';
+
+  @override
+  String get statusRefundPending => 'Refund pending';
+
+  @override
+  String get fieldHelpTooltip => 'How to find this';
+
+  @override
+  String get fieldHelpTitle => 'Where do I find this?';
+
+  @override
+  String get fieldHelpExample => 'Example';
+
+  @override
+  String get fieldHelpUserid =>
+      'Open the game and tap your profile or avatar. Your ID is the number shown under your name. It does not change.';
+
+  @override
+  String get fieldHelpZone =>
+      'Your server or zone is usually shown next to your in-game name, often in brackets, for example (2001).';
+
+  @override
+  String get fieldHelpGeneric =>
+      'Open the game or service and look for this on your account or profile screen.';
+
+  @override
+  String get fieldHelpWarning =>
+      'Check it before you pay. A top-up sent to the wrong ID usually cannot be reversed. If it fails, the amount returns to your wallet.';
+
+  @override
+  String get fieldRequired => 'Required';
+
+  @override
+  String get fieldWrongFormat => 'That is not the right format';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get payByTransfer => 'Pay by bank transfer';
+
+  @override
+  String get transferIntro =>
+      'Pay the exact amount below, then tell us. We check every transfer by hand against the bank, and your order stays open while we do.';
+
+  @override
+  String get transferTo => 'Transfer to';
+
+  @override
+  String get transferAccount => 'Account number';
+
+  @override
+  String get manualRateLimited =>
+      'You have asked about a few orders already. Send us your order number and we will check it directly.';
+
+  @override
+  String get transferAmount => 'Amount';
+
+  @override
+  String get transferRemark => 'Put this as the remark';
+
+  @override
+  String get transferRemarkHint => 'so we can match your payment';
+
+  @override
+  String get iHavePaid => 'I have paid — check it';
+
+  @override
+  String get manualRequested =>
+      'Thank you. Your payment is waiting to be checked by hand. You can close this page; the order will update when it is confirmed.';
+
+  @override
+  String get manualWaitingBody =>
+      'If it has been a while, contact support with your order number.';
+
+  @override
+  String get adminManualPayments => 'Transfers to check';
+
+  @override
+  String get adminManualQueue =>
+      'Orders where the buyer has asked to pay by bank transfer.';
+
+  @override
+  String get adminNoManualRequests =>
+      'Nothing waiting. No buyer has asked to pay by transfer.';
+
+  @override
+  String get adminAmountReceived => 'Amount received';
+
+  @override
+  String get adminAmountReceivedHint => 'Type what the bank shows, in USD';
+
+  @override
+  String get adminAbaRef => 'ABA reference';
+
+  @override
+  String get adminAbaRefHint =>
+      'From the bank app — each one can settle one order only';
+
+  @override
+  String get adminConfirmPayment => 'Confirm payment';
+
+  @override
+  String get adminDismissRequest => 'Dismiss request';
+
+  @override
+  String get adminDismissReason => 'Why is it being dismissed?';
+
+  @override
+  String get adminExpiresIn => 'Payable until';
+
+  @override
+  String get adminUnderpaid =>
+      'That is less than the order total. Nothing was confirmed.';
+
+  @override
+  String get adminReferenceUsed =>
+      'That ABA reference has already settled a different order.';
+
+  @override
+  String get adminExpired =>
+      'This order expired. Handle the money as an external refund.';
+
+  @override
+  String get adminOnly => 'This page is for staff accounts.';
+
+  @override
+  String get orderNumber => 'Order number';
+
+  @override
+  String get adminTitle => 'Staff';
+
+  @override
+  String get adminOverview => 'Overview';
+
+  @override
+  String get adminOrdersTitle => 'Orders';
+
+  @override
+  String get adminRefundsTitle => 'Refunds';
+
+  @override
+  String get adminSupportTitle => 'Support';
+
+  @override
+  String get adminNeedsAttention => 'What needs doing';
+
+  @override
+  String get adminMoney => 'Money';
+
+  @override
+  String get adminPendingOrders => 'Pending orders';
+
+  @override
+  String get adminSupportOpen => 'Open tickets';
+
+  @override
+  String get adminManualWaiting => 'Lines awaiting manual delivery';
+
+  @override
+  String get adminReceivedToday => 'Received today';
+
+  @override
+  String get adminReceived7d => 'Received, last 7 days';
+
+  @override
+  String get adminReceived30d => 'Received, last 30 days';
+
+  @override
+  String get adminWalletSpent30d => 'Spent from wallets, last 30 days';
+
+  @override
+  String get adminRefunded30d => 'Refunded, last 30 days';
+
+  @override
+  String get adminReceivedNote =>
+      'Money that reached the bank. Refunds are listed beside it, not taken off it, and wallet spend is not new money.';
+
+  @override
+  String get adminCountsNote => 'Counts of rows, not estimates.';
+
+  @override
+  String get adminSearchOrder => 'Order number';
+
+  @override
+  String get adminFilterAll => 'All';
+
+  @override
+  String get adminNoOrders => 'No orders match.';
+
+  @override
+  String get adminItemsTitle => 'Items';
+
+  @override
+  String get adminCustomerNote => 'Buyer\'s note';
+
+  @override
+  String get adminBuyerFields => 'Buyer fields';
+
+  @override
+  String get adminTimeline => 'History';
+
+  @override
+  String get adminPaymentsTitle => 'Payments';
+
+  @override
+  String get adminBuyerTitle => 'Buyer';
+
+  @override
+  String get adminKind => 'Type';
+
+  @override
+  String get adminKindPurchase => 'Purchase';
+
+  @override
+  String get adminKindWalletTopup => 'Wallet top-up';
+
+  @override
+  String get adminCreatedAt => 'Created';
+
+  @override
+  String get adminPaidAt => 'Paid';
+
+  @override
+  String get adminAgreeRefund => 'Agree a refund';
+
+  @override
+  String get adminRefundReason => 'Why is it being refunded?';
+
+  @override
+  String get adminMarkRefunded => 'Record the refund';
+
+  @override
+  String get adminRefundReference => 'Bank reference';
+
+  @override
+  String get adminRefundReferenceHint =>
+      'Optional, but it is what makes the refund auditable';
+
+  @override
+  String get adminRefundRecorded =>
+      'Recorded. This screen does not move money — the reversal is done in the bank.';
+
+  @override
+  String get adminRefundNote =>
+      'Recording a refund here does not move money. Do the reversal in the bank first, then record what you did.';
+
+  @override
+  String get adminSummary => 'Summary';
+
+  @override
+  String get adminRefundsEmpty => 'No refunds are waiting.';
+
+  @override
+  String get adminResolveDelivered => 'Mark delivered';
+
+  @override
+  String get adminResolveFailed => 'Mark failed';
+
+  @override
+  String get adminTicketOpen => 'Open';
+
+  @override
+  String get adminTicketInProgress => 'In progress';
+
+  @override
+  String get adminTicketResolved => 'Resolved';
+
+  @override
+  String get adminTicketClosed => 'Closed';
+
+  @override
+  String get adminPriorityLow => 'Low';
+
+  @override
+  String get adminPriorityNormal => 'Normal';
+
+  @override
+  String get adminPriorityHigh => 'High';
+
+  @override
+  String get adminTicketContact => 'Contact';
+
+  @override
+  String get adminTicketNote => 'Internal note';
+
+  @override
+  String get adminTicketStart => 'Start';
+
+  @override
+  String get adminTicketResolve => 'Resolve';
+
+  @override
+  String get adminTicketClose => 'Close';
+
+  @override
+  String get adminTicketOpenOrder => 'Open the order';
+
+  @override
+  String get adminTicketsEmpty => 'No tickets.';
 }

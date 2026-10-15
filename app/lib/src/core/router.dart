@@ -2,6 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/providers.dart';
+import '../ui/admin_order_detail_page.dart';
+import '../ui/admin_orders_page.dart';
+import '../ui/admin_page.dart';
+import '../ui/admin_refunds_page.dart';
+import '../ui/admin_support_page.dart';
+import '../ui/admin_transfers_page.dart';
 import '../ui/cart_page.dart';
 import '../ui/catalog_page.dart';
 import '../ui/checkout_page.dart';
@@ -19,9 +25,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     redirect: (context, state) {
       final user = ref.read(currentUserProvider);
-      final isProtected = state.matchedLocation == '/checkout' ||
+      final isProtected =
+          state.matchedLocation == '/checkout' ||
           state.matchedLocation == '/wallet' ||
           state.matchedLocation == '/account' ||
+          state.matchedLocation.startsWith('/admin') ||
           state.matchedLocation.startsWith('/orders');
 
       if (isProtected && user == null) {
@@ -37,10 +45,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.matchedLocation,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            AppShell(location: state.matchedLocation, child: child),
         routes: [
           GoRoute(path: '/', builder: (context, state) => const HomePage()),
           GoRoute(
@@ -56,8 +62,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ProductPage(slug: state.pathParameters['slug']!),
           ),
           GoRoute(path: '/cart', builder: (context, state) => const CartPage()),
-          GoRoute(path: '/wallet', builder: (context, state) => const WalletPage()),
-          GoRoute(path: '/account', builder: (context, state) => const AccountPage()),
+          GoRoute(
+            path: '/wallet',
+            builder: (context, state) => const WalletPage(),
+          ),
+          GoRoute(
+            path: '/account',
+            builder: (context, state) => const AccountPage(),
+          ),
           GoRoute(
             path: '/checkout',
             builder: (context, state) => const CheckoutPage(),
@@ -70,6 +82,37 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/orders/:id',
             builder: (context, state) =>
                 OrderDetailPage(orderId: state.pathParameters['id']!),
+          ),
+          // Staff surface. Every page re-checks the role before it reads
+          // anything, and the database re-checks it on every RPC.
+          GoRoute(
+            path: '/admin',
+            builder: (context, state) => const AdminPage(),
+          ),
+          GoRoute(
+            path: '/admin/orders',
+            builder: (context, state) => AdminOrdersPage(
+              initialStatus: state.uri.queryParameters['status'],
+            ),
+          ),
+          GoRoute(
+            path: '/admin/orders/:id',
+            builder: (context, state) =>
+                AdminOrderDetailPage(orderId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/admin/refunds',
+            builder: (context, state) => const AdminRefundsPage(),
+          ),
+          GoRoute(
+            path: '/admin/support',
+            builder: (context, state) => AdminSupportPage(
+              initialStatus: state.uri.queryParameters['status'],
+            ),
+          ),
+          GoRoute(
+            path: '/admin/transfers',
+            builder: (context, state) => const AdminTransfersPage(),
           ),
         ],
       ),

@@ -64,7 +64,10 @@ class AccountPage extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         email.isEmpty ? '—' : email,
-                        style: const TextStyle(fontSize: 14, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       const Divider(),
@@ -85,6 +88,14 @@ class AccountPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
                 _TelegramCard(profile: value),
+                if (value.isStaff) ...[
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: () => context.go('/admin'),
+                    icon: const Icon(Icons.shield_outlined, size: 18),
+                    label: Text(l10n.adminTitle),
+                  ),
+                ],
               ],
             );
           },
@@ -237,7 +248,9 @@ class _TelegramCardState extends ConsumerState<_TelegramCard> {
     setState(() => _busy = true);
 
     try {
-      final code = await ref.read(orderRepositoryProvider).createTelegramLinkCode();
+      final code = await ref
+          .read(orderRepositoryProvider)
+          .createTelegramLinkCode();
       if (!mounted) return;
       setState(() {
         _code = code;
@@ -303,9 +316,9 @@ class _CodeBlock extends ConsumerWidget {
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: code.code));
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.copied)),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(l10n.copied)));
                   }
                 },
               ),

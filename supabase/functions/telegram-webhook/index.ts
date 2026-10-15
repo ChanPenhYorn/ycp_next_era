@@ -157,12 +157,12 @@ async function handleStart(
   await sendMessage(
     chatId,
     [
-      "<b>Sela</b> — បញ្ចូលពេជ្រហ្គេម និងកាតឌីជីថលភ្លាមៗ",
+      "<b>Chanpenh</b> — បញ្ចូលពេជ្រហ្គេម និងកាតឌីជីថលភ្លាមៗ",
       "",
-      "ដើម្បីភ្ជាប់គណនី សូមបើកកម្មវិធី Sela រួចចុច «ភ្ជាប់ Telegram»។",
+      "ដើម្បីភ្ជាប់គណនី សូមបើកកម្មវិធី Chanpenh រួចចុច «ភ្ជាប់ Telegram»។",
       "បន្ទាប់មកផ្ញើកូដមកទីនេះជាមួយ /start។",
       "",
-      "To link your account, open the Sela app and tap Connect Telegram,",
+      "To link your account, open the Chanpenh app and tap Connect Telegram,",
       "then send the code here as /start &lt;code&gt;.",
       "",
       HELP_KM,
@@ -273,7 +273,7 @@ async function handleWallet(admin: ReturnType<typeof adminClient>, chatId: numbe
   if (!profile) {
     await sendMessage(
       chatId,
-      "គណនីមិនទាន់ភ្ជាប់។ សូមភ្ជាប់ក្នុងកម្មវិធី Sela។\nAccount not linked."
+      "គណនីមិនទាន់ភ្ជាប់។ សូមភ្ជាប់ក្នុងកម្មវិធី Chanpenh។\nAccount not linked."
     );
     return;
   }

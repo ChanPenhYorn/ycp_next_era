@@ -11,7 +11,8 @@ class OrderException implements Exception {
   final String? detail;
 
   @override
-  String toString() => 'OrderException($code${detail == null ? '' : ':$detail'})';
+  String toString() =>
+      'OrderException($code${detail == null ? '' : ':$detail'})';
 }
 
 class Profile {
@@ -20,6 +21,7 @@ class Profile {
     required this.walletBalance,
     required this.coins,
     required this.displayName,
+    this.role = 'customer',
     this.telegramChatId,
     this.telegramUsername,
   });
@@ -28,10 +30,17 @@ class Profile {
   final double walletBalance;
   final int coins;
   final String? displayName;
+
+  /// `profiles.role`. Read through the self-select policy, which is also what
+  /// gates the staff screens: the database re-checks it on every RPC, so this
+  /// only decides what the app bothers to draw.
+  final String role;
+
   final int? telegramChatId;
   final String? telegramUsername;
 
   bool get telegramLinked => telegramChatId != null;
+  bool get isStaff => role == 'staff' || role == 'admin';
 }
 
 /// Returned by create_telegram_link_code.
@@ -48,7 +57,8 @@ class TelegramLinkCode {
   final String? botUsername;
   final String? deepLink;
 
-  factory TelegramLinkCode.fromJson(Map<String, dynamic> json) => TelegramLinkCode(
+  factory TelegramLinkCode.fromJson(Map<String, dynamic> json) =>
+      TelegramLinkCode(
         code: json['code'] as String? ?? '',
         expiresInMinutes: (json['expires_in_minutes'] as num?)?.toInt() ?? 15,
         botUsername: json['bot_username'] as String?,
@@ -68,7 +78,7 @@ class OrderRepository {
     final row = await _client
         .from('profiles')
         .select(
-          'id, wallet_balance, coins, display_name, telegram_chat_id, telegram_username',
+          'id, wallet_balance, coins, display_name, role, telegram_chat_id, telegram_username',
         )
         .eq('id', userId)
         .maybeSingle();
@@ -80,6 +90,7 @@ class OrderRepository {
       walletBalance: (row['wallet_balance'] as num?)?.toDouble() ?? 0,
       coins: (row['coins'] as num?)?.toInt() ?? 0,
       displayName: row['display_name'] as String?,
+      role: row['role'] as String? ?? 'customer',
       telegramChatId: (row['telegram_chat_id'] as num?)?.toInt(),
       telegramUsername: row['telegram_username'] as String?,
     );
@@ -162,7 +173,7 @@ class OrderRepository {
         .from('orders')
         .select(
           'id, order_no, status, subtotal_usd, discount_usd, total_usd, '
-          'coupon_code, expires_at, created_at, paid_at, '
+          'coupon_code, expires_at, created_at, paid_at, manual_payment_requested_at, '
           'items:order_items ( id, product_name, variant_label, qty, unit_price_usd, '
           'line_total_usd, delivery_status, variant:product_variants ( product_id ) )',
         )
@@ -177,7 +188,7 @@ class OrderRepository {
         .from('orders')
         .select(
           'id, order_no, status, subtotal_usd, discount_usd, total_usd, '
-          'coupon_code, expires_at, created_at, paid_at, '
+          'coupon_code, expires_at, created_at, paid_at, manual_payment_requested_at, '
           'items:order_items ( id, product_name, variant_label, qty, unit_price_usd, '
           'line_total_usd, delivery_status, variant:product_variants ( product_id ) )',
         )
@@ -199,7 +210,8 @@ class OrderRepository {
       final out = <int, List<String>>{};
       for (final item in (result as List)) {
         final map = (item as Map).cast<String, dynamic>();
-        out[(map['item_id'] as num).toInt()] = ((map['payloads'] as List?) ?? const [])
+        out[(map['item_id'] as num)
+            .toInt()] = ((map['payloads'] as List?) ?? const [])
             .map((p) => p.toString())
             .toList();
       }
@@ -234,6 +246,24 @@ class OrderRepository {
   /// Creates a pending order of kind 'wallet_topup'. Settling it credits the
   /// wallet instead of delivering goods, so top-ups reuse the whole payment
   /// pipeline and inherit its idempotency.
+  /// Requests staff check a bank transfer. Returns when the order now expires,
+  /// which the RPC has extended so the money can arrive before housekeeping
+  /// cancels the order.
+  Future<DateTime> requestManualPayment(String orderId, {String? note}) async {
+    try {
+      final result = await _client.rpc(
+        'request_manual_payment',
+        params: {'p_order_id': orderId, 'p_note': note},
+      );
+
+      final map = (result as Map).cast<String, dynamic>();
+      return DateTime.tryParse(map['expires_at'] as String? ?? '') ??
+          DateTime.now();
+    } on PostgrestException catch (error) {
+      throw _mapError(error);
+    }
+  }
+
   Future<CreatedOrder> createWalletTopup({
     required double amountUsd,
     String? email,
@@ -263,7 +293,9 @@ class OrderRepository {
 
     final rows = await _client
         .from('wallet_transactions')
-        .select('id, kind, amount_usd, balance_after, note, order_id, created_at')
+        .select(
+          'id, kind, amount_usd, balance_after, note, order_id, created_at',
+        )
         .order('created_at', ascending: false)
         .limit(limit);
 

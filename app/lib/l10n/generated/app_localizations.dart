@@ -100,7 +100,7 @@ abstract class AppL10n {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sela'**
+  /// **'Chanpenh'**
   String get appTitle;
 
   /// No description provided for @searchHint.
@@ -191,25 +191,13 @@ abstract class AppL10n {
   ///
   /// In en, this message translates to:
   /// **'{count} sold'**
-  String soldCount(int count);
+  String soldCount(String count);
 
   /// No description provided for @from.
   ///
   /// In en, this message translates to:
   /// **'From'**
   String get from;
-
-  /// No description provided for @heroTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Game top-ups and digital cards, instantly'**
-  String get heroTitle;
-
-  /// No description provided for @heroSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Pay with ABA KHQR, receive your code in seconds'**
-  String get heroSubtitle;
 
   /// No description provided for @featured.
   ///
@@ -238,7 +226,7 @@ abstract class AppL10n {
   /// No description provided for @trustInstant.
   ///
   /// In en, this message translates to:
-  /// **'Automatic 24/7 delivery'**
+  /// **'Automatic delivery'**
   String get trustInstant;
 
   /// No description provided for @trustPayment.
@@ -250,7 +238,7 @@ abstract class AppL10n {
   /// No description provided for @trustSupport.
   ///
   /// In en, this message translates to:
-  /// **'24/7 support on Telegram'**
+  /// **'Support on Telegram'**
   String get trustSupport;
 
   /// No description provided for @description.
@@ -496,7 +484,7 @@ abstract class AppL10n {
   /// No description provided for @manualWaiting.
   ///
   /// In en, this message translates to:
-  /// **'Waiting for staff setup'**
+  /// **'Waiting for us to check your transfer'**
   String get manualWaiting;
 
   /// No description provided for @orderEmpty.
@@ -876,6 +864,708 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'ABA did not accept that payment. Please try again, or use another method.'**
   String get paywayRejected;
+
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// No description provided for @navGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Games'**
+  String get navGames;
+
+  /// No description provided for @searchGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Search games...'**
+  String get searchGames;
+
+  /// No description provided for @popularGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular games'**
+  String get popularGames;
+
+  /// No description provided for @promotions.
+  ///
+  /// In en, this message translates to:
+  /// **'Promotions'**
+  String get promotions;
+
+  /// No description provided for @promotionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live discounts on selected packages'**
+  String get promotionsSubtitle;
+
+  /// No description provided for @howItWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get howItWorks;
+
+  /// No description provided for @howStep1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your game and package'**
+  String get howStep1Title;
+
+  /// No description provided for @howStep1Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the game, then the package you want.'**
+  String get howStep1Body;
+
+  /// No description provided for @howStep2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your player ID'**
+  String get howStep2Title;
+
+  /// No description provided for @howStep2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the ID exactly as it shows in the game. Never your password.'**
+  String get howStep2Body;
+
+  /// No description provided for @howStep3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay and track your top-up'**
+  String get howStep3Title;
+
+  /// No description provided for @howStep3Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay by ABA KHQR, then follow the order to delivery.'**
+  String get howStep3Body;
+
+  /// No description provided for @trustAndSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust and support'**
+  String get trustAndSupport;
+
+  /// No description provided for @trustDeliveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery'**
+  String get trustDeliveryTitle;
+
+  /// No description provided for @trustDeliveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Codes and top-ups are delivered automatically once payment is confirmed. A supplier top-up can take a few minutes.'**
+  String get trustDeliveryBody;
+
+  /// No description provided for @trustPaymentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get trustPaymentTitle;
+
+  /// No description provided for @trustPaymentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'ABA confirms your payment on the server. A screenshot is never treated as proof of payment.'**
+  String get trustPaymentBody;
+
+  /// No description provided for @trustRefundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunds'**
+  String get trustRefundTitle;
+
+  /// No description provided for @trustRefundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If a top-up cannot be delivered, the amount is returned to your wallet. Refunds to a bank account are handled by support.'**
+  String get trustRefundBody;
+
+  /// No description provided for @trustSupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get trustSupportTitle;
+
+  /// No description provided for @trustSupportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send us your order number and we will take it from there.'**
+  String get trustSupportBody;
+
+  /// No description provided for @contactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get contactSupport;
+
+  /// No description provided for @statusRefundPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund pending'**
+  String get statusRefundPending;
+
+  /// No description provided for @fieldHelpTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'How to find this'**
+  String get fieldHelpTooltip;
+
+  /// No description provided for @fieldHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where do I find this?'**
+  String get fieldHelpTitle;
+
+  /// No description provided for @fieldHelpExample.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get fieldHelpExample;
+
+  /// No description provided for @fieldHelpUserid.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the game and tap your profile or avatar. Your ID is the number shown under your name. It does not change.'**
+  String get fieldHelpUserid;
+
+  /// No description provided for @fieldHelpZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your server or zone is usually shown next to your in-game name, often in brackets, for example (2001).'**
+  String get fieldHelpZone;
+
+  /// No description provided for @fieldHelpGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the game or service and look for this on your account or profile screen.'**
+  String get fieldHelpGeneric;
+
+  /// No description provided for @fieldHelpWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Check it before you pay. A top-up sent to the wrong ID usually cannot be reversed. If it fails, the amount returns to your wallet.'**
+  String get fieldHelpWarning;
+
+  /// No description provided for @fieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get fieldRequired;
+
+  /// No description provided for @fieldWrongFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not the right format'**
+  String get fieldWrongFormat;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @payByTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay by bank transfer'**
+  String get payByTransfer;
+
+  /// No description provided for @transferIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay the exact amount below, then tell us. We check every transfer by hand against the bank, and your order stays open while we do.'**
+  String get transferIntro;
+
+  /// No description provided for @transferTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer to'**
+  String get transferTo;
+
+  /// No description provided for @transferAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account number'**
+  String get transferAccount;
+
+  /// No description provided for @manualRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You have asked about a few orders already. Send us your order number and we will check it directly.'**
+  String get manualRateLimited;
+
+  /// No description provided for @transferAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get transferAmount;
+
+  /// No description provided for @transferRemark.
+  ///
+  /// In en, this message translates to:
+  /// **'Put this as the remark'**
+  String get transferRemark;
+
+  /// No description provided for @transferRemarkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'so we can match your payment'**
+  String get transferRemarkHint;
+
+  /// No description provided for @iHavePaid.
+  ///
+  /// In en, this message translates to:
+  /// **'I have paid — check it'**
+  String get iHavePaid;
+
+  /// No description provided for @manualRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you. Your payment is waiting to be checked by hand. You can close this page; the order will update when it is confirmed.'**
+  String get manualRequested;
+
+  /// No description provided for @manualWaitingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If it has been a while, contact support with your order number.'**
+  String get manualWaitingBody;
+
+  /// No description provided for @adminManualPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfers to check'**
+  String get adminManualPayments;
+
+  /// No description provided for @adminManualQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders where the buyer has asked to pay by bank transfer.'**
+  String get adminManualQueue;
+
+  /// No description provided for @adminNoManualRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing waiting. No buyer has asked to pay by transfer.'**
+  String get adminNoManualRequests;
+
+  /// No description provided for @adminAmountReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount received'**
+  String get adminAmountReceived;
+
+  /// No description provided for @adminAmountReceivedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type what the bank shows, in USD'**
+  String get adminAmountReceivedHint;
+
+  /// No description provided for @adminAbaRef.
+  ///
+  /// In en, this message translates to:
+  /// **'ABA reference'**
+  String get adminAbaRef;
+
+  /// No description provided for @adminAbaRefHint.
+  ///
+  /// In en, this message translates to:
+  /// **'From the bank app — each one can settle one order only'**
+  String get adminAbaRefHint;
+
+  /// No description provided for @adminConfirmPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm payment'**
+  String get adminConfirmPayment;
+
+  /// No description provided for @adminDismissRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss request'**
+  String get adminDismissRequest;
+
+  /// No description provided for @adminDismissReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Why is it being dismissed?'**
+  String get adminDismissReason;
+
+  /// No description provided for @adminExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Payable until'**
+  String get adminExpiresIn;
+
+  /// No description provided for @adminUnderpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'That is less than the order total. Nothing was confirmed.'**
+  String get adminUnderpaid;
+
+  /// No description provided for @adminReferenceUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'That ABA reference has already settled a different order.'**
+  String get adminReferenceUsed;
+
+  /// No description provided for @adminExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This order expired. Handle the money as an external refund.'**
+  String get adminExpired;
+
+  /// No description provided for @adminOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This page is for staff accounts.'**
+  String get adminOnly;
+
+  /// No description provided for @orderNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Order number'**
+  String get orderNumber;
+
+  /// No description provided for @adminTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff'**
+  String get adminTitle;
+
+  /// No description provided for @adminOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get adminOverview;
+
+  /// No description provided for @adminOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get adminOrdersTitle;
+
+  /// No description provided for @adminRefundsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunds'**
+  String get adminRefundsTitle;
+
+  /// No description provided for @adminSupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get adminSupportTitle;
+
+  /// No description provided for @adminNeedsAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'What needs doing'**
+  String get adminNeedsAttention;
+
+  /// No description provided for @adminMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Money'**
+  String get adminMoney;
+
+  /// No description provided for @adminPendingOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending orders'**
+  String get adminPendingOrders;
+
+  /// No description provided for @adminSupportOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open tickets'**
+  String get adminSupportOpen;
+
+  /// No description provided for @adminManualWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Lines awaiting manual delivery'**
+  String get adminManualWaiting;
+
+  /// No description provided for @adminReceivedToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Received today'**
+  String get adminReceivedToday;
+
+  /// No description provided for @adminReceived7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Received, last 7 days'**
+  String get adminReceived7d;
+
+  /// No description provided for @adminReceived30d.
+  ///
+  /// In en, this message translates to:
+  /// **'Received, last 30 days'**
+  String get adminReceived30d;
+
+  /// No description provided for @adminWalletSpent30d.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent from wallets, last 30 days'**
+  String get adminWalletSpent30d;
+
+  /// No description provided for @adminRefunded30d.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded, last 30 days'**
+  String get adminRefunded30d;
+
+  /// No description provided for @adminReceivedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Money that reached the bank. Refunds are listed beside it, not taken off it, and wallet spend is not new money.'**
+  String get adminReceivedNote;
+
+  /// No description provided for @adminCountsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Counts of rows, not estimates.'**
+  String get adminCountsNote;
+
+  /// No description provided for @adminSearchOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Order number'**
+  String get adminSearchOrder;
+
+  /// No description provided for @adminFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get adminFilterAll;
+
+  /// No description provided for @adminNoOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'No orders match.'**
+  String get adminNoOrders;
+
+  /// No description provided for @adminItemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get adminItemsTitle;
+
+  /// No description provided for @adminCustomerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer\'s note'**
+  String get adminCustomerNote;
+
+  /// No description provided for @adminBuyerFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer fields'**
+  String get adminBuyerFields;
+
+  /// No description provided for @adminTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get adminTimeline;
+
+  /// No description provided for @adminPaymentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get adminPaymentsTitle;
+
+  /// No description provided for @adminBuyerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer'**
+  String get adminBuyerTitle;
+
+  /// No description provided for @adminKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get adminKind;
+
+  /// No description provided for @adminKindPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase'**
+  String get adminKindPurchase;
+
+  /// No description provided for @adminKindWalletTopup.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet top-up'**
+  String get adminKindWalletTopup;
+
+  /// No description provided for @adminCreatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get adminCreatedAt;
+
+  /// No description provided for @adminPaidAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get adminPaidAt;
+
+  /// No description provided for @adminAgreeRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree a refund'**
+  String get adminAgreeRefund;
+
+  /// No description provided for @adminRefundReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Why is it being refunded?'**
+  String get adminRefundReason;
+
+  /// No description provided for @adminMarkRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Record the refund'**
+  String get adminMarkRefunded;
+
+  /// No description provided for @adminRefundReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank reference'**
+  String get adminRefundReference;
+
+  /// No description provided for @adminRefundReferenceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional, but it is what makes the refund auditable'**
+  String get adminRefundReferenceHint;
+
+  /// No description provided for @adminRefundRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded. This screen does not move money — the reversal is done in the bank.'**
+  String get adminRefundRecorded;
+
+  /// No description provided for @adminRefundNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording a refund here does not move money. Do the reversal in the bank first, then record what you did.'**
+  String get adminRefundNote;
+
+  /// No description provided for @adminSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get adminSummary;
+
+  /// No description provided for @adminRefundsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No refunds are waiting.'**
+  String get adminRefundsEmpty;
+
+  /// No description provided for @adminResolveDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark delivered'**
+  String get adminResolveDelivered;
+
+  /// No description provided for @adminResolveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark failed'**
+  String get adminResolveFailed;
+
+  /// No description provided for @adminTicketOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get adminTicketOpen;
+
+  /// No description provided for @adminTicketInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get adminTicketInProgress;
+
+  /// No description provided for @adminTicketResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get adminTicketResolved;
+
+  /// No description provided for @adminTicketClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get adminTicketClosed;
+
+  /// No description provided for @adminPriorityLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get adminPriorityLow;
+
+  /// No description provided for @adminPriorityNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get adminPriorityNormal;
+
+  /// No description provided for @adminPriorityHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get adminPriorityHigh;
+
+  /// No description provided for @adminTicketContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact'**
+  String get adminTicketContact;
+
+  /// No description provided for @adminTicketNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal note'**
+  String get adminTicketNote;
+
+  /// No description provided for @adminTicketStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get adminTicketStart;
+
+  /// No description provided for @adminTicketResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve'**
+  String get adminTicketResolve;
+
+  /// No description provided for @adminTicketClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get adminTicketClose;
+
+  /// No description provided for @adminTicketOpenOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the order'**
+  String get adminTicketOpenOrder;
+
+  /// No description provided for @adminTicketsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tickets.'**
+  String get adminTicketsEmpty;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

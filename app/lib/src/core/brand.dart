@@ -7,7 +7,7 @@
 class Brand {
   const Brand._();
 
-  static const name = 'Sela';
+  static const name = 'Chanpenh';
   static const nameKm = 'សេឡា';
 
   /// Drawn in the header mark and the launcher icon.
@@ -17,12 +17,12 @@ class Brand {
   static const taglineEn = 'Buy now, delivered now';
 
   /// Matches the bundle identifiers in `android/` and `ios/`.
-  static const androidApplicationId = 'kh.sela.store';
-  static const iosBundleId = 'kh.sela.store';
+  static const androidApplicationId = 'kh.chanpenh.store';
+  static const iosBundleId = 'kh.chanpenh.store';
 
   /// Deep-link scheme, used once push notifications and ABA return-deeplinks
   /// are wired up.
-  static const urlScheme = 'sela';
+  static const urlScheme = 'chanpenh';
 
   static String displayName(String locale) => locale == 'km' ? nameKm : name;
 }

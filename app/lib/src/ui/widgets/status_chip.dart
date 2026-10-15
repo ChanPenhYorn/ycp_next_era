@@ -19,6 +19,7 @@ class OrderStatusChip extends StatelessWidget {
       OrderStatus.delivering => (l10n.statusDelivering, AppColors.brand),
       OrderStatus.delivered => (l10n.statusDelivered, AppColors.accent),
       OrderStatus.failed => (l10n.statusFailed, AppColors.danger),
+      OrderStatus.refundPending => (l10n.statusRefundPending, AppColors.warn),
       OrderStatus.refunded => (l10n.statusRefunded, AppColors.ink400),
       OrderStatus.expired => (l10n.statusExpired, AppColors.ink400),
     };
@@ -32,7 +33,11 @@ class OrderStatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

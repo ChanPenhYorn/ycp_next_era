@@ -12,7 +12,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Sela dev (Chrome)",
+      "name": "Chanpenh dev (Chrome)",
       "request": "launch",
       "type": "dart",
       "program": "${workspaceFolder}/app/lib/main.dart",
@@ -20,7 +20,7 @@
       "args": ["-d", "chrome", "--dart-define-from-file=config/dev.json"]
     },
     {
-      "name": "Sela dev (device)",
+      "name": "Chanpenh dev (device)",
       "request": "launch",
       "type": "dart",
       "program": "${workspaceFolder}/app/lib/main.dart",
@@ -28,7 +28,7 @@
       "args": ["--dart-define-from-file=config/dev.json"]
     },
     {
-      "name": "Sela prod (Chrome)",
+      "name": "Chanpenh prod (Chrome)",
       "request": "launch",
       "type": "dart",
       "program": "${workspaceFolder}/app/lib/main.dart",
@@ -36,7 +36,7 @@
       "args": ["-d", "chrome", "--dart-define-from-file=config/prod.json"]
     },
     {
-      "name": "Sela prod (device)",
+      "name": "Chanpenh prod (device)",
       "request": "launch",
       "type": "dart",
       "program": "${workspaceFolder}/app/lib/main.dart",

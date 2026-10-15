@@ -83,7 +83,10 @@ class OrdersPage extends ConsumerWidget {
                             .join(', '),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(

@@ -20,10 +20,11 @@ class LocaleController extends Notifier<Locale> {
   Future<void> set(Locale locale) async {
     if (locale == state) return;
     state = locale;
-    await ref.read(sharedPreferencesProvider).setString(_key, locale.languageCode);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString(_key, locale.languageCode);
   }
 
-  Future<void> toggle() => set(
-        state.languageCode == 'km' ? const Locale('en') : const Locale('km'),
-      );
+  Future<void> toggle() =>
+      set(state.languageCode == 'km' ? const Locale('en') : const Locale('km'));
 }

@@ -26,9 +26,7 @@ class CatalogPage extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          search != null && search!.isNotEmpty
-              ? '"$search"'
-              : l10n.allProducts,
+          search != null && search!.isNotEmpty ? '"$search"' : l10n.allProducts,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

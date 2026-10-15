@@ -53,7 +53,7 @@ case "$KEY" in
 It bypasses RLS and must never be compiled into the app." ;;
 esac
 
-printf '\n\033[1m==> Starting Sela against %s\033[0m\n' "$SUPABASE_URL"
+printf '\n\033[1m==> Starting Chanpenh against %s\033[0m\n' "$SUPABASE_URL"
 
 DEFINES=(
   --dart-define=SUPABASE_URL="$SUPABASE_URL"

@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Sela (Chrome)",
+      "name": "Chanpenh (Chrome)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
@@ -16,7 +16,7 @@
       ]
     },
     {
-      "name": "Sela (device)",
+      "name": "Chanpenh (device)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",

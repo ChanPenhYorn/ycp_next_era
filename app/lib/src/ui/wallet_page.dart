@@ -33,8 +33,14 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     final settings = ref.watch(settingsProvider);
     final transactions = ref.watch(walletTransactionsProvider);
 
-    final min = settings.maybeWhen(data: (s) => s.topupMinUsd, orElse: () => 1.0);
-    final max = settings.maybeWhen(data: (s) => s.topupMaxUsd, orElse: () => 1000.0);
+    final min = settings.maybeWhen(
+      data: (s) => s.topupMinUsd,
+      orElse: () => 1.0,
+    );
+    final max = settings.maybeWhen(
+      data: (s) => s.topupMaxUsd,
+      orElse: () => 1000.0,
+    );
     final selected = _amount ?? min;
 
     return RefreshIndicator(
@@ -45,6 +51,17 @@ class _WalletPageState extends ConsumerState<WalletPage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // The wallet lost its bottom-nav tab in favour of Account, so the
+          // page needs a heading of its own.
+          Text(
+            l10n.walletTitle,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
@@ -90,7 +107,10 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                         orElse: () => 4100,
                       ),
                     ),
-                    style: const TextStyle(fontSize: 12, color: AppColors.ink400),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.ink400,
+                    ),
                   ),
               ],
             ),
@@ -153,14 +173,18 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Text(
                     l10n.walletEmpty,
-                    style: const TextStyle(fontSize: 12, color: AppColors.ink400),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.ink400,
+                    ),
                   ),
                 );
               }
 
               return Column(
                 children: [
-                  for (final tx in items) _LedgerRow(transaction: tx, l10n: l10n),
+                  for (final tx in items)
+                    _LedgerRow(transaction: tx, l10n: l10n),
                 ],
               );
             },
@@ -182,13 +206,16 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     setState(() => _busy = true);
 
     try {
-      final order = await ref.read(orderRepositoryProvider).createWalletTopup(
+      final order = await ref
+          .read(orderRepositoryProvider)
+          .createWalletTopup(
             amountUsd: amount,
             email: ref.read(currentUserProvider)?.email,
           );
 
-      final payment =
-          await ref.read(paymentRepositoryProvider).initKhqr(order.orderId);
+      final payment = await ref
+          .read(paymentRepositoryProvider)
+          .initKhqr(order.orderId);
 
       if (!mounted) return;
       setState(() => _busy = false);
@@ -216,9 +243,11 @@ class _WalletPageState extends ConsumerState<WalletPage> {
     } on PaymentException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _toast(error.code == 'payway_not_configured'
-          ? l10n.paywayNotConfigured
-          : l10n.somethingWentWrong);
+      _toast(
+        error.code == 'payway_not_configured'
+            ? l10n.paywayNotConfigured
+            : l10n.somethingWentWrong,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -228,8 +257,8 @@ class _WalletPageState extends ConsumerState<WalletPage> {
 
   String _humanise(String code, AppL10n l10n, double min, double max) =>
       switch (code) {
-        'topup_below_minimum' || 'topup_above_maximum' =>
-          l10n.walletLimits(money(min), money(max)),
+        'topup_below_minimum' ||
+        'topup_above_maximum' => l10n.walletLimits(money(min), money(max)),
         'auth_required' => l10n.guestMustSignIn,
         'account_blocked' => l10n.somethingWentWrong,
         _ => l10n.somethingWentWrong,
@@ -237,8 +266,9 @@ class _WalletPageState extends ConsumerState<WalletPage> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -270,7 +300,11 @@ class _LedgerRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: credit ? AppColors.accent : AppColors.ink400),
+          Icon(
+            icon,
+            size: 18,
+            color: credit ? AppColors.accent : AppColors.ink400,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -285,7 +319,10 @@ class _LedgerRow extends StatelessWidget {
                     transaction.note!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: AppColors.ink400),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.ink400,
+                    ),
                   ),
               ],
             ),

@@ -155,7 +155,9 @@ class _ReviewSheetState extends ConsumerState<ReviewSheet> {
     });
 
     try {
-      await ref.read(orderRepositoryProvider).submitReview(
+      await ref
+          .read(orderRepositoryProvider)
+          .submitReview(
             productId: widget.productId,
             orderId: widget.orderId,
             rating: _rating,
@@ -166,8 +168,9 @@ class _ReviewSheetState extends ConsumerState<ReviewSheet> {
       // The button for this line disappears on the next read.
       ref.invalidate(reviewedProductsProvider(widget.orderId));
       Navigator.of(context).pop(true);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.reviewThanks)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reviewThanks)));
     } on OrderException catch (error) {
       if (!mounted) return;
       setState(() {

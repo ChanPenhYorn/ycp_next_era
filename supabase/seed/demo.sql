@@ -22,12 +22,12 @@ values ('stock_key', encode(extensions.gen_random_bytes(32), 'hex'))
 on conflict (name) do nothing;
 
 update public.settings
-   set site_name             = 'Sela',
+   set site_name             = 'Chanpenh',
        support_telegram      = 'https://t.me/ycp_store_bot',
        telegram_bot_username = 'ycp_store_bot',
        usd_to_khr            = 4100,
-       khqr_account_id       = 'sela@aclb',
-       khqr_merchant_name    = 'SELA',
+       khqr_account_id       = 'chanpenh@aclb',
+       khqr_merchant_name    = 'CHANPENH',
        topup_min_usd         = 1,
        topup_max_usd         = 1000
  where id;

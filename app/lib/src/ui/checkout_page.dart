@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/field_validation.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
@@ -10,6 +11,7 @@ import '../data/payment_repository.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/khqr_sheet.dart';
+import 'widgets/required_fields_form.dart';
 
 class CheckoutPage extends ConsumerStatefulWidget {
   const CheckoutPage({super.key});
@@ -30,7 +32,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
   double? _couponDiscount;
   String? _couponError;
-  String? _fieldError;
+
+  /// Message per `variantId:fieldKey`. A single shared error string used to be
+  /// painted under every input on the page, so a bad game id also highlighted
+  /// the server box.
+  Map<String, String?> _fieldErrors = const {};
+
   bool _busy = false;
 
   @override
@@ -108,21 +115,22 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           style: const TextStyle(fontSize: 12),
                         ),
                       ),
-                      Text(money(line.lineTotal),
-                          style: const TextStyle(fontSize: 12)),
+                      Text(
+                        money(line.lineTotal),
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
               const Divider(),
               _row(l10n.subtotal, money(subtotal)),
               if ((_couponDiscount ?? 0) > 0)
-                _row(l10n.discount, '-${money(_couponDiscount!)}',
-                    color: AppColors.accent),
-              _row(
-                l10n.total,
-                money(total),
-                bold: true,
-              ),
+                _row(
+                  l10n.discount,
+                  '-${money(_couponDiscount!)}',
+                  color: AppColors.accent,
+                ),
+              _row(l10n.total, money(total), bold: true),
             ],
           ),
         ),
@@ -135,7 +143,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               children: [
                 for (final line in lines.where((l) => l.needsFields)) ...[
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
                       '${line.productName} · ${line.variantLabel}',
                       style: const TextStyle(
@@ -144,23 +152,27 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                       ),
                     ),
                   ),
-                  for (final field in line.requiredFields) ...[
-                    TextField(
-                      controller: _controllerFor(line.variantId, field),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) {
-                        if (_fieldError != null) {
-                          setState(() => _fieldError = null);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: field.label(Localizations.localeOf(context).languageCode),
-                        hintText: field.placeholder,
-                        errorText: _fieldError,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
+                  RequiredFieldsForm(
+                    fields: line.requiredFields,
+                    locale: Localizations.localeOf(context).languageCode,
+                    controllerFor: (field) =>
+                        _controllerFor(line.variantId, field),
+                    // Keyed per line, because two lines can declare the same
+                    // field name and only one of them may be the problem.
+                    errors: {
+                      for (final field in line.requiredFields)
+                        field.key:
+                            _fieldErrors[_fieldKey(line.variantId, field.key)],
+                    },
+                    onChanged: (field) {
+                      final key = _fieldKey(line.variantId, field.key);
+                      if (_fieldErrors[key] != null) {
+                        setState(
+                          () => _fieldErrors = {..._fieldErrors}..remove(key),
+                        );
+                      }
+                    },
+                  ),
                 ],
               ],
             ),
@@ -227,8 +239,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               onPressed: _busy
                   ? null
                   : enough
-                      ? () => _payWithWallet(value.walletBalance)
-                      : () => context.go('/wallet'),
+                  ? () => _payWithWallet(value.walletBalance)
+                  : () => context.go('/wallet'),
               icon: Icon(
                 enough ? Icons.account_balance_wallet_outlined : Icons.add_card,
                 size: 18,
@@ -340,11 +352,16 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         context.go('/orders/${order.orderId}');
       }
     } on PaymentException catch (error) {
+      if (mounted) setState(() => _busy = false);
       _toast(_humanise(error.code, l10n));
-      if (mounted) setState(() => _busy = false);
+      // The order exists by now. Leaving the buyer on a checkout page whose QR
+      // cannot open would strand them with a pending order and no way to pay
+      // for it; the order page is where the transfer fallback lives.
+      if (mounted) context.go('/orders/${order.orderId}');
     } catch (_) {
-      _toast(l10n.somethingWentWrong);
       if (mounted) setState(() => _busy = false);
+      _toast(l10n.somethingWentWrong);
+      if (mounted) context.go('/orders/${order.orderId}');
     }
   }
 
@@ -355,8 +372,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
     setState(() => _busy = true);
     try {
-      final result =
-          await ref.read(orderRepositoryProvider).payWithWallet(order.orderId);
+      final result = await ref
+          .read(orderRepositoryProvider)
+          .payWithWallet(order.orderId);
 
       if (!mounted) return;
       setState(() => _busy = false);
@@ -379,43 +397,44 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
   /// Reads the per-line inputs, records them on the cart, and returns the merged
   /// payload create_order expects. Null when something is missing, with the
-  /// offending field named inline.
+  /// offending field named under the input that carries it.
   Map<String, String>? _collectBuyerFields() {
     final l10n = AppL10n.of(context);
-    final locale = Localizations.localeOf(context).languageCode;
     final merged = <String, String>{};
-    final problems = <String>[];
+    final problems = <String, String?>{};
 
     for (final line in ref.read(cartControllerProvider)) {
       final values = <String, String>{};
 
       for (final field in line.requiredFields) {
-        final raw = _controllerFor(line.variantId, field).text.trim();
-        final pattern = field.pattern;
+        final raw = _controllerFor(line.variantId, field).text;
+        final problem = fieldProblem(field, raw);
 
-        if (raw.isEmpty) {
-          problems.add(field.label(locale));
+        if (problem != null) {
+          problems[_fieldKey(line.variantId, field.key)] = fieldProblemMessage(
+            l10n,
+            field,
+            problem,
+          );
           continue;
         }
-        if (pattern != null && !RegExp(pattern).hasMatch(raw)) {
-          problems.add('${field.label(locale)} (${field.placeholder ?? pattern})');
-          continue;
-        }
 
-        values[field.key] = raw;
+        values[field.key] = raw.trim();
       }
 
       merged.addAll(values);
       // Keep the cart in step, so leaving and returning does not lose it.
-      ref.read(cartControllerProvider.notifier).setFields(line.variantId, values);
+      ref
+          .read(cartControllerProvider.notifier)
+          .setFields(line.variantId, values);
     }
 
     if (problems.isNotEmpty) {
-      setState(() => _fieldError = '${l10n.requiredInfo}: ${problems.join(', ')}');
+      setState(() => _fieldErrors = problems);
       return null;
     }
 
-    setState(() => _fieldError = null);
+    setState(() => _fieldErrors = const {});
     return merged;
   }
 
@@ -430,7 +449,9 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     setState(() => _busy = true);
 
     try {
-      final order = await ref.read(orderRepositoryProvider).createOrder(
+      final order = await ref
+          .read(orderRepositoryProvider)
+          .createOrder(
             lines: lines,
             coupon: _coupon.text.trim().isEmpty ? null : _coupon.text.trim(),
             fields: fields,
@@ -440,12 +461,21 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       if (mounted) setState(() => _busy = false);
       return order;
     } on OrderException catch (error) {
-      if (error.code == 'missing_fields') {
-        // Belongs next to the inputs, not in a toast at the bottom.
+      if (error.code == 'missing_fields' || error.code == 'invalid_fields') {
+        // The database is the authority and it names the fields it rejected, by
+        // key. Put each message under the input that carries it rather than in a
+        // toast at the bottom of a long page.
+        final problem = error.code == 'missing_fields'
+            ? FieldProblem.empty
+            : FieldProblem.format;
+        final errors = _errorsForReportedKeys(error.detail, problem);
+
         setState(() {
           _busy = false;
-          _fieldError = '${l10n.requiredInfo}: ${error.detail ?? ''}';
+          _fieldErrors = errors;
         });
+
+        if (errors.isEmpty) _toast(l10n.requiredInfo);
         return null;
       }
 
@@ -460,30 +490,60 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     }
   }
 
+  /// Maps the field keys `create_order` reports onto the inputs that hold them.
+  Map<String, String?> _errorsForReportedKeys(
+    String? detail,
+    FieldProblem problem,
+  ) {
+    final l10n = AppL10n.of(context);
+    final reported = (detail ?? '')
+        .split(',')
+        .map((key) => key.trim())
+        .where((key) => key.isNotEmpty)
+        .toSet();
+
+    final errors = <String, String?>{};
+    for (final line in ref.read(cartControllerProvider)) {
+      for (final field in line.requiredFields) {
+        if (reported.contains(field.key)) {
+          errors[_fieldKey(line.variantId, field.key)] = fieldProblemMessage(
+            l10n,
+            field,
+            problem,
+          );
+        }
+      }
+    }
+
+    return errors;
+  }
+
   /// Database error codes are stable identifiers; this maps them to copy.
   String _humanise(String code, AppL10n l10n) => switch (code) {
-        'out_of_stock' => l10n.outOfStock,
-        'coupon_invalid' => l10n.couponInvalid,
-        'coupon_exhausted' => l10n.couponInvalid,
-        'coupon_user_limit' => l10n.couponInvalid,
-        'coupon_min_order' => l10n.couponInvalid,
-        'qty_out_of_range' => l10n.somethingWentWrong,
-        'missing_fields' => l10n.requiredInfo,
-        'empty_cart' => l10n.cartEmpty,
-        'auth_required' => l10n.guestMustSignIn,
-        'account_blocked' => l10n.somethingWentWrong,
-        'order_expired' => l10n.statusExpired,
-        // Naming the real problem beats "Something went wrong": this one means a
-        // credential is missing on the project, not that the user did anything
-        // wrong, and it is the first thing hit on a fresh environment.
-        'payway_not_configured' => l10n.paywayNotConfigured,
-        'payway_rejected' => l10n.paywayRejected,
-        _ => l10n.somethingWentWrong,
-      };
+    'out_of_stock' => l10n.outOfStock,
+    'coupon_invalid' => l10n.couponInvalid,
+    'coupon_exhausted' => l10n.couponInvalid,
+    'coupon_user_limit' => l10n.couponInvalid,
+    'coupon_min_order' => l10n.couponInvalid,
+    'qty_out_of_range' => l10n.somethingWentWrong,
+    'missing_fields' => l10n.requiredInfo,
+    'invalid_fields' => l10n.fieldWrongFormat,
+    'empty_cart' => l10n.cartEmpty,
+    'auth_required' => l10n.guestMustSignIn,
+    'account_blocked' => l10n.somethingWentWrong,
+    'order_expired' => l10n.statusExpired,
+    // Naming the real problem beats "Something went wrong": this one means a
+    // credential is missing on the project, not that the user did anything
+    // wrong, and it is the first thing hit on a fresh environment.
+    'payway_not_configured' => l10n.paywayNotConfigured,
+    'payway_rejected' => l10n.paywayRejected,
+    _ => l10n.somethingWentWrong,
+  };
 
   void _toast(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

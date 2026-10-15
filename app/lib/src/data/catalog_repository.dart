@@ -8,7 +8,8 @@ import 'models.dart';
 /// did once: the list query omitted sku/label_km/label_en, so parsing threw
 /// `type 'Null' is not a subtype of type 'String'` and the whole catalogue
 /// page failed as soon as real data existed. `test/parsing_test.dart` guards it.
-const variantColumns = 'id, sku, label_km, label_en, price_usd, '
+const variantColumns =
+    'id, sku, label_km, label_en, price_usd, '
     'compare_at_price_usd, stock_mode, min_qty, max_qty';
 
 /// Columns `Category.fromJson` reads.
@@ -26,20 +27,25 @@ class CatalogRepository {
         .from('public_settings')
         .select(
           'site_name, support_telegram, support_email, usd_to_khr, order_ttl_minutes, '
-          'topup_min_usd, topup_max_usd',
+          'topup_min_usd, topup_max_usd, khqr_account_id, khqr_merchant_name, '
+          'manual_grace_minutes',
         )
         .maybeSingle();
 
     if (row == null) return PublicSettings.fallback;
 
     return PublicSettings(
-      siteName: row['site_name'] as String? ?? 'Sela',
+      siteName: row['site_name'] as String? ?? 'Chanpenh',
       usdToKhr: (row['usd_to_khr'] as num?)?.toDouble() ?? 4100,
       orderTtlMinutes: (row['order_ttl_minutes'] as num?)?.toInt() ?? 15,
       topupMinUsd: (row['topup_min_usd'] as num?)?.toDouble() ?? 1,
       topupMaxUsd: (row['topup_max_usd'] as num?)?.toDouble() ?? 1000,
       supportTelegram: row['support_telegram'] as String?,
       supportEmail: row['support_email'] as String?,
+      khqrAccountId: row['khqr_account_id'] as String?,
+      khqrMerchantName: row['khqr_merchant_name'] as String?,
+      manualGraceMinutes:
+          (row['manual_grace_minutes'] as num?)?.toInt() ?? 1440,
     );
   }
 
@@ -59,6 +65,7 @@ class CatalogRepository {
     String? categorySlug,
     String? search,
     bool featuredOnly = false,
+    bool popularFirst = false,
     int limit = 48,
   }) async {
     var query = _client
@@ -80,7 +87,15 @@ class CatalogRepository {
       );
     }
 
-    final rows = await query.order('sort_order', ascending: true).limit(limit);
+    // `popular` is real, not a curated list: sold_count is incremented on
+    // delivery, so the row order is the store's own sales history.
+    final ordered = popularFirst
+        ? query
+              .order('sold_count', ascending: false)
+              .order('sort_order', ascending: true)
+        : query.order('sort_order', ascending: true);
+
+    final rows = await ordered.limit(limit);
 
     final stock = await _stockFor([
       for (final row in rows)
@@ -120,22 +135,26 @@ class CatalogRepository {
       final mode = v['stock_mode'] as String? ?? 'stock';
       return Variant.fromJson({
         ...v,
-        'in_stock':
-            mode == 'unlimited' ? null : (stock[(v['id'] as num).toInt()] ?? 0),
+        'in_stock': mode == 'unlimited'
+            ? null
+            : (stock[(v['id'] as num).toInt()] ?? 0),
       });
     }).toList();
 
     final card = _cardFrom(row, stock, overrideVariants: variants);
 
-    final rawDescription =
-        locale == 'km' ? row['description_km'] : row['description_en'];
+    final rawDescription = locale == 'km'
+        ? row['description_km']
+        : row['description_en'];
     final rawSummary = locale == 'km' ? row['summary_km'] : row['summary_en'];
 
     return ProductDetail(
       card: card,
       description: (rawDescription ?? rawSummary) as String?,
       requiresFields: ((row['requires_fields'] as List?) ?? const [])
-          .map((e) => RequiredField.fromJson((e as Map).cast<String, dynamic>()))
+          .map(
+            (e) => RequiredField.fromJson((e as Map).cast<String, dynamic>()),
+          )
           .toList(),
       variants: variants,
     );
@@ -144,7 +163,9 @@ class CatalogRepository {
   Future<List<Review>> reviews(int productId) async {
     final rows = await _client
         .from('reviews')
-        .select('id, rating, body, created_at, author:profile_names ( display_name )')
+        .select(
+          'id, rating, body, created_at, author:profile_names ( display_name )',
+        )
         .eq('product_id', productId)
         .eq('is_approved', true)
         .order('created_at', ascending: false)
@@ -157,7 +178,8 @@ class CatalogRepository {
         rating: (row['rating'] as num).toInt(),
         body: row['body'] as String?,
         authorName: author?['display_name'] as String?,
-        createdAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+        createdAt:
+            DateTime.tryParse(row['created_at'] as String? ?? '') ??
             DateTime.now(),
       );
     }).toList();
@@ -190,7 +212,8 @@ class CatalogRepository {
         .map((v) => (v as Map).cast<String, dynamic>())
         .toList();
 
-    final variants = overrideVariants ??
+    final variants =
+        overrideVariants ??
         rawVariants.map((v) {
           final mode = v['stock_mode'] as String? ?? 'stock';
           return Variant.fromJson({
@@ -208,7 +231,8 @@ class CatalogRepository {
         .toList();
 
     // Unlimited variants mean "never sells out", so the aggregate is null.
-    final allUnlimited = variants.isNotEmpty && variants.every((v) => v.isUnlimited);
+    final allUnlimited =
+        variants.isNotEmpty && variants.every((v) => v.isUnlimited);
     final totalStock = allUnlimited
         ? null
         : variants.fold<int>(0, (sum, v) => sum + (v.inStock ?? 0));
@@ -227,8 +251,9 @@ class CatalogRepository {
       soldCount: (row['sold_count'] as num?)?.toInt() ?? 0,
       minPriceUsd: prices.isEmpty ? 0 : prices.reduce((a, b) => a < b ? a : b),
       maxPriceUsd: prices.isEmpty ? 0 : prices.reduce((a, b) => a > b ? a : b),
-      compareAtPriceUsd:
-          compares.isEmpty ? null : compares.reduce((a, b) => a > b ? a : b),
+      compareAtPriceUsd: compares.isEmpty
+          ? null
+          : compares.reduce((a, b) => a > b ? a : b),
       totalStock: totalStock,
       category: categoryRow == null ? null : Category.fromJson(categoryRow),
     );

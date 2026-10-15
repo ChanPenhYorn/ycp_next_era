@@ -41,7 +41,9 @@ class ProductCardTile extends ConsumerWidget {
                   product.imageUrl == null
                       ? const ColoredBox(
                           color: AppColors.ink850,
-                          child: Center(child: Text('📦', style: TextStyle(fontSize: 30))),
+                          child: Center(
+                            child: Text('📦', style: TextStyle(fontSize: 30)),
+                          ),
                         )
                       : CachedNetworkImage(
                           imageUrl: product.imageUrl!,
@@ -50,7 +52,9 @@ class ProductCardTile extends ConsumerWidget {
                               const ColoredBox(color: AppColors.ink850),
                           errorWidget: (_, _, _) => const ColoredBox(
                             color: AppColors.ink850,
-                            child: Center(child: Text('📦', style: TextStyle(fontSize: 30))),
+                            child: Center(
+                              child: Text('📦', style: TextStyle(fontSize: 30)),
+                            ),
                           ),
                         ),
                   if (off != null)
@@ -146,14 +150,32 @@ class ProductCardTile extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    product.isSoldOut ? l10n.outOfStock : '✓ ${l10n.inStock}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: product.isSoldOut
-                          ? AppColors.danger
-                          : AppColors.accent,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        product.isSoldOut
+                            ? l10n.outOfStock
+                            : '✓ ${l10n.inStock}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: product.isSoldOut
+                              ? AppColors.danger
+                              : AppColors.accent,
+                        ),
+                      ),
+                      // Real units delivered, from `sold_count`. A store with
+                      // no orders shows nothing rather than a padded number.
+                      if (product.soldCount > 0) ...[
+                        const Spacer(),
+                        Text(
+                          l10n.soldCount(compactCount(product.soldCount)),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.ink400,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

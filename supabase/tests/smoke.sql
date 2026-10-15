@@ -330,14 +330,24 @@ select jsonb_array_length(public.telegram_orders_for_chat(555001, 5)) as orders_
 
 \echo '### 34. supplier sync creates products, variants and SKU links'
 reset role;
+-- Field definitions, the shape supplier-sync sends after the adapter labels
+-- them. The stored value must keep key/label_km/label_en: the app renders the
+-- labels and create_order resolves the key.
 select public.supplier_upsert_catalogue(
   'bay2game', 'mlbb_exclusive', 'Mobile Legends Bang Bang',
-  'https://example.test/mlbb.png', 'KH top-up', '["userid","serverid"]'::jsonb,
+  'https://example.test/mlbb.png', 'KH top-up',
+  '[{"key":"userid","label_km":"លេខ ID ហ្គេម","label_en":"Game ID","placeholder":"123456789"},
+    {"key":"serverid","label_km":"Server","label_en":"Server","placeholder":"2001"}]'::jsonb,
   '[{"product_code":"MLBB_100","name":"100 Diamonds","price_usd":1.50,"sort":1},
     {"product_code":"MLBB_500","name":"500 Diamonds","price_usd":7.00,"sort":2}]'::jsonb
 ) as synced;
 
-select p.slug, p.kind, p.requires_fields
+select p.slug, p.kind,
+       p.requires_fields,
+       -- A bare-string entry would make this null, which is the bug: the app
+       -- cannot parse it and create_order skips validation.
+       (select count(*) from jsonb_array_elements(p.requires_fields) f
+         where f ? 'key') as fields_with_key
   from public.products p where p.slug = 'bay2game-mlbb_exclusive';
 select v.sku, v.price_usd, v.cost_usd, ss.supplier_sku
   from public.product_variants v
@@ -346,6 +356,8 @@ select v.sku, v.price_usd, v.cost_usd, ss.supplier_sku
  order by v.sku;
 
 \echo '### 35. re-syncing updates in place instead of duplicating'
+-- Bare names on the way in, as an adapter with no label metadata would send
+-- them. They must come out as definitions with the key doubling as the label.
 select public.supplier_upsert_catalogue(
   'bay2game', 'mlbb_exclusive', 'Mobile Legends Bang Bang',
   'https://example.test/mlbb.png', 'KH top-up', '["userid","serverid"]'::jsonb,
@@ -356,6 +368,8 @@ select count(*) as variants from public.product_variants
  where sku in ('MLBB_100','MLBB_500');
 select sku, cost_usd from public.product_variants
  where sku in ('MLBB_100','MLBB_500') order by sku;
+select requires_fields as normalised_bare_names
+  from public.products where slug = 'bay2game-mlbb_exclusive';
 
 \echo '### 36. a supplier line is only routable once the supplier is active'
 -- is_active is seeded false so a key-less supplier is never selected. Sync

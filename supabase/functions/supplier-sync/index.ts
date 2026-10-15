@@ -23,6 +23,29 @@ const ADAPTERS: Record<string, SupplierAdapter> = {
 };
 
 /**
+ * The origin a BROWSER uses to reach Storage, or null when there is not one.
+ *
+ * Inside the local stack `SUPABASE_URL` is `http://kong:8000`, the
+ * compose-network name. `storage.getPublicUrl()` prefixes with exactly that, so
+ * the mirrored art was stored as a URL Chrome cannot resolve: the product page
+ * stayed blank while the sync reported success.
+ *
+ * `STORAGE_PUBLIC_URL` overrides it. The name deliberately does not start with
+ * `SUPABASE_`, because the CLI drops those keys from the function env file and
+ * the override would never arrive. Returning null rather than the internal
+ * origin keeps the failure visible: the caller warns instead of writing a URL
+ * that cannot load.
+ */
+export function publicStorageBase(): string | null {
+  const explicit = Deno.env.get("STORAGE_PUBLIC_URL");
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const url = Deno.env.get("SUPABASE_URL") ?? "";
+  if (!url || /\/\/kong(:|\/|$)/.test(url)) return null;
+  return url.replace(/\/+$/, "");
+}
+
+/**
  * Mirrors a supplier image into our own Storage bucket.
  *
  * Not a nicety. Bay2Game serves product art from cdn.camrapidsecure.com, which
@@ -31,7 +54,7 @@ const ADAPTERS: Record<string, SupplierAdapter> = {
  * invisible in a browser. Mirroring also removes the hotlink dependency: the
  * supplier can rename or delete their CDN paths without breaking our catalogue.
  *
- * Returns the public Supabase URL, or null to fall back to the original.
+ * Returns the public URL, or null to fall back to the original.
  */
 export async function mirrorImage(
   admin: ReturnType<typeof adminClient>,
@@ -66,8 +89,13 @@ export async function mirrorImage(
 
     if (error) return null;
 
-    const { data } = admin.storage.from("product-images").getPublicUrl(path);
-    return data.publicUrl ?? null;
+    // Built by hand rather than via getPublicUrl(): that helper prefixes with
+    // SUPABASE_URL, which is the internal origin locally. The object path below
+    // is the documented public-object route.
+    const base = publicStorageBase();
+    if (!base) return null;
+
+    return `${base}/storage/v1/object/public/product-images/${path}`;
   } catch {
     // A missing image must never fail a catalogue sync.
     return null;
@@ -110,6 +138,17 @@ Deno.serve(async (req) => {
       503
     );
   }
+
+  // Mirroring needs an origin the browser can reach. Without one the art falls
+  // back to the supplier's CDN, which sends no CORS header, so it renders on
+  // mobile and is invisible on Flutter web. Surface that instead of writing a
+  // dead URL and leaving the blank cards unexplained.
+  const imageWarning =
+    !body.dryRun && body.mirrorImages !== false && publicStorageBase() === null
+      ? "storage_public_url_unset: mirrored images fall back to the supplier CDN, " +
+        "which does not render in a browser. Set STORAGE_PUBLIC_URL in " +
+        "supabase/functions/.env, then `supabase stop && supabase start`."
+      : null;
 
   const limit = Math.min(Math.max(body.limit ?? 3, 1), 25);
   const admin = adminClient();
@@ -167,8 +206,25 @@ Deno.serve(async (req) => {
           p_name: game.name,
           p_image_url: imageUrl,
           p_summary: game.summary,
-          p_required_fields: game.fields,
-          p_products: products,
+          // Definitions, not bare names: the app renders label_km/label_en and
+          // create_order resolves `key`. An adapter with no label metadata
+          // still gets a usable field, because the key labels itself.
+          p_required_fields: adapter.fieldDefinitions
+            ? adapter.fieldDefinitions(game.fields)
+            : game.fields.map((key) => ({ key, label_km: key, label_en: key })),
+          // The adapter speaks camelCase; the RPC reads snake_case keys off the
+          // JSON. Passing the adapter objects straight through left
+          // `product_code` null, so every variant insert died on the
+          // product_variants.sku not-null constraint and nothing synced.
+          //
+          // `sort` is the supplier's own order, which is ascending price. It
+          // keeps the variant chips on the product page stable.
+          p_products: products.map((product, index) => ({
+            product_code: product.productCode,
+            name: product.name,
+            price_usd: product.priceUsd,
+            sort: index,
+          })),
         });
 
         if (error) {
@@ -204,6 +260,7 @@ Deno.serve(async (req) => {
       activated: !body.dryRun && synced > 0,
       dryRun: body.dryRun ?? false,
       skipped_games: skipped,
+      ...(imageWarning ? { warning: imageWarning } : {}),
       results,
     });
   } catch (error) {

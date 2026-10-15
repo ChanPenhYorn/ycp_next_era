@@ -16,6 +16,7 @@
 import {
   fetchWithTimeout,
   SupplierError,
+  type FieldDefinition,
   type FulfilInput,
   type FulfilResult,
   type SupplierAdapter,
@@ -30,6 +31,45 @@ export const FIELD_MAP: Record<string, string> = {
   userid: "game_user_id",
   serverid: "game_zone_id",
 };
+
+/**
+ * What the buyer sees for each field this API accepts, keyed the same way as
+ * FIELD_MAP. The supplier only gives us names like "userid", so the human
+ * labels live here. The patterns match the ones the demo seed uses, so a
+ * synced game and a hand-made one validate identically.
+ */
+const FIELD_LABELS: Record<
+  string,
+  { km: string; en: string; placeholder?: string; pattern?: string }
+> = {
+  userid: {
+    km: "លេខ ID ហ្គេម",
+    en: "Game ID",
+    placeholder: "123456789",
+    pattern: "^[0-9]{6,12}$",
+  },
+  serverid: {
+    km: "Server",
+    en: "Server",
+    placeholder: "2001",
+    pattern: "^[0-9]{3,6}$",
+  },
+};
+
+/** Turn the supplier's field names into definitions the catalogue can store. */
+export function fieldDefinitions(fields: string[]): FieldDefinition[] {
+  return fields.map((key) => {
+    const label = FIELD_LABELS[key];
+    const definition: FieldDefinition = {
+      key,
+      label_km: label?.km ?? key,
+      label_en: label?.en ?? key,
+    };
+    if (label?.placeholder) definition.placeholder = label.placeholder;
+    if (label?.pattern) definition.pattern = label.pattern;
+    return definition;
+  });
+}
 
 /**
  * Fields a game may declare that this API cannot accept. `create_order` takes
@@ -123,6 +163,8 @@ export const bay2game: SupplierAdapter = {
   configured: () => key().length > 0,
 
   canFulfil: (fields: string[]) => unsupportedFields(fields).length === 0,
+
+  fieldDefinitions,
 
   async games(): Promise<SupplierGame[]> {
     const data = await call("/categories", {});

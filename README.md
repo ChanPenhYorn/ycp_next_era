@@ -309,21 +309,42 @@ and release, so add both.
 Auto top-ups are fulfilled by a supplier adapter. Adding one is a single file
 implementing `SupplierAdapter` in `supabase/functions/_shared/suppliers/`.
 
+Set `BAY2GAME_API_KEY` and `SUPPLIER_JOB_SECRET` in `supabase/functions/.env`
+for a local run, or with `supabase secrets set --env-file` for the hosted
+project. Putting them only in `.env.local` leaves local syncs answering
+`supplier_not_configured`, because that file feeds `secrets set`, not the local
+function runtime.
+
+Both workers carry `verify_jwt = true`, so they need an `Authorization` header
+*and* the job secret. The key is an ordinary JWT — the publishable key is not
+one.
+
 ```bash
 # Sync a supplier catalogue into your own products and variants.
 # Start small: a full sweep is 200+ games and 200+ product calls.
 curl -X POST "$FUNCTIONS/supplier-sync" \
+  -H "Authorization: Bearer $ANON_JWT" \
   -H "x-job-secret: $SUPPLIER_JOB_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"supplier":"bay2game","limit":3,"dryRun":true}'
 
 # Fulfil orders that are waiting on a supplier.
 curl -X POST "$FUNCTIONS/supplier-fulfil" \
+  -H "Authorization: Bearer $ANON_JWT" \
   -H "x-job-secret: $SUPPLIER_JOB_SECRET" -d '{"limit":10}'
 ```
 
 Synced variants are **priced at cost** until staff set a retail price, so an
 unpriced SKU cannot be sold at a loss, only at zero margin.
+
+Product art is mirrored into the `product-images` bucket rather than hotlinked,
+because the supplier's CDN sends no `Access-Control-Allow-Origin` header and
+Flutter web renders images through `fetch`. The mirror writes a URL built from
+`STORAGE_PUBLIC_URL`, falling back to `SUPABASE_URL`. Locally `SUPABASE_URL` is
+`http://kong:8000`, the compose-network name, which no browser can resolve —
+set `STORAGE_PUBLIC_URL=http://127.0.0.1:54321` in `supabase/functions/.env`,
+which is what the example file does. Without it the sync reports a `warning`
+and the art falls back to the CDN, where it is invisible in a browser.
 
 The worker distinguishes three outcomes, and the distinction is the point:
 

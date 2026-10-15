@@ -21,6 +21,21 @@ export type SupplierProduct = {
   priceUsd: number;
 };
 
+/**
+ * A buyer field as the catalogue stores it.
+ *
+ * `key` must be the name the supplier's order API expects, because that is what
+ * the adapters map through. The labels are ours, so the buyer reads "Game ID"
+ * while the supplier receives `userid`.
+ */
+export type FieldDefinition = {
+  key: string;
+  label_km: string;
+  label_en: string;
+  placeholder?: string;
+  pattern?: string;
+};
+
 export type FulfilInput = {
   itemId: number;
   orderNo: string;
@@ -49,6 +64,12 @@ export interface SupplierAdapter {
    * excluded from the catalogue, not listed and then refunded.
    */
   canFulfil(fields: string[]): boolean;
+  /**
+   * Labels for the fields a game declares. Optional: `supplier_upsert_catalogue`
+   * falls back to the bare key, so an adapter without metadata still syncs a
+   * usable catalogue rather than a string the app cannot parse.
+   */
+  fieldDefinitions?(fields: string[]): FieldDefinition[];
   games(): Promise<SupplierGame[]>;
   products(gameCode: string): Promise<SupplierProduct[]>;
   fulfil(input: FulfilInput): Promise<FulfilResult>;

@@ -1,0 +1,7 @@
+name = "chanpenh-api-proxy"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+routes = [
+  { pattern = "api.chanpenh.store", custom_domain = true }
+]

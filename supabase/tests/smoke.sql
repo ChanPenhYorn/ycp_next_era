@@ -853,3 +853,34 @@ select status = :'t_status' as status_kept,
        resolved_at = :'t_resolved' as resolved_at_kept,
        admin_note
   from public.support_tickets where id = :'tid';
+
+\echo '### 76. a re-sync moves an unpriced SKU to the new cost and keeps a staff price'
+reset role;
+-- PT_A is never repriced, so its price is its cost and must follow the supplier.
+-- PT_B is repriced by staff, so the re-sync must leave its price alone.
+select public.supplier_upsert_catalogue(
+  'bay2game', 'pricetest', 'Price Test', null, null, '["userid"]'::jsonb,
+  '[{"product_code":"PT_A","name":"A","price_usd":5.00,"sort":1},
+    {"product_code":"PT_B","name":"B","price_usd":5.00,"sort":2}]'::jsonb
+) as first_sync;
+update public.product_variants set price_usd = 9.99 where sku = 'PT_B';
+select public.supplier_upsert_catalogue(
+  'bay2game', 'pricetest', 'Price Test', null, null, '["userid"]'::jsonb,
+  '[{"product_code":"PT_A","name":"A","price_usd":5.50,"sort":1},
+    {"product_code":"PT_B","name":"B","price_usd":6.00,"sort":2}]'::jsonb
+) as second_sync;
+do $$
+declare
+  v_a record;
+  v_b record;
+begin
+  select price_usd, cost_usd into v_a from public.product_variants where sku = 'PT_A';
+  select price_usd, cost_usd into v_b from public.product_variants where sku = 'PT_B';
+  if v_a.price_usd <> 5.50 or v_a.cost_usd <> 5.50 then
+    raise exception 'FAIL [price_follows_cost]: unpriced SKU price % cost %', v_a.price_usd, v_a.cost_usd;
+  end if;
+  if v_b.price_usd <> 9.99 or v_b.cost_usd <> 6.00 then
+    raise exception 'FAIL [price_follows_cost]: staff price overwritten, price % cost %', v_b.price_usd, v_b.cost_usd;
+  end if;
+end $$;
+select 'price_follows_cost ok' as result;

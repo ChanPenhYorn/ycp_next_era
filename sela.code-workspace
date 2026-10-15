@@ -1,0 +1,27 @@
+{
+  // Open this file with File -> Open Workspace from File.
+  //
+  // Why it exists: the Dart/Flutter extension attaches to workspace folders that
+  // contain a pubspec.yaml. The repo root has none, so opening the root alone
+  // leaves the analyzer unattached and every import in every file reports
+  // "Target of URI doesn't exist". Listing app/ as its own folder fixes that.
+  "folders": [
+    { "name": "app (Flutter)", "path": "app" },
+    { "name": "supabase", "path": "supabase" }
+  ],
+  "settings": {
+    "dart.analysisExcludedFolders": ["app/build", "app/.dart_tool"],
+    "files.exclude": {
+      "**/.dart_tool": true,
+      "**/build": true
+    },
+    "editor.formatOnSave": true,
+    "[dart]": {
+      "editor.defaultFormatter": "Dart-Code.dart-code",
+      "editor.rulers": [90]
+    }
+  },
+  "extensions": {
+    "recommendations": ["Dart-Code.dart-code", "Dart-Code.flutter"]
+  }
+}

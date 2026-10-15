@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 import '../../data/models.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class OrderStatusChip extends StatelessWidget {
   const OrderStatusChip({required this.status, super.key});

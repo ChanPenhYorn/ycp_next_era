@@ -1,5 +1,5 @@
-/// Plain data classes mirroring the Postgres schema. Kept hand-written rather
-/// than generated so the shapes stay readable next to the migrations.
+// Plain data classes mirroring the Postgres schema. Kept hand-written rather
+// than generated so the shapes stay readable next to the migrations.
 
 enum ProductKind { instantStock, autoTopup, manualSetup }
 

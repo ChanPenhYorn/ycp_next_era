@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
 import '../data/order_repository.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/khqr_sheet.dart';

@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 
@@ -361,7 +361,7 @@ class _Gallery extends StatelessWidget {
             : CachedNetworkImage(
                 imageUrl: product.card.imageUrl!,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => const ColoredBox(color: AppColors.ink850),
+                placeholder: (_, _) => const ColoredBox(color: AppColors.ink850),
               ),
       ),
     );

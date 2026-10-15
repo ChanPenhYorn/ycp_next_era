@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
 import '../core/theme.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 
 class CartPage extends ConsumerWidget {
@@ -43,7 +43,7 @@ class CartPage extends ConsumerWidget {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: lines.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final line = lines[index];
               return Container(

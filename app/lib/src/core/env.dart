@@ -13,9 +13,11 @@ class Env {
     defaultValue: '',
   );
 
-  static const supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: '',
+  /// Supabase's current name for the client-safe key. The legacy
+  /// SUPABASE_ANON_KEY name is still accepted so existing setup keeps working.
+  static const supabaseKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: String.fromEnvironment('SUPABASE_ANON_KEY'),
   );
 
   static const supabaseFunctionsUrl = String.fromEnvironment(
@@ -23,8 +25,7 @@ class Env {
     defaultValue: '',
   );
 
-  static bool get isConfigured =>
-      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+  static bool get isConfigured => supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
 
   /// Edge Function endpoints. Derived from the project URL when not overridden.
   static String get functionsBase {

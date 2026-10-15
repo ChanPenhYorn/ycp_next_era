@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 
 /// Shared chrome: top bar with search + locale toggle + cart badge, and a

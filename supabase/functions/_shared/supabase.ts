@@ -37,4 +37,4 @@ export async function requireUser(req: Request): Promise<
   return { ok: true, userId: user.id, client };
 }
 
-export { json, corsHeaders };
+export { json, corsHeaders, preflight } from "./http.ts";

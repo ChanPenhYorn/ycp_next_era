@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 
 class ProductCardTile extends ConsumerWidget {
@@ -46,9 +46,9 @@ class ProductCardTile extends ConsumerWidget {
                       : CachedNetworkImage(
                           imageUrl: product.imageUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) =>
+                          placeholder: (_, _) =>
                               const ColoredBox(color: AppColors.ink850),
-                          errorWidget: (_, __, ___) => const ColoredBox(
+                          errorWidget: (_, _, _) => const ColoredBox(
                             color: AppColors.ink850,
                             child: Center(child: Text('📦', style: TextStyle(fontSize: 30))),
                           ),

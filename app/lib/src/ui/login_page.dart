@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/theme.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 
 /// Passwordless email OTP. Nothing to store, nothing to leak.

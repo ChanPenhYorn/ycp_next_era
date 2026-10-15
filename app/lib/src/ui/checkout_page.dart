@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/order_repository.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../data/payment_repository.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/khqr_sheet.dart';
 
@@ -227,6 +228,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   }
 
   Future<void> _payWithKhqr() async {
+    final l10n = AppL10n.of(context);
     final order = await _createOrder();
     if (order == null) return;
 
@@ -250,17 +252,18 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         await ref.read(cartControllerProvider.notifier).clear();
         ref.invalidate(ordersProvider);
         ref.invalidate(profileProvider);
+        if (!mounted) return;
         context.go('/orders/${order.orderId}');
       } else {
         // Keep the order so the buyer can retry without rebuilding the cart.
         context.go('/orders/${order.orderId}');
       }
     } on PaymentException catch (error) {
-      _toast(_humanise(error.code, AppL10n.of(context)));
-      setState(() => _busy = false);
+      _toast(_humanise(error.code, l10n));
+      if (mounted) setState(() => _busy = false);
     } catch (_) {
-      _toast(AppL10n.of(context).somethingWentWrong);
-      setState(() => _busy = false);
+      _toast(l10n.somethingWentWrong);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -281,6 +284,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         await ref.read(cartControllerProvider.notifier).clear();
         ref.invalidate(ordersProvider);
         ref.invalidate(profileProvider);
+        if (!mounted) return;
         context.go('/orders/${order.orderId}');
       } else {
         _toast(l10n.insufficientBalance);
@@ -293,6 +297,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   }
 
   Future<CreatedOrder?> _createOrder() async {
+    final l10n = AppL10n.of(context);
     final lines = ref.read(cartControllerProvider);
     if (lines.isEmpty) return null;
 
@@ -313,16 +318,16 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             email: _email.text.trim().isEmpty ? null : _email.text.trim(),
             note: _note.text.trim().isEmpty ? null : _note.text.trim(),
           );
-      setState(() => _busy = false);
+      if (mounted) setState(() => _busy = false);
       return order;
     } on OrderException catch (error) {
-      _toast(_humanise(error.code, AppL10n.of(context)));
-      setState(() => _busy = false);
+      _toast(_humanise(error.code, l10n));
+      if (mounted) setState(() => _busy = false);
       ref.invalidate(productsProvider);
       return null;
     } catch (_) {
-      _toast(AppL10n.of(context).somethingWentWrong);
-      setState(() => _busy = false);
+      _toast(l10n.somethingWentWrong);
+      if (mounted) setState(() => _busy = false);
       return null;
     }
   }

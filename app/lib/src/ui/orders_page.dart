@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
 import '../core/theme.dart';
-import '../data/models.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/status_chip.dart';
@@ -47,7 +46,7 @@ class OrdersPage extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final order = items[index];
 

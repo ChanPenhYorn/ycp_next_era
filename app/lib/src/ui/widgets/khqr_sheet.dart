@@ -9,7 +9,7 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../data/payment_repository.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 
 /// Native KHQR sheet.

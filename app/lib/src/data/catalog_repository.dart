@@ -49,10 +49,10 @@ class CatalogRepository {
           'id, slug, name_km, name_en, image_url, kind, rating_avg, rating_count, '
           'sold_count, category:categories ( id, slug, name_km, name_en ), '
           'variants:product_variants ( id, price_usd, compare_at_price_usd, stock_mode )',
-        )
-        .order('sort_order')
-        .limit(limit);
+        );
 
+    // Filters must be applied before order/limit: those return a transform
+    // builder that no longer accepts `.eq`.
     if (featuredOnly) query = query.eq('is_featured', true);
     if (categorySlug != null) query = query.eq('categories.slug', categorySlug);
     if (search != null && search.trim().isNotEmpty) {
@@ -62,7 +62,7 @@ class CatalogRepository {
       );
     }
 
-    final rows = await query;
+    final rows = await query.order('sort_order').limit(limit);
 
     final stock = await _stockFor([
       for (final row in rows)

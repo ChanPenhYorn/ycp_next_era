@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/core/env.dart';
 import 'src/core/router.dart';
 import 'src/core/theme.dart';
-import 'src/l10n/generated/app_localizations.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'src/state/providers.dart';
 
 Future<void> main() async {
@@ -18,7 +18,7 @@ Future<void> main() async {
   if (Env.isConfigured) {
     await Supabase.initialize(
       url: Env.supabaseUrl,
-      anonKey: Env.supabaseAnonKey,
+      publishableKey: Env.supabaseKey,
     );
   }
 
@@ -90,7 +90,7 @@ class _MissingConfiguration extends StatelessWidget {
                   'Run the app with your project credentials:\n\n'
                   'flutter run \\\n'
                   '  --dart-define=SUPABASE_URL=https://<ref>.supabase.co \\\n'
-                  '  --dart-define=SUPABASE_ANON_KEY=<anon key>',
+                  '  --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>',
                   style: TextStyle(fontSize: 12, height: 1.7),
                 ),
               ],

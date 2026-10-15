@@ -275,6 +275,17 @@ export const bay2game: SupplierAdapter = {
       return { outcome: "delivered", reference, costUsd: settled.amountUsd };
     }
 
+    // ERROR is a request-level failure (bad key, unknown game or product).
+    // It says nothing about the buyer's order, so hold it for a retry and
+    // staff review rather than refunding a correctly paid order.
+    if (status === "ERROR") {
+      return {
+        outcome: "retry",
+        reason: `supplier_error: ${message}`,
+        retryInMinutes: 60,
+      };
+    }
+
     return { outcome: "refund", reason: message, reference };
   },
 };

@@ -15,12 +15,64 @@
  */
 import { adminClient, json, preflight } from "../_shared/supabase.ts";
 import type { SupplierAdapter } from "../_shared/suppliers/types.ts";
-import { SupplierError } from "../_shared/suppliers/types.ts";
+import { fetchWithTimeout, SupplierError } from "../_shared/suppliers/types.ts";
 import { bay2game } from "../_shared/suppliers/bay2game.ts";
 
 const ADAPTERS: Record<string, SupplierAdapter> = {
   bay2game,
 };
+
+/**
+ * Mirrors a supplier image into our own Storage bucket.
+ *
+ * Not a nicety. Bay2Game serves product art from cdn.camrapidsecure.com, which
+ * sends no Access-Control-Allow-Origin header. Flutter web (CanvasKit) loads
+ * images with fetch, so those images render fine on Android and iOS but are
+ * invisible in a browser. Mirroring also removes the hotlink dependency: the
+ * supplier can rename or delete their CDN paths without breaking our catalogue.
+ *
+ * Returns the public Supabase URL, or null to fall back to the original.
+ */
+export async function mirrorImage(
+  admin: ReturnType<typeof adminClient>,
+  supplierCode: string,
+  gameCode: string,
+  sourceUrl: string | null
+): Promise<string | null> {
+  if (!sourceUrl) return null;
+
+  try {
+    const res = await fetchWithTimeout(sourceUrl, {}, 20000);
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") ?? "image/webp";
+    if (!contentType.startsWith("image/")) return null;
+
+    const extension = contentType.includes("png")
+      ? "png"
+      : contentType.includes("jpeg") || contentType.includes("jpg")
+        ? "jpg"
+        : contentType.includes("avif")
+          ? "avif"
+          : "webp";
+
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.byteLength === 0) return null;
+
+    const path = `suppliers/${supplierCode}/${gameCode}.${extension}`;
+    const { error } = await admin.storage
+      .from("product-images")
+      .upload(path, bytes, { contentType, upsert: true });
+
+    if (error) return null;
+
+    const { data } = admin.storage.from("product-images").getPublicUrl(path);
+    return data.publicUrl ?? null;
+  } catch {
+    // A missing image must never fail a catalogue sync.
+    return null;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
@@ -36,6 +88,7 @@ Deno.serve(async (req) => {
     gameCode?: string;
     limit?: number;
     dryRun?: boolean;
+    mirrorImages?: boolean;
   } = {};
   try {
     body = await req.json();
@@ -101,11 +154,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Mirror into our own bucket so the art also renders on Flutter web,
+        // and so we do not depend on the supplier's CDN paths.
+        const imageUrl = body.mirrorImages === false
+          ? game.imageUrl
+          : (await mirrorImage(admin, code, game.gameCode, game.imageUrl)) ??
+            game.imageUrl;
+
         const { data, error } = await admin.rpc("supplier_upsert_catalogue", {
           p_supplier_code: code,
           p_game_code: game.gameCode,
           p_name: game.name,
-          p_image_url: game.imageUrl,
+          p_image_url: imageUrl,
           p_summary: game.summary,
           p_required_fields: game.fields,
           p_products: products,

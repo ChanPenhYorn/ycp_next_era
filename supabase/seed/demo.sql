@@ -115,6 +115,24 @@ from (values
 ) as seed(sku, code)
 join public.product_variants v on v.sku = seed.sku;
 
+-- Placeholder art. Deliberately an external URL rather than a Storage path,
+-- because this file must run against any project. placehold.co sends
+-- Access-Control-Allow-Origin, which Flutter web's CanvasKit renderer needs.
+--
+-- Real products get their imagery from the supplier sync, which mirrors it into
+-- the product-images bucket. See mirrorImage() in supplier-sync: Bay2Game's CDN
+-- sends no CORS header, so hotlinking their art would render on mobile and be
+-- invisible in a browser.
+update public.products
+   set image_url = case slug
+     when 'mobile-legends-diamonds' then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=Mobile+Legends'
+     when 'steam-wallet'            then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=Steam+Wallet'
+     when 'google-play-card'        then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=Google+Play'
+     when 'nordvpn'                 then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=NordVPN'
+     else image_url
+   end
+ where image_url is null;
+
 insert into public.coupons (code, kind, value, min_order_usd, max_uses, per_user_limit)
 values ('WELCOME10', 'percent', 10, 1.00, 1000, 1)
 on conflict (code) do nothing;

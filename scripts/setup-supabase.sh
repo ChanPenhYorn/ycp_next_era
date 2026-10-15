@@ -69,10 +69,21 @@ else
   ok "PAYWAY_ENV, PAYWAY_MERCHANT_ID, PAYWAY_API_KEY set"
 fi
 
+supplier_secrets=()
+[ -n "${BAY2GAME_API_KEY:-}" ] && supplier_secrets+=("BAY2GAME_API_KEY=${BAY2GAME_API_KEY}")
+[ -n "${KASPLAY_API_KEY:-}" ] && supplier_secrets+=("KASPLAY_API_KEY=${KASPLAY_API_KEY}")
+if [ ${#supplier_secrets[@]} -gt 0 ]; then
+  supabase secrets set "${supplier_secrets[@]}" >/dev/null
+  ok "${#supplier_secrets[@]} supplier secret(s) set"
+else
+  warn "no supplier API key in $ENV_FILE, auto_topup orders will queue for staff"
+fi
+
 telegram_secrets=()
 [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && telegram_secrets+=("TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}")
 [ -n "${TELEGRAM_WEBHOOK_SECRET:-}" ] && telegram_secrets+=("TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}")
 [ -n "${TELEGRAM_DISPATCH_SECRET:-}" ] && telegram_secrets+=("TELEGRAM_DISPATCH_SECRET=${TELEGRAM_DISPATCH_SECRET}")
+[ -n "${SUPPLIER_JOB_SECRET:-}" ] && telegram_secrets+=("SUPPLIER_JOB_SECRET=${SUPPLIER_JOB_SECRET}")
 if [ ${#telegram_secrets[@]} -gt 0 ]; then
   supabase secrets set "${telegram_secrets[@]}" >/dev/null
   ok "${#telegram_secrets[@]} Telegram secret(s) set"
@@ -86,8 +97,10 @@ if ! docker info >/dev/null 2>&1; then
   die "Docker must be running to bundle Edge Functions. Start Docker and re-run."
 fi
 supabase functions deploy \
-  payway-init payway-verify payway-callback telegram-webhook telegram-dispatch
-ok "all five functions deployed"
+  payway-init payway-verify payway-callback \
+  telegram-webhook telegram-dispatch \
+  supplier-sync supplier-fulfil
+ok "all seven functions deployed"
 
 step "Register this callback URL with ABA PayWay"
 echo "    https://${PROJECT_REF}.supabase.co/functions/v1/payway-callback"

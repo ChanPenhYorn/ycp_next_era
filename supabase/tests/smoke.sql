@@ -328,7 +328,89 @@ select public.telegram_unlink(555001) as unlinked;
 select public.telegram_profile_for_chat(555001) as after_unlink;
 select jsonb_array_length(public.telegram_orders_for_chat(555001, 5)) as orders_after_unlink;
 
-\echo '### 34. final state'
+\echo '### 34. supplier sync creates products, variants and SKU links'
+reset role;
+select public.supplier_upsert_catalogue(
+  'bay2game', 'mlbb_exclusive', 'Mobile Legends Bang Bang',
+  'https://example.test/mlbb.png', 'KH top-up', '["userid","serverid"]'::jsonb,
+  '[{"product_code":"MLBB_100","name":"100 Diamonds","price_usd":1.50,"sort":1},
+    {"product_code":"MLBB_500","name":"500 Diamonds","price_usd":7.00,"sort":2}]'::jsonb
+) as synced;
+
+select p.slug, p.kind, p.requires_fields
+  from public.products p where p.slug = 'bay2game-mlbb_exclusive';
+select v.sku, v.price_usd, v.cost_usd, ss.supplier_sku
+  from public.product_variants v
+  join public.supplier_skus ss on ss.variant_id = v.id
+ where v.product_id = (select id from public.products where slug = 'bay2game-mlbb_exclusive')
+ order by v.sku;
+
+\echo '### 35. re-syncing updates in place instead of duplicating'
+select public.supplier_upsert_catalogue(
+  'bay2game', 'mlbb_exclusive', 'Mobile Legends Bang Bang',
+  'https://example.test/mlbb.png', 'KH top-up', '["userid","serverid"]'::jsonb,
+  '[{"product_code":"MLBB_100","name":"100 Diamonds","price_usd":1.55,"sort":1},
+    {"product_code":"MLBB_500","name":"500 Diamonds","price_usd":7.10,"sort":2}]'::jsonb
+) as resynced;
+select count(*) as variants from public.product_variants
+ where sku in ('MLBB_100','MLBB_500');
+select sku, cost_usd from public.product_variants
+ where sku in ('MLBB_100','MLBB_500') order by sku;
+
+\echo '### 36. a supplier line is only routable once the supplier is active'
+-- is_active is seeded false so a key-less supplier is never selected. Sync
+-- flips it on, which is what stops "key set, nothing fulfils".
+update public.suppliers set is_active = false where code = 'bay2game';
+select count(*) as routable_while_inactive
+  from public.supplier_pending_items(50) where supplier_code = 'bay2game';
+
+update public.suppliers set is_active = true where code = 'bay2game';
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_order(
+  jsonb_build_array(jsonb_build_object(
+    'variant_id', (select id from public.product_variants where sku = 'MLBB_100'), 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '3543'), null, null) as supplier_order;
+select id as soid2 from public.orders order by created_at desc limit 1 \gset
+reset role;
+select public.mark_order_paid(:'soid2', 'payway', 'PW-SUP-0001', 'abapay_khqr_deeplink', null, null) as settled;
+
+select wallet_balance as balance_before from public.profiles
+ where id = '22222222-2222-2222-2222-222222222222';
+
+select item_id, supplier_code, supplier_sku, qty, customer_fields, attempts
+  from public.supplier_pending_items(50) where order_id = :'soid2';
+
+select item_id as sid from public.supplier_pending_items(50)
+ where order_id = :'soid2' limit 1 \gset
+
+\echo '### 37. a transient failure records an attempt and moves no money'
+select public.supplier_note_failure(
+  :'sid', 'supplier_out_of_balance: Insufficient balance', 60) as noted;
+
+select wallet_balance as balance_after from public.profiles
+ where id = '22222222-2222-2222-2222-222222222222';
+select supplier_attempts, supplier_last_error, delivery_status
+  from public.order_items where id = :'sid';
+
+\echo '### 38. backoff removes it from the queue until the retry window passes'
+select count(*) as queued_during_backoff
+  from public.supplier_pending_items(50) where order_id = :'soid2';
+
+\echo '### 39. after the attempt limit it escalates to staff, still without refunding'
+-- Drive it straight to the limit; the retry window would otherwise hide it.
+select public.supplier_note_failure(:'sid', 'still out of balance', 0) as attempt_2;
+select public.supplier_note_failure(:'sid', 'still out of balance', 0) as attempt_3;
+select public.supplier_note_failure(:'sid', 'still out of balance', 0) as attempt_4;
+select public.supplier_note_failure(:'sid', 'still out of balance', 0) as attempt_5;
+
+select supplier_attempts, delivery_status, supplier_last_error
+  from public.order_items where id = :'sid';
+select wallet_balance as balance_after_escalation from public.profiles
+ where id = '22222222-2222-2222-2222-222222222222';
+
+\echo '### 40. final state'
 select (select count(*) from public.orders)  as orders,
        (select count(*) from public.order_items) as items,
        (select count(*) from public.payments) as payments,

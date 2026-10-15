@@ -5,12 +5,14 @@
 #
 #   ./scripts/build-sql-bundle.sh
 #
-# Output: supabase/migrations/combined.sql
+# Output: supabase/bundle/combined.sql
 #
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$ROOT/supabase/migrations/combined.sql"
+# Deliberately NOT in supabase/migrations: `supabase db push` applies every
+# .sql in that folder, and the bundle contains all of them already.
+OUT="$ROOT/supabase/bundle/combined.sql"
 
 {
   cat <<'HEADER'
@@ -29,9 +31,6 @@ OUT="$ROOT/supabase/migrations/combined.sql"
 HEADER
 
   for migration in "$ROOT"/supabase/migrations/*.sql; do
-    case "$(basename "$migration")" in
-      combined.sql) continue ;;
-    esac
     printf '\n\n-- ============================================================================\n'
     printf -- '-- %s\n' "$(basename "$migration")"
     printf -- '-- ============================================================================\n\n'

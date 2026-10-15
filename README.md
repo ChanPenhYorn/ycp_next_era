@@ -135,7 +135,9 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 9 | Scheduled housekeeping: order expiry, rating refresh (`pg_cron`) | `[x]` |
 | 10 | Review approval, coin reward, rating recompute | `[x]` |
 | 11 | Supplier fulfilment RPCs: claim a job, complete or refund | `[x]` |
-| 12 | Supplier worker: Edge Function that drains `supplier_pending_items` | `[ ]` |
+| 12 | Supplier worker: `supplier-sync` + `supplier-fulfil`, Bay2Game adapter | `[x]` |
+| 12a | KAS Play adapter (218 games, player-nickname validation, gift cards) | `[ ]` |
+| 12b | "Verify account" button using supplier player validation | `[ ]` |
 | 13 | Admin UI over the existing admin RPCs (stock intake, manual queue, review moderation) | `[ ]` |
 | 13a | Telegram: linking, `/orders`, `/order`, `/wallet`, notifications, support handoff | `[x]` |
 | 13b | Account screen: profile, coins, Telegram linking, sign out | `[x]` |
@@ -148,6 +150,40 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 The database row of this table is the part that is genuinely verified: `supabase/tests/run.sh` asserts RLS isolation, the oversell guard, quantity limits, required buyer fields, coupon limits, the wallet ledger, the short-pick rollback, top-up limits, the review guard, and the supplier refund path.
 
 Stage 5 is the one to exercise next: it needs live sandbox credentials, and payment flows are where assumptions go to die.
+
+## Suppliers
+
+Auto top-ups are fulfilled by a supplier adapter. Adding one is a single file
+implementing `SupplierAdapter` in `supabase/functions/_shared/suppliers/`.
+
+```bash
+# Sync a supplier catalogue into your own products and variants.
+# Start small: a full sweep is 200+ games and 200+ product calls.
+curl -X POST "$FUNCTIONS/supplier-sync" \
+  -H "x-job-secret: $SUPPLIER_JOB_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"supplier":"bay2game","limit":3,"dryRun":true}'
+
+# Fulfil orders that are waiting on a supplier.
+curl -X POST "$FUNCTIONS/supplier-fulfil" \
+  -H "x-job-secret: $SUPPLIER_JOB_SECRET" -d '{"limit":10}'
+```
+
+Synced variants are **priced at cost** until staff set a retail price, so an
+unpriced SKU cannot be sold at a loss, only at zero margin.
+
+The worker distinguishes three outcomes, and the distinction is the point:
+
+| Outcome | Effect | Why |
+|---|---|---|
+| `delivered` | line closed | normal path |
+| `refund` | money returned to the buyer's wallet | the order is genuinely undoable |
+| `retry` | attempts+, exponential backoff | transient failure, or **the supplier's wallet is empty** |
+
+Running out of supplier balance must never refund a buyer who paid correctly,
+and must never silently drop the order either. After five attempts the line
+escalates to `manual_waiting` for staff, and the buyer's money has still not
+moved.
 
 ## Sourcing
 

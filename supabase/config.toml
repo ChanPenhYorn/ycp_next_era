@@ -64,5 +64,13 @@ verify_jwt = false
 [functions.telegram-dispatch]
 verify_jwt = true
 
+# Supplier jobs. Both require SUPPLIER_JOB_SECRET, on top of the JWT, because
+# they move real money on a third party's account.
+[functions.supplier-sync]
+verify_jwt = true
+
+[functions.supplier-fulfil]
+verify_jwt = true
+
 [analytics]
 enabled = false

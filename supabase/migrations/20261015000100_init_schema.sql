@@ -6,6 +6,26 @@
 create schema if not exists extensions;
 create extension if not exists "pgcrypto" with schema extensions;
 
+-- The stock vault calls extensions.pgp_sym_encrypt explicitly, because every
+-- function runs with `set search_path = ''`. If pgcrypto ever lives in a
+-- different schema, encryption would fail at the worst possible moment: when a
+-- buyer pays and stock is being written. Fail at migration time instead.
+do $$
+declare v_schema text;
+begin
+  select n.nspname into v_schema
+    from pg_extension e
+    join pg_namespace n on n.oid = e.extnamespace
+   where e.extname = 'pgcrypto';
+
+  if v_schema is distinct from 'extensions' then
+    raise exception
+      'pgcrypto is installed in schema "%", expected "extensions". '
+      'Run: drop extension pgcrypto; create extension pgcrypto with schema extensions;',
+      coalesce(v_schema, '<not installed>');
+  end if;
+end $$;
+
 -- Private schema: never exposed through PostgREST.
 create schema if not exists private;
 revoke all on schema private from anon, authenticated;

@@ -106,6 +106,18 @@ final ordersProvider = FutureProvider<List<Order>>((ref) {
   return ref.watch(orderRepositoryProvider).listOrders();
 });
 
+final walletTransactionsProvider = FutureProvider<List<WalletTransaction>>((ref) {
+  ref.watch(currentUserProvider);
+  return ref.watch(orderRepositoryProvider).walletTransactions();
+});
+
+/// Product ids already reviewed within one order, so the UI can hide the
+/// button instead of letting the unique index reject the insert.
+final reviewedProductsProvider =
+    FutureProvider.family<Set<int>, String>((ref, orderId) {
+  return ref.watch(orderRepositoryProvider).reviewedProductIds(orderId);
+});
+
 final orderProvider = FutureProvider.family<Order?, String>((ref, orderId) {
   return ref.watch(orderRepositoryProvider).getOrder(orderId);
 });

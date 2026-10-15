@@ -115,7 +115,7 @@ class OrderRepository {
           'id, order_no, status, subtotal_usd, discount_usd, total_usd, '
           'coupon_code, expires_at, created_at, paid_at, '
           'items:order_items ( id, product_name, variant_label, qty, unit_price_usd, '
-          'line_total_usd, delivery_status )',
+          'line_total_usd, delivery_status, variant:product_variants ( product_id ) )',
         )
         .order('created_at', ascending: false)
         .limit(limit);
@@ -130,7 +130,7 @@ class OrderRepository {
           'id, order_no, status, subtotal_usd, discount_usd, total_usd, '
           'coupon_code, expires_at, created_at, paid_at, '
           'items:order_items ( id, product_name, variant_label, qty, unit_price_usd, '
-          'line_total_usd, delivery_status )',
+          'line_total_usd, delivery_status, variant:product_variants ( product_id ) )',
         )
         .eq('id', orderId)
         .maybeSingle();
@@ -176,6 +176,91 @@ class OrderRepository {
     } on PostgrestException catch (error) {
       throw _mapError(error);
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Wallet
+  // -------------------------------------------------------------------------
+
+  /// Creates a pending order of kind 'wallet_topup'. Settling it credits the
+  /// wallet instead of delivering goods, so top-ups reuse the whole payment
+  /// pipeline and inherit its idempotency.
+  Future<CreatedOrder> createWalletTopup({
+    required double amountUsd,
+    String? email,
+  }) async {
+    try {
+      final result = await _client.rpc(
+        'create_wallet_topup',
+        params: {'p_amount_usd': amountUsd, 'p_email': email},
+      );
+      final map = (result as Map).cast<String, dynamic>();
+      return CreatedOrder(
+        orderId: map['order_id'] as String,
+        orderNo: map['order_no'] as String,
+        subtotalUsd: (map['total_usd'] as num).toDouble(),
+        discountUsd: 0,
+        totalUsd: (map['total_usd'] as num).toDouble(),
+        expiresInMinutes: (map['expires_in_minutes'] as num?)?.toInt() ?? 15,
+      );
+    } on PostgrestException catch (error) {
+      throw _mapError(error);
+    }
+  }
+
+  Future<List<WalletTransaction>> walletTransactions({int limit = 50}) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final rows = await _client
+        .from('wallet_transactions')
+        .select('id, kind, amount_usd, balance_after, note, order_id, created_at')
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return rows.map(WalletTransaction.fromJson).toList();
+  }
+
+  // -------------------------------------------------------------------------
+  // Reviews
+  // -------------------------------------------------------------------------
+
+  /// RLS enforces that only a buyer with a delivered order containing this
+  /// product can insert, and that `is_approved` stays false.
+  Future<void> submitReview({
+    required int productId,
+    required String orderId,
+    required int rating,
+    String? body,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw OrderException('auth_required');
+
+    try {
+      await _client.from('reviews').insert({
+        'product_id': productId,
+        'user_id': userId,
+        'order_id': orderId,
+        'rating': rating,
+        'body': (body == null || body.trim().isEmpty) ? null : body.trim(),
+      });
+    } on PostgrestException catch (error) {
+      // A duplicate hits the (product_id, user_id, order_id) unique index.
+      if (error.code == '23505') {
+        throw OrderException('review_exists');
+      }
+      throw OrderException('review_rejected', detail: error.message);
+    }
+  }
+
+  /// Which products in this order the buyer has already reviewed.
+  Future<Set<int>> reviewedProductIds(String orderId) async {
+    final rows = await _client
+        .from('reviews')
+        .select('product_id')
+        .eq('order_id', orderId);
+
+    return rows.map((row) => (row['product_id'] as num).toInt()).toSet();
   }
 
   OrderException _mapError(PostgrestException error) {

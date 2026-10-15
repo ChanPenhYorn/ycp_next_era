@@ -13,16 +13,19 @@ class CatalogRepository {
     final row = await _client
         .from('public_settings')
         .select(
-          'site_name, support_telegram, support_email, usd_to_khr, order_ttl_minutes',
+          'site_name, support_telegram, support_email, usd_to_khr, order_ttl_minutes, '
+          'topup_min_usd, topup_max_usd',
         )
         .maybeSingle();
 
     if (row == null) return PublicSettings.fallback;
 
     return PublicSettings(
-      siteName: row['site_name'] as String? ?? 'YCP Store',
+      siteName: row['site_name'] as String? ?? 'Sela',
       usdToKhr: (row['usd_to_khr'] as num?)?.toDouble() ?? 4100,
       orderTtlMinutes: (row['order_ttl_minutes'] as num?)?.toInt() ?? 15,
+      topupMinUsd: (row['topup_min_usd'] as num?)?.toDouble() ?? 1,
+      topupMaxUsd: (row['topup_max_usd'] as num?)?.toDouble() ?? 1000,
       supportTelegram: row['support_telegram'] as String?,
       supportEmail: row['support_email'] as String?,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/brand.dart';
 import '../../core/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
@@ -19,7 +20,7 @@ class AppShell extends ConsumerWidget {
     final l10n = AppL10n.of(context);
     final isWide = MediaQuery.sizeOf(context).width >= 900;
 
-    const tabs = ['/', '/products', '/cart', '/orders'];
+    const tabs = ['/', '/products', '/cart', '/wallet', '/orders'];
     final index = tabs.indexWhere(
       (tab) => tab == '/' ? location == '/' : location.startsWith(tab),
     );
@@ -38,7 +39,7 @@ class AppShell extends ConsumerWidget {
               ),
               alignment: Alignment.center,
               child: const Text(
-                'YC',
+                Brand.monogram,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
@@ -91,6 +92,11 @@ class AppShell extends ConsumerWidget {
                   icon: const Icon(Icons.shopping_bag_outlined),
                   selectedIcon: const Icon(Icons.shopping_bag),
                   label: l10n.cart,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.account_balance_wallet_outlined),
+                  selectedIcon: const Icon(Icons.account_balance_wallet),
+                  label: l10n.walletTitle,
                 ),
                 NavigationDestination(
                   icon: const Icon(Icons.receipt_long_outlined),

@@ -100,7 +100,7 @@ abstract class AppL10n {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'YCP Store'**
+  /// **'Sela'**
   String get appTitle;
 
   /// No description provided for @searchHint.
@@ -606,6 +606,120 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Please sign in to continue'**
   String get guestMustSignIn;
+
+  /// No description provided for @walletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get walletTitle;
+
+  /// No description provided for @walletBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get walletBalance;
+
+  /// No description provided for @walletTopup.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up'**
+  String get walletTopup;
+
+  /// No description provided for @walletAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get walletAmount;
+
+  /// No description provided for @walletHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get walletHistory;
+
+  /// No description provided for @walletEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No wallet activity yet'**
+  String get walletEmpty;
+
+  /// No description provided for @walletTopupNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-ups are credited the moment the KHQR is paid.'**
+  String get walletTopupNote;
+
+  /// No description provided for @walletCredited.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-up complete'**
+  String get walletCredited;
+
+  /// No description provided for @walletTopupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-up was not completed'**
+  String get walletTopupFailed;
+
+  /// No description provided for @walletLimits.
+  ///
+  /// In en, this message translates to:
+  /// **'Between {min} and {max}'**
+  String walletLimits(String min, String max);
+
+  /// No description provided for @walletSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Order {orderNo}'**
+  String walletSpent(Object orderNo);
+
+  /// No description provided for @writeReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a review'**
+  String get writeReview;
+
+  /// No description provided for @reviewRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Your rating'**
+  String get reviewRating;
+
+  /// No description provided for @reviewBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell other buyers how it went'**
+  String get reviewBody;
+
+  /// No description provided for @reviewSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit review'**
+  String get reviewSubmit;
+
+  /// No description provided for @reviewPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks. Your review appears once staff approve it.'**
+  String get reviewPending;
+
+  /// No description provided for @reviewThanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for the review'**
+  String get reviewThanks;
+
+  /// No description provided for @reviewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not submit the review'**
+  String get reviewFailed;
+
+  /// No description provided for @notDeliveredYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not delivered yet'**
+  String get notDeliveredYet;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

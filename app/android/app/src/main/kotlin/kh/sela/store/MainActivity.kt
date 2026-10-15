@@ -1,4 +1,4 @@
-package com.ycpstore.ycp_store
+package kh.sela.store
 
 import io.flutter.embedding.android.FlutterActivity
 

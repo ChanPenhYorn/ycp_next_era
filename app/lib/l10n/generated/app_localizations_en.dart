@@ -9,7 +9,7 @@ class AppL10nEn extends AppL10n {
   AppL10nEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'YCP Store';
+  String get appTitle => 'Sela';
 
   @override
   String get searchHint => 'Search products';
@@ -268,4 +268,67 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get guestMustSignIn => 'Please sign in to continue';
+
+  @override
+  String get walletTitle => 'Wallet';
+
+  @override
+  String get walletBalance => 'Balance';
+
+  @override
+  String get walletTopup => 'Top up';
+
+  @override
+  String get walletAmount => 'Amount';
+
+  @override
+  String get walletHistory => 'Activity';
+
+  @override
+  String get walletEmpty => 'No wallet activity yet';
+
+  @override
+  String get walletTopupNote =>
+      'Top-ups are credited the moment the KHQR is paid.';
+
+  @override
+  String get walletCredited => 'Top-up complete';
+
+  @override
+  String get walletTopupFailed => 'Top-up was not completed';
+
+  @override
+  String walletLimits(String min, String max) {
+    return 'Between $min and $max';
+  }
+
+  @override
+  String walletSpent(Object orderNo) {
+    return 'Order $orderNo';
+  }
+
+  @override
+  String get writeReview => 'Write a review';
+
+  @override
+  String get reviewRating => 'Your rating';
+
+  @override
+  String get reviewBody => 'Tell other buyers how it went';
+
+  @override
+  String get reviewSubmit => 'Submit review';
+
+  @override
+  String get reviewPending =>
+      'Thanks. Your review appears once staff approve it.';
+
+  @override
+  String get reviewThanks => 'Thanks for the review';
+
+  @override
+  String get reviewFailed => 'Could not submit the review';
+
+  @override
+  String get notDeliveredYet => 'Not delivered yet';
 }

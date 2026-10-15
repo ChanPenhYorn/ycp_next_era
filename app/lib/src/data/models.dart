@@ -203,6 +203,7 @@ class Review {
 class OrderLine {
   const OrderLine({
     required this.id,
+    required this.productId,
     required this.productName,
     required this.variantLabel,
     required this.qty,
@@ -210,7 +211,12 @@ class OrderLine {
     required this.lineTotalUsd,
     required this.deliveryStatus,
     this.codes = const [],
-  });  final int id;
+  });
+
+  final int id;
+
+  /// Needed to attach a review to the right product.
+  final int? productId;
   final String productName;
   final String variantLabel;
   final int qty;
@@ -218,11 +224,17 @@ class OrderLine {
   final double lineTotalUsd;
   final DeliveryStatus deliveryStatus;
 
+  /// Only a delivered line for a real product can be reviewed; RLS enforces
+  /// the same rule server-side.
+  bool get canBeReviewed =>
+      productId != null && deliveryStatus == DeliveryStatus.delivered;
+
   /// Populated by reveal_order once the order is paid.
   final List<String> codes;
 
   OrderLine copyWith({List<String>? codes}) => OrderLine(
         id: id,
+        productId: productId,
         productName: productName,
         variantLabel: variantLabel,
         qty: qty,
@@ -232,15 +244,19 @@ class OrderLine {
         codes: codes ?? this.codes,
       );
 
-  factory OrderLine.fromJson(Map<String, dynamic> json) => OrderLine(
-        id: (json['id'] as num).toInt(),
-        productName: json['product_name'] as String? ?? '',
-        variantLabel: json['variant_label'] as String? ?? '',
-        qty: (json['qty'] as num).toInt(),
-        unitPriceUsd: (json['unit_price_usd'] as num).toDouble(),
-        lineTotalUsd: (json['line_total_usd'] as num).toDouble(),
-        deliveryStatus: deliveryStatusFrom(json['delivery_status'] as String? ?? ''),
-      );
+  factory OrderLine.fromJson(Map<String, dynamic> json) {
+    final variant = json['variant'] as Map<String, dynamic>?;
+    return OrderLine(
+      id: (json['id'] as num).toInt(),
+      productId: (variant?['product_id'] as num?)?.toInt(),
+      productName: json['product_name'] as String? ?? '',
+      variantLabel: json['variant_label'] as String? ?? '',
+      qty: (json['qty'] as num).toInt(),
+      unitPriceUsd: (json['unit_price_usd'] as num).toDouble(),
+      lineTotalUsd: (json['line_total_usd'] as num).toDouble(),
+      deliveryStatus: deliveryStatusFrom(json['delivery_status'] as String? ?? ''),
+    );
+  }
 }
 
 class Order {
@@ -297,6 +313,8 @@ class PublicSettings {
     required this.siteName,
     required this.usdToKhr,
     required this.orderTtlMinutes,
+    this.topupMinUsd = 1,
+    this.topupMaxUsd = 1000,
     this.supportTelegram,
     this.supportEmail,
   });
@@ -304,14 +322,52 @@ class PublicSettings {
   final String siteName;
   final double usdToKhr;
   final int orderTtlMinutes;
+  final double topupMinUsd;
+  final double topupMaxUsd;
   final String? supportTelegram;
   final String? supportEmail;
 
   static const fallback = PublicSettings(
-    siteName: 'YCP Store',
+    siteName: 'Sela',
     usdToKhr: 4100,
     orderTtlMinutes: 15,
   );
+}
+
+/// One entry in the wallet ledger. Append-only, so this reads as a statement.
+class WalletTransaction {
+  const WalletTransaction({
+    required this.id,
+    required this.kind,
+    required this.amountUsd,
+    required this.balanceAfter,
+    required this.createdAt,
+    this.note,
+    this.orderId,
+  });
+
+  final int id;
+
+  /// topup | purchase | refund | admin_adjust | coin_reward
+  final String kind;
+  final double amountUsd;
+  final double balanceAfter;
+  final DateTime createdAt;
+  final String? note;
+  final String? orderId;
+
+  bool get isCredit => amountUsd > 0;
+
+  factory WalletTransaction.fromJson(Map<String, dynamic> json) => WalletTransaction(
+        id: (json['id'] as num).toInt(),
+        kind: json['kind'] as String? ?? 'admin_adjust',
+        amountUsd: (json['amount_usd'] as num?)?.toDouble() ?? 0,
+        balanceAfter: (json['balance_after'] as num?)?.toDouble() ?? 0,
+        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+            DateTime.now(),
+        note: json['note'] as String?,
+        orderId: json['order_id'] as String?,
+      );
 }
 
 /// Result of payway-init.

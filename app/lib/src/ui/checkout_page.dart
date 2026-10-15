@@ -148,17 +148,29 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         ),
         const SizedBox(height: 10),
         profile.maybeWhen(
-          data: (value) => value == null
-              ? const SizedBox.shrink()
-              : OutlinedButton.icon(
-                  onPressed: _busy || value.walletBalance < total
-                      ? null
-                      : () => _payWithWallet(value.walletBalance),
-                  icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
-                  label: Text(
-                    '${l10n.payWithWallet} · ${money(value.walletBalance)}',
-                  ),
-                ),
+          data: (value) {
+            if (value == null) return const SizedBox.shrink();
+            // Short on balance: send them to top up rather than dead-ending
+            // on a disabled button.
+            final enough = value.walletBalance >= total;
+
+            return OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : enough
+                      ? () => _payWithWallet(value.walletBalance)
+                      : () => context.go('/wallet'),
+              icon: Icon(
+                enough ? Icons.account_balance_wallet_outlined : Icons.add_card,
+                size: 18,
+              ),
+              label: Text(
+                enough
+                    ? '${l10n.payWithWallet} · ${money(value.walletBalance)}'
+                    : '${l10n.walletTopup} · ${money(value.walletBalance)}',
+              ),
+            );
+          },
           orElse: () => const SizedBox.shrink(),
         ),
         if (_busy) ...[

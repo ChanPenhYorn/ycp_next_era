@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "YCP Store",
+  "appTitle": "Sela",
   "searchHint": "Search products",
   "all": "All",
   "inStock": "In stock",
@@ -16,13 +16,20 @@
   "retry": "Retry",
   "instant": "Instant",
   "soldCount": "{count} sold",
-  "@soldCount": { "placeholders": { "count": { "type": "int" } } },
+  "@soldCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "from": "From",
   "heroTitle": "Game top-ups and digital cards, instantly",
   "heroSubtitle": "Pay with ABA KHQR, receive your code in seconds",
   "featured": "Popular",
   "categories": "Categories",
-  "allProducts": "All products", "noProducts": "Nothing here yet",
+  "allProducts": "All products",
+  "noProducts": "Nothing here yet",
   "trustInstant": "Automatic 24/7 delivery",
   "trustPayment": "Pay with ABA KHQR",
   "trustSupport": "24/7 support on Telegram",
@@ -83,7 +90,42 @@
   "otpLabel": "6-digit code",
   "verify": "Verify and continue",
   "codeSent": "Code sent to {email}",
-  "@codeSent": { "placeholders": { "email": { "type": "String" } } },
+  "@codeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "somethingWentWrong": "Something went wrong. Please try again.",
-  "guestMustSignIn": "Please sign in to continue"
+  "guestMustSignIn": "Please sign in to continue",
+  "walletTitle": "Wallet",
+  "walletBalance": "Balance",
+  "walletTopup": "Top up",
+  "walletAmount": "Amount",
+  "walletHistory": "Activity",
+  "walletEmpty": "No wallet activity yet",
+  "walletTopupNote": "Top-ups are credited the moment the KHQR is paid.",
+  "walletCredited": "Top-up complete",
+  "walletTopupFailed": "Top-up was not completed",
+  "walletLimits": "Between {min} and {max}",
+  "@walletLimits": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "walletSpent": "Order {orderNo}",
+  "writeReview": "Write a review",
+  "reviewRating": "Your rating",
+  "reviewBody": "Tell other buyers how it went",
+  "reviewSubmit": "Submit review",
+  "reviewPending": "Thanks. Your review appears once staff approve it.",
+  "reviewThanks": "Thanks for the review",
+  "reviewFailed": "Could not submit the review",
+  "notDeliveredYet": "Not delivered yet"
 }

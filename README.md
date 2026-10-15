@@ -1,4 +1,4 @@
-# YCP Store
+# Sela
 
 Khmer-first digital storefront: game top-ups and gift cards, paid with **ABA KHQR**, delivered instantly.
 
@@ -135,11 +135,12 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 11 | Supplier fulfilment RPCs: claim a job, complete or refund | `[x]` |
 | 12 | Supplier worker: Edge Function that drains `supplier_pending_items` | `[ ]` |
 | 13 | Admin UI over the existing admin RPCs (stock intake, manual queue, review moderation) | `[ ]` |
-| 14 | Wallet top-up UI + history screen in the app | `[ ]` |
-| 15 | Growth: referrals, flash-sale banners, coins redemption | `[ ]` |
-| 16 | Ops: backups, uptime alerts, fraud velocity rules | `[ ]` |
-| 17 | Telegram bot for order status and support handoff | `[ ]` |
-| 18 | Play Store / App Store submission, Khmer store listing | `[ ]` |
+| 14 | Wallet UI: balance, top-up via KHQR, ledger | `[x]` |
+| 15 | Review UI: write a review from a delivered order, pending-approval notice | `[x]` |
+| 16 | Growth: referrals, flash-sale banners, coins redemption | `[ ]` |
+| 17 | Ops: backups, uptime alerts, fraud velocity rules | `[ ]` |
+| 18 | Telegram bot for order status and support handoff | `[ ]` |
+| 19 | Play Store / App Store submission, Khmer store listing | `[ ]` |
 
 The database row of this table is the part that is genuinely verified: `supabase/tests/run.sh` asserts RLS isolation, the oversell guard, quantity limits, required buyer fields, coupon limits, the wallet ledger, the short-pick rollback, top-up limits, the review guard, and the supplier refund path.
 

@@ -9,7 +9,7 @@ class AppL10nKm extends AppL10n {
   AppL10nKm([String locale = 'km']) : super(locale);
 
   @override
-  String get appTitle => 'YCP Store';
+  String get appTitle => 'សេឡា';
 
   @override
   String get searchHint => 'ស្វែងរកផលិតផល';
@@ -268,4 +268,66 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get guestMustSignIn => 'សូមចូលប្រើជាមុនសិន';
+
+  @override
+  String get walletTitle => 'កាបូបលុយ';
+
+  @override
+  String get walletBalance => 'សមតុល្យ';
+
+  @override
+  String get walletTopup => 'បញ្ចូលលុយ';
+
+  @override
+  String get walletAmount => 'ចំនួនទឹកប្រាក់';
+
+  @override
+  String get walletHistory => 'ប្រតិបត្តិការ';
+
+  @override
+  String get walletEmpty => 'មិនទាន់មានប្រតិបត្តិការ';
+
+  @override
+  String get walletTopupNote => 'លុយចូលភ្លាមៗ បន្ទាប់ពីទូទាត់ KHQR ជោគជ័យ។';
+
+  @override
+  String get walletCredited => 'បញ្ចូលលុយរួចរាល់';
+
+  @override
+  String get walletTopupFailed => 'ការបញ្ចូលលុយមិនបានសម្រេច';
+
+  @override
+  String walletLimits(String min, String max) {
+    return 'ចន្លោះពី $min ដល់ $max';
+  }
+
+  @override
+  String walletSpent(Object orderNo) {
+    return 'ការបញ្ជាទិញ $orderNo';
+  }
+
+  @override
+  String get writeReview => 'សរសេរមតិយោបល់';
+
+  @override
+  String get reviewRating => 'ពិន្ទុរបស់អ្នក';
+
+  @override
+  String get reviewBody => 'ប្រាប់អ្នកទិញផ្សេងទៀតពីបទពិសោធន៍របស់អ្នក';
+
+  @override
+  String get reviewSubmit => 'ផ្ញើមតិយោបល់';
+
+  @override
+  String get reviewPending =>
+      'អរគុណ។ មតិយោបល់នឹងបង្ហាញបន្ទាប់ពីបុគ្គលិកអនុម័ត។';
+
+  @override
+  String get reviewThanks => 'អរគុណសម្រាប់មតិយោបល់';
+
+  @override
+  String get reviewFailed => 'មិនអាចផ្ញើមតិយោបល់បានទេ';
+
+  @override
+  String get notDeliveredYet => 'មិនទាន់ដឹកជញ្ជូន';
 }

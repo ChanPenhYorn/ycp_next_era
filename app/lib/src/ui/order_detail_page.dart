@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/khqr_sheet.dart';
+import 'widgets/review_sheet.dart';
 import 'widgets/status_chip.dart';
 
 class OrderDetailPage extends ConsumerStatefulWidget {
@@ -29,6 +30,12 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
     final order = ref.watch(orderProvider(widget.orderId));
+    // Falls back to empty so the review button simply stays hidden until the
+    // set of already-reviewed products has loaded.
+    final reviewed = ref.watch(reviewedProductsProvider(widget.orderId)).maybeWhen(
+          data: (ids) => ids,
+          orElse: () => const <int>{},
+        );
 
     return AsyncValueView(
       value: order,
@@ -61,6 +68,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 item: item,
                 codes: _codes[item.id] ?? const [],
                 l10n: l10n,
+                canReview: value.status == OrderStatus.delivered &&
+                    item.canBeReviewed &&
+                    !reviewed.contains(item.productId),
+                onReview: () => _writeReview(value, item),
               ),
             const SizedBox(height: 12),
             Container(
@@ -140,6 +151,22 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     }
   }
 
+  Future<void> _writeReview(Order order, OrderLine item) async {
+    final productId = item.productId;
+    if (productId == null) return;
+
+    final submitted = await ReviewSheet.show(
+      context,
+      productId: productId,
+      orderId: order.id,
+      productName: item.productName,
+    );
+
+    if (submitted && mounted) {
+      ref.invalidate(reviewedProductsProvider(order.id));
+    }
+  }
+
   Future<void> _resumePayment(Order order) async {
     if (order.expiresAt.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -182,11 +209,15 @@ class _OrderItemTile extends StatelessWidget {
     required this.item,
     required this.codes,
     required this.l10n,
+    required this.canReview,
+    required this.onReview,
   });
 
   final OrderLine item;
   final List<String> codes;
   final AppL10n l10n;
+  final bool canReview;
+  final VoidCallback onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -237,8 +268,18 @@ class _OrderItemTile extends StatelessWidget {
                 money(item.lineTotalUsd),
                 style: const TextStyle(fontSize: 12, color: AppColors.ink400),
               ),
-          ] else
+          ] else ...[
             for (final code in codes) _CodeChip(code: code),
+            if (canReview)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onReview,
+                  icon: const Icon(Icons.rate_review_outlined, size: 16),
+                  label: Text(l10n.writeReview, style: const TextStyle(fontSize: 12)),
+                ),
+              ),
+          ],
         ],
       ),
     );

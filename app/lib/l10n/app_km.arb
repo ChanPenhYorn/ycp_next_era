@@ -1,6 +1,6 @@
 {
   "@@locale": "km",
-  "appTitle": "YCP Store",
+  "appTitle": "សេឡា",
   "searchHint": "ស្វែងរកផលិតផល",
   "all": "ទាំងអស់",
   "inStock": "មានទំនិញ",
@@ -84,5 +84,24 @@
   "verify": "ផ្ទៀងផ្ទាត់ និងបន្ត",
   "codeSent": "បានផ្ញើកូដទៅ {email}",
   "somethingWentWrong": "មានបញ្ហា។ សូមព្យាយាមម្ដងទៀត។",
-  "guestMustSignIn": "សូមចូលប្រើជាមុនសិន"
+  "guestMustSignIn": "សូមចូលប្រើជាមុនសិន",
+  "walletTitle": "កាបូបលុយ",
+  "walletBalance": "សមតុល្យ",
+  "walletTopup": "បញ្ចូលលុយ",
+  "walletAmount": "ចំនួនទឹកប្រាក់",
+  "walletHistory": "ប្រតិបត្តិការ",
+  "walletEmpty": "មិនទាន់មានប្រតិបត្តិការ",
+  "walletTopupNote": "លុយចូលភ្លាមៗ បន្ទាប់ពីទូទាត់ KHQR ជោគជ័យ។",
+  "walletCredited": "បញ្ចូលលុយរួចរាល់",
+  "walletTopupFailed": "ការបញ្ចូលលុយមិនបានសម្រេច",
+  "walletLimits": "ចន្លោះពី {min} ដល់ {max}",
+  "walletSpent": "ការបញ្ជាទិញ {orderNo}",
+  "writeReview": "សរសេរមតិយោបល់",
+  "reviewRating": "ពិន្ទុរបស់អ្នក",
+  "reviewBody": "ប្រាប់អ្នកទិញផ្សេងទៀតពីបទពិសោធន៍របស់អ្នក",
+  "reviewSubmit": "ផ្ញើមតិយោបល់",
+  "reviewPending": "អរគុណ។ មតិយោបល់នឹងបង្ហាញបន្ទាប់ពីបុគ្គលិកអនុម័ត។",
+  "reviewThanks": "អរគុណសម្រាប់មតិយោបល់",
+  "reviewFailed": "មិនអាចផ្ញើមតិយោបល់បានទេ",
+  "notDeliveredYet": "មិនទាន់ដឹកជញ្ជូន"
 }

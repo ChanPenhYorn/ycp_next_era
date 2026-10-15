@@ -720,6 +720,90 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Not delivered yet'**
   String get notDeliveredYet;
+
+  /// No description provided for @accountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountTitle;
+
+  /// No description provided for @accountEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as'**
+  String get accountEmail;
+
+  /// No description provided for @coins.
+  ///
+  /// In en, this message translates to:
+  /// **'Coins'**
+  String get coins;
+
+  /// No description provided for @connectTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Telegram'**
+  String get connectTelegram;
+
+  /// No description provided for @telegramConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram connected'**
+  String get telegramConnected;
+
+  /// No description provided for @telegramHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a message the moment your order is ready, and check your codes in chat.'**
+  String get telegramHint;
+
+  /// No description provided for @telegramCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this code to the bot to link your account'**
+  String get telegramCodeHint;
+
+  /// No description provided for @telegramWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for you to send the code...'**
+  String get telegramWait;
+
+  /// No description provided for @copyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get copyCode;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// No description provided for @openTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Telegram'**
+  String get openTelegram;
+
+  /// No description provided for @telegramRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'I have sent it'**
+  String get telegramRefresh;
+
+  /// No description provided for @telegramDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get telegramDisconnect;
+
+  /// No description provided for @telegramLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start linking. Please try again.'**
+  String get telegramLinkFailed;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

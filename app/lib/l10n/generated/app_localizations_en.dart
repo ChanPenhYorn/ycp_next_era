@@ -331,4 +331,48 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get notDeliveredYet => 'Not delivered yet';
+
+  @override
+  String get accountTitle => 'Account';
+
+  @override
+  String get accountEmail => 'Signed in as';
+
+  @override
+  String get coins => 'Coins';
+
+  @override
+  String get connectTelegram => 'Connect Telegram';
+
+  @override
+  String get telegramConnected => 'Telegram connected';
+
+  @override
+  String get telegramHint =>
+      'Get a message the moment your order is ready, and check your codes in chat.';
+
+  @override
+  String get telegramCodeHint =>
+      'Send this code to the bot to link your account';
+
+  @override
+  String get telegramWait => 'Waiting for you to send the code...';
+
+  @override
+  String get copyCode => 'Copy code';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get openTelegram => 'Open Telegram';
+
+  @override
+  String get telegramRefresh => 'I have sent it';
+
+  @override
+  String get telegramDisconnect => 'Disconnect';
+
+  @override
+  String get telegramLinkFailed => 'Could not start linking. Please try again.';
 }

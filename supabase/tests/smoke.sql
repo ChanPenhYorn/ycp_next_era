@@ -285,7 +285,50 @@ select coins, coin_rewarded from public.profiles, public.reviews
 \echo '### 25. housekeeping runs as staff'
 select public.admin_run_housekeeping() as housekeeping;
 
-\echo '### 26. final state'
+\echo '### 26. telegram: the buyer generates a link code'
+reset role;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_telegram_link_code() as link_code;
+
+\echo '### 27. the bot redeems it and the account is linked'
+reset role;
+select code as tcode from public.telegram_link_codes
+ where used_at is null order by created_at desc limit 1 \gset
+select public.link_telegram(:'tcode', 555001, 'buyer_kh') as linked;
+select telegram_chat_id, telegram_username from public.profiles
+ where id = '22222222-2222-2222-2222-222222222222';
+
+\echo '### 28. a code cannot be redeemed twice'
+select public.link_telegram(:'tcode', 555002, 'someone_else') as second_attempt;
+
+\echo '### 29. delivery wrote to the outbox before the account was linked'
+select kind, status from public.notifications order by id desc limit 3;
+
+\echo '### 30. claiming resolves the chat at send time, so late linking still delivers'
+select id as nid from public.notifications where status = 'pending'
+ order by id limit 1 \gset
+select notification_id, chat_id, kind from public.telegram_claim_notifications(10);
+select public.telegram_ack_notification(:'nid', true, null) as acked;
+select status, sent_at is not null as sent from public.notifications where id = :'nid';
+
+\echo '### 31. the bot can read back only this chat s own orders'
+select public.telegram_profile_for_chat(555001) as profile;
+select jsonb_array_length(public.telegram_orders_for_chat(555001, 5)) as own_orders;
+select jsonb_array_length(public.telegram_orders_for_chat(999999, 5)) as other_chat_orders;
+
+\echo '### 32. an order lookup returns codes for the owner, nothing for a stranger'
+select order_no as ono from public.orders
+ where id = :'oid' \gset
+select public.telegram_order_by_no(555001, :'ono') as order_for_owner;
+select public.telegram_order_by_no(999999, :'ono') as order_for_stranger;
+
+\echo '### 33. unlinking stops the bot answering'
+select public.telegram_unlink(555001) as unlinked;
+select public.telegram_profile_for_chat(555001) as after_unlink;
+select jsonb_array_length(public.telegram_orders_for_chat(555001, 5)) as orders_after_unlink;
+
+\echo '### 34. final state'
 select (select count(*) from public.orders)  as orders,
        (select count(*) from public.order_items) as items,
        (select count(*) from public.payments) as payments,

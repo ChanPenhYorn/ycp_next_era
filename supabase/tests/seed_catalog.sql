@@ -14,7 +14,8 @@ update public.settings
        support_telegram = 'https://t.me/example',
        usd_to_khr       = 4100,
        khqr_account_id  = 'sela@aclb',
-       khqr_merchant_name = 'SELA';
+       khqr_merchant_name = 'SELA',
+       telegram_bot_username = 'ycp_store_bot';
 
 insert into public.categories (slug, name_km, name_en, sort_order) values
   ('game-topup', 'បញ្ចូលពេជ្រហ្គេម', 'Game Top-Up', 1),

@@ -103,5 +103,19 @@
   "reviewPending": "អរគុណ។ មតិយោបល់នឹងបង្ហាញបន្ទាប់ពីបុគ្គលិកអនុម័ត។",
   "reviewThanks": "អរគុណសម្រាប់មតិយោបល់",
   "reviewFailed": "មិនអាចផ្ញើមតិយោបល់បានទេ",
-  "notDeliveredYet": "មិនទាន់ដឹកជញ្ជូន"
+  "notDeliveredYet": "មិនទាន់ដឹកជញ្ជូន",
+  "accountTitle": "គណនី",
+  "accountEmail": "ចូលប្រើជា",
+  "coins": "កាក់",
+  "connectTelegram": "ភ្ជាប់ Telegram",
+  "telegramConnected": "បានភ្ជាប់ Telegram",
+  "telegramHint": "ទទួលសារភ្លាមៗ នៅពេលការបញ្ជាទិញរួចរាល់ និងមើលកូដក្នុង Telegram។",
+  "telegramCodeHint": "ផ្ញើកូដនេះទៅ bot ដើម្បីភ្ជាប់គណនី",
+  "telegramWait": "កំពុងរង់ចាំការផ្ញើកូដ...",
+  "copyCode": "ចម្លងកូដ",
+  "copied": "បានចម្លង",
+  "openTelegram": "បើក Telegram",
+  "telegramRefresh": "ខ្ញុំបានផ្ញើរួច",
+  "telegramDisconnect": "ផ្ដាច់",
+  "telegramLinkFailed": "មិនអាចចាប់ផ្ដើមភ្ជាប់បានទេ។ សូមព្យាយាមម្ដងទៀត។"
 }

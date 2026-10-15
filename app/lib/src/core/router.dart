@@ -5,6 +5,7 @@ import '../state/providers.dart';
 import '../ui/cart_page.dart';
 import '../ui/catalog_page.dart';
 import '../ui/checkout_page.dart';
+import '../ui/account_page.dart';
 import '../ui/login_page.dart';
 import '../ui/wallet_page.dart';
 import '../ui/order_detail_page.dart';
@@ -20,6 +21,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final user = ref.read(currentUserProvider);
       final isProtected = state.matchedLocation == '/checkout' ||
           state.matchedLocation == '/wallet' ||
+          state.matchedLocation == '/account' ||
           state.matchedLocation.startsWith('/orders');
 
       if (isProtected && user == null) {
@@ -55,6 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/cart', builder: (context, state) => const CartPage()),
           GoRoute(path: '/wallet', builder: (context, state) => const WalletPage()),
+          GoRoute(path: '/account', builder: (context, state) => const AccountPage()),
           GoRoute(
             path: '/checkout',
             builder: (context, state) => const CheckoutPage(),

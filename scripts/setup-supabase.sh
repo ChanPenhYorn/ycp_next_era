@@ -59,8 +59,9 @@ if [ ${#missing[@]} -gt 0 ]; then
   warn "skipping secret upload, not set in $ENV_FILE: ${missing[*]}"
   warn "the PayWay functions will answer 503 until these exist"
 else
-  # Only these three are sent: the file also holds DATABASE_PASSWORD and
-  # SUPABASE_PROJECT_REF, which must not become function secrets.
+  # Only these are sent: the file also holds DATABASE_PASSWORD and
+  # SUPABASE_PROJECT_REF, which must not become function secrets. Supabase
+  # injects SUPABASE_URL and the secret key into the runtime itself.
   supabase secrets set \
     "PAYWAY_ENV=${PAYWAY_ENV}" \
     "PAYWAY_MERCHANT_ID=${PAYWAY_MERCHANT_ID}" \
@@ -68,13 +69,25 @@ else
   ok "PAYWAY_ENV, PAYWAY_MERCHANT_ID, PAYWAY_API_KEY set"
 fi
 
+telegram_secrets=()
+[ -n "${TELEGRAM_BOT_TOKEN:-}" ] && telegram_secrets+=("TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}")
+[ -n "${TELEGRAM_WEBHOOK_SECRET:-}" ] && telegram_secrets+=("TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}")
+[ -n "${TELEGRAM_DISPATCH_SECRET:-}" ] && telegram_secrets+=("TELEGRAM_DISPATCH_SECRET=${TELEGRAM_DISPATCH_SECRET}")
+if [ ${#telegram_secrets[@]} -gt 0 ]; then
+  supabase secrets set "${telegram_secrets[@]}" >/dev/null
+  ok "${#telegram_secrets[@]} Telegram secret(s) set"
+else
+  warn "no Telegram secrets in $ENV_FILE, the bot will stay silent"
+fi
+
 step "Deploying Edge Functions"
 # The CLI bundles the functions with the edge runtime, which it runs in Docker.
 if ! docker info >/dev/null 2>&1; then
   die "Docker must be running to bundle Edge Functions. Start Docker and re-run."
 fi
-supabase functions deploy payway-init payway-verify payway-callback
-ok "payway-init, payway-verify, payway-callback deployed"
+supabase functions deploy \
+  payway-init payway-verify payway-callback telegram-webhook telegram-dispatch
+ok "all five functions deployed"
 
 step "Register this callback URL with ABA PayWay"
 echo "    https://${PROJECT_REF}.supabase.co/functions/v1/payway-callback"

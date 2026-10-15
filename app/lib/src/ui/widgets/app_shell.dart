@@ -62,6 +62,7 @@ class AppShell extends ConsumerWidget {
           ),
           const _LocaleButton(),
           const _CartButton(),
+          const _AccountButton(),
           const SizedBox(width: 4),
         ],
       ),
@@ -192,6 +193,22 @@ class _CartButton extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _AccountButton extends ConsumerWidget {
+  const _AccountButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Signed-out visitors get the sign-in route instead of a dead account page.
+    final signedIn = ref.watch(currentUserProvider) != null;
+
+    return IconButton(
+      tooltip: AppL10n.of(context).accountTitle,
+      icon: const Icon(Icons.person_outline),
+      onPressed: () => context.go(signedIn ? '/account' : '/login'),
     );
   }
 }

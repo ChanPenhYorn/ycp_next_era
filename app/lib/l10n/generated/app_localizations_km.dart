@@ -330,4 +330,48 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get notDeliveredYet => 'មិនទាន់ដឹកជញ្ជូន';
+
+  @override
+  String get accountTitle => 'គណនី';
+
+  @override
+  String get accountEmail => 'ចូលប្រើជា';
+
+  @override
+  String get coins => 'កាក់';
+
+  @override
+  String get connectTelegram => 'ភ្ជាប់ Telegram';
+
+  @override
+  String get telegramConnected => 'បានភ្ជាប់ Telegram';
+
+  @override
+  String get telegramHint =>
+      'ទទួលសារភ្លាមៗ នៅពេលការបញ្ជាទិញរួចរាល់ និងមើលកូដក្នុង Telegram។';
+
+  @override
+  String get telegramCodeHint => 'ផ្ញើកូដនេះទៅ bot ដើម្បីភ្ជាប់គណនី';
+
+  @override
+  String get telegramWait => 'កំពុងរង់ចាំការផ្ញើកូដ...';
+
+  @override
+  String get copyCode => 'ចម្លងកូដ';
+
+  @override
+  String get copied => 'បានចម្លង';
+
+  @override
+  String get openTelegram => 'បើក Telegram';
+
+  @override
+  String get telegramRefresh => 'ខ្ញុំបានផ្ញើរួច';
+
+  @override
+  String get telegramDisconnect => 'ផ្ដាច់';
+
+  @override
+  String get telegramLinkFailed =>
+      'មិនអាចចាប់ផ្ដើមភ្ជាប់បានទេ។ សូមព្យាយាមម្ដងទៀត។';
 }

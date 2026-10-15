@@ -20,12 +20,40 @@ class Profile {
     required this.walletBalance,
     required this.coins,
     required this.displayName,
+    this.telegramChatId,
+    this.telegramUsername,
   });
 
   final String id;
   final double walletBalance;
   final int coins;
   final String? displayName;
+  final int? telegramChatId;
+  final String? telegramUsername;
+
+  bool get telegramLinked => telegramChatId != null;
+}
+
+/// Returned by create_telegram_link_code.
+class TelegramLinkCode {
+  const TelegramLinkCode({
+    required this.code,
+    required this.expiresInMinutes,
+    this.botUsername,
+    this.deepLink,
+  });
+
+  final String code;
+  final int expiresInMinutes;
+  final String? botUsername;
+  final String? deepLink;
+
+  factory TelegramLinkCode.fromJson(Map<String, dynamic> json) => TelegramLinkCode(
+        code: json['code'] as String? ?? '',
+        expiresInMinutes: (json['expires_in_minutes'] as num?)?.toInt() ?? 15,
+        botUsername: json['bot_username'] as String?,
+        deepLink: json['deep_link'] as String?,
+      );
 }
 
 class OrderRepository {
@@ -39,7 +67,9 @@ class OrderRepository {
 
     final row = await _client
         .from('profiles')
-        .select('id, wallet_balance, coins, display_name')
+        .select(
+          'id, wallet_balance, coins, display_name, telegram_chat_id, telegram_username',
+        )
         .eq('id', userId)
         .maybeSingle();
 
@@ -50,7 +80,26 @@ class OrderRepository {
       walletBalance: (row['wallet_balance'] as num?)?.toDouble() ?? 0,
       coins: (row['coins'] as num?)?.toInt() ?? 0,
       displayName: row['display_name'] as String?,
+      telegramChatId: (row['telegram_chat_id'] as num?)?.toInt(),
+      telegramUsername: row['telegram_username'] as String?,
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Telegram linking
+  //
+  // Only the webhook can set telegram_chat_id: profiles grants the app update
+  // rights on display_name, phone and locale and nothing else. That is why
+  // unlinking lives in the bot (/unlink) rather than here.
+  // -------------------------------------------------------------------------
+
+  Future<TelegramLinkCode> createTelegramLinkCode() async {
+    try {
+      final result = await _client.rpc('create_telegram_link_code');
+      return TelegramLinkCode.fromJson((result as Map).cast<String, dynamic>());
+    } on PostgrestException catch (error) {
+      throw _mapError(error);
+    }
   }
 
   /// Creates a pending order. Prices, stock and coupon rules are all resolved

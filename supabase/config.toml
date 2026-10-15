@@ -55,5 +55,14 @@ verify_jwt = true
 [functions.payway-verify]
 verify_jwt = true
 
+# Telegram posts updates here and has no Supabase JWT. The function authenticates
+# them with TELEGRAM_WEBHOOK_SECRET instead.
+[functions.telegram-webhook]
+verify_jwt = false
+
+# Internal. Protected by TELEGRAM_DISPATCH_SECRET, and by the JWT when it is unset.
+[functions.telegram-dispatch]
+verify_jwt = true
+
 [analytics]
 enabled = false

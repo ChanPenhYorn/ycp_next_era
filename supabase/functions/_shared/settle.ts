@@ -11,6 +11,7 @@
  */
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { checkTransaction } from "../_shared/payway.ts";
+import { drainOutbox } from "../_shared/dispatch.ts";
 
 export type SettleOutcome = {
   ok: boolean;
@@ -92,6 +93,10 @@ export async function settleOrder(
     .select("status")
     .eq("id", orderId)
     .maybeSingle();
+
+  // Instant orders reach 'delivered' right here, so the buyer's notification is
+  // flushed immediately rather than waiting for the next dispatcher run.
+  await drainOutbox(5).catch(() => undefined);
 
   return {
     ok: true,

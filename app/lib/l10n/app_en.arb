@@ -127,5 +127,19 @@
   "reviewPending": "Thanks. Your review appears once staff approve it.",
   "reviewThanks": "Thanks for the review",
   "reviewFailed": "Could not submit the review",
-  "notDeliveredYet": "Not delivered yet"
+  "notDeliveredYet": "Not delivered yet",
+  "accountTitle": "Account",
+  "accountEmail": "Signed in as",
+  "coins": "Coins",
+  "connectTelegram": "Connect Telegram",
+  "telegramConnected": "Telegram connected",
+  "telegramHint": "Get a message the moment your order is ready, and check your codes in chat.",
+  "telegramCodeHint": "Send this code to the bot to link your account",
+  "telegramWait": "Waiting for you to send the code...",
+  "copyCode": "Copy code",
+  "copied": "Copied",
+  "openTelegram": "Open Telegram",
+  "telegramRefresh": "I have sent it",
+  "telegramDisconnect": "Disconnect",
+  "telegramLinkFailed": "Could not start linking. Please try again."
 }

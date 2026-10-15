@@ -97,11 +97,13 @@ https://<project-ref>.supabase.co/functions/v1/payway-callback
 ### 3. Flutter
 
 ```bash
-cd app
-flutter run \
-  --dart-define=SUPABASE_URL=https://<ref>.supabase.co \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable key>
+./scripts/run-app.sh -d chrome    # credentials come from .env.local
+./scripts/run-app.sh -d macos
 ```
+
+The script refuses to start if the publishable key is missing or if it looks
+like a secret key — a privileged key compiled into the app bundle would be a
+full RLS bypass for anyone who extracts it.
 
 `flutter run -d chrome` for web, or pick a device. Only the client-safe key goes in the app.
 

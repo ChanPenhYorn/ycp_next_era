@@ -1,10 +1,11 @@
 /// Build-time configuration.
 ///
-/// Pass with:
-///   flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+/// Prefer `./scripts/run-app.sh`, which reads these from the gitignored
+/// .env.local. Passing them by hand works too:
+///   flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_PUBLISHABLE_KEY=...
 ///
-/// Only the anon key belongs here. The service role key and the PayWay API key
-/// live in Supabase Edge Function secrets and are never shipped in the app.
+/// Only the client-safe key belongs here. The secret key and the PayWay API key
+/// live in Supabase Edge Function secrets and never ship in the app.
 class Env {
   const Env._();
 
@@ -14,7 +15,7 @@ class Env {
   );
 
   /// Supabase's current name for the client-safe key. The legacy
-  /// SUPABASE_ANON_KEY name is still accepted so existing setup keeps working.
+  /// SUPABASE_ANON_KEY name is still accepted so an existing setup keeps working.
   static const supabaseKey = String.fromEnvironment(
     'SUPABASE_PUBLISHABLE_KEY',
     defaultValue: String.fromEnvironment('SUPABASE_ANON_KEY'),
@@ -25,7 +26,51 @@ class Env {
     defaultValue: '',
   );
 
-  static bool get isConfigured => supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
+  /// Public bucket for product imagery.
+  static const productImageBucket = 'product-images';
+
+  /// Values that appear in the committed launch configs. Treating these as
+  /// "configured" produces a 401 on every request, which reads as a broken
+  /// backend rather than an unset variable, so they are rejected explicitly.
+  static const _placeholders = <String>{
+    '',
+    'REPLACE_WITH_PUBLISHABLE_KEY',
+    'YOUR-PUBLISHABLE-KEY',
+    'YOUR_PUBLISHABLE_KEY',
+  };
+
+  static bool get isConfigured => configurationProblem == null;
+
+  /// Null when the app can talk to Supabase, otherwise a message to show the
+  /// developer. Kept as a pure function of its inputs so it can be unit tested.
+  static String? configurationProblemFor({
+    required String url,
+    required String key,
+  }) {
+    if (url.trim().isEmpty) {
+      return 'SUPABASE_URL is not set.';
+    }
+    if (url.contains('YOUR-REF') || url.contains('<ref>')) {
+      return 'SUPABASE_URL still holds the placeholder "$url".';
+    }
+    if (key.trim().isEmpty) {
+      return 'SUPABASE_PUBLISHABLE_KEY is not set.';
+    }
+    if (_placeholders.contains(key)) {
+      return 'SUPABASE_PUBLISHABLE_KEY still holds the placeholder "$key". '
+          'Replace it, or run ./scripts/run-app.sh which reads .env.local.';
+    }
+    // A privileged key compiled into the bundle hands a full RLS bypass to
+    // anyone who extracts it, so refuse rather than start.
+    if (key.startsWith('sb_secret_') || key.contains('service_role')) {
+      return 'SUPABASE_PUBLISHABLE_KEY looks like a secret key. '
+          'It bypasses every RLS policy and must never ship in the app.';
+    }
+    return null;
+  }
+
+  static String? get configurationProblem =>
+      configurationProblemFor(url: supabaseUrl, key: supabaseKey);
 
   /// Edge Function endpoints. Derived from the project URL when not overridden.
   static String get functionsBase {
@@ -34,7 +79,4 @@ class Env {
   }
 
   static Uri function(String name) => Uri.parse('$functionsBase/$name');
-
-  /// Public bucket for product imagery.
-  static const productImageBucket = 'product-images';
 }

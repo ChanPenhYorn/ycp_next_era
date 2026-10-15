@@ -37,7 +37,8 @@ class YcpStoreApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!Env.isConfigured) return const _MissingConfiguration();
+    final problem = Env.configurationProblem;
+    if (problem != null) return _MissingConfiguration(problem: problem);
 
     final locale = ref.watch(localeControllerProvider);
     final router = ref.watch(routerProvider);
@@ -59,41 +60,86 @@ class YcpStoreApp extends ConsumerWidget {
   }
 }
 
-/// Shown when the app is launched without --dart-define values, so the failure
-/// is obvious instead of a confusing network error.
+/// Shown when the app cannot reach Supabase. Explains which variable is wrong
+/// rather than letting the failure surface later as an opaque 401.
 class _MissingConfiguration extends StatelessWidget {
-  const _MissingConfiguration();
+  const _MissingConfiguration({required this.problem});
+
+  final String problem;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(const Locale('en')),
-      home: const Scaffold(
+      home: Scaffold(
         body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Supabase is not configured',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Supabase is not configured',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Run the app with your project credentials:\n\n'
-                  'flutter run \\\n'
-                  '  --dart-define=SUPABASE_URL=https://<ref>.supabase.co \\\n'
-                  '  --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>',
-                  style: TextStyle(fontSize: 12, height: 1.7),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    problem,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: AppColors.warn,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'Option 1 — recommended',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Text(
+                    './scripts/run-app.sh -d chrome\n'
+                    'Reads the publishable key from .env.local, so no key is\n'
+                    'written into a tracked file.',
+                    style: TextStyle(fontSize: 12, height: 1.7),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Option 2 — edit the launch config',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Text(
+                    'Replace REPLACE_WITH_PUBLISHABLE_KEY in .vscode/launch.json\n'
+                    'with the value from Dashboard → Settings → API.',
+                    style: TextStyle(fontSize: 12, height: 1.7),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Do not use the secret key. It bypasses every RLS policy\n'
+                    'and would ship inside the app bundle.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.7,
+                      color: AppColors.danger,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

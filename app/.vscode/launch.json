@@ -12,7 +12,7 @@
         "-d",
         "chrome",
         "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
-        "--dart-define=SUPABASE_PUBLISHABLE_KEY=REPLACE_WITH_PUBLISHABLE_KEY"
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_Pkf6mahsgfWeW6CydARzPg_C641KzHR"
       ]
     },
     {
@@ -22,7 +22,7 @@
       "program": "lib/main.dart",
       "args": [
         "--dart-define=SUPABASE_URL=https://ozelquxztpqpjikhgnxd.supabase.co",
-        "--dart-define=SUPABASE_PUBLISHABLE_KEY=REPLACE_WITH_PUBLISHABLE_KEY"
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_Pkf6mahsgfWeW6CydARzPg_C641KzHR"
       ]
     }
   ]

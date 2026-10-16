@@ -25,8 +25,16 @@ port = 54323
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = []
+# The hosted store. Pushed to the linked project by `supabase config push`;
+# local runs override it with SITE_URL from app/config/dev.json.
+site_url = "https://chanpenh.store"
+# Every origin an email link may come back to: the hosted store, the local
+# dev app (`SITE_URL` in app/config/dev.json), and the native deep link.
+additional_redirect_urls = [
+  "https://chanpenh.store",
+  "http://localhost:8080",
+  "chanpenh://",
+]
 jwt_expiry = 3600
 enable_signup = true
 
@@ -99,8 +107,10 @@ max_frequency = "1s"
 # adding a new template section needs `supabase stop && supabase start`, since
 # the CLI bakes the URL into the container at creation.
 #
-# The hosted project does not read this file. Paste the same HTML into
-# Dashboard -> Authentication -> Emails.
+# The hosted project does not read this file: run `supabase config push` to send
+# the subjects and the HTML to the linked project. Check with `supabase config
+# diff` — an unpushed project answers "Your sign-in link" and emails an 8-digit
+# code that the app's six-digit field cannot take.
 # ---------------------------------------------------------------------------
 [auth.email.template.magic_link]
 subject = "Your Chanpenh sign-in code"

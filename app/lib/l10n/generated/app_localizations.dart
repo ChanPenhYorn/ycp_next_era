@@ -301,6 +301,18 @@ abstract class AppL10n {
   /// **'Manual, within 15 minutes'**
   String get deliveryManual;
 
+  /// No description provided for @showMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get showMore;
+
+  /// No description provided for @showLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get showLess;
+
   /// No description provided for @quantity.
   ///
   /// In en, this message translates to:

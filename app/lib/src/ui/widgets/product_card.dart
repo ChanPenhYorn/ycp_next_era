@@ -191,31 +191,44 @@ class _ProductCardTileState extends ConsumerState<ProductCardTile> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (product.hasPriceRange)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: Text(
-                                    '${l10n.from} ',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.ink400,
+                              // The price group takes the space the rating does
+                              // not need. An Expanded here, rather than a Spacer
+                              // beside a Flexible, is what keeps the price from
+                              // being ellipsised while room is still left over.
+                              Expanded(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (product.hasPriceRange)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 2,
+                                        ),
+                                        child: Text(
+                                          '${l10n.from} ',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.ink400,
+                                          ),
+                                        ),
+                                      ),
+                                    Flexible(
+                                      child: Text(
+                                        money(product.minPriceUsd),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              Flexible(
-                                child: Text(
-                                  money(product.minPriceUsd),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: -0.3,
-                                  ),
+                                  ],
                                 ),
                               ),
-                              const Spacer(),
                               if (product.ratingCount > 0)
                                 Row(
                                   children: [

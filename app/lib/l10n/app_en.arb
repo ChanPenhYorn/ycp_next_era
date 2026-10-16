@@ -48,6 +48,8 @@
   "deliveryTime": "Delivery",
   "deliveryInstant": "Instant",
   "deliveryManual": "Manual, within 15 minutes",
+  "showMore": "Show more",
+  "showLess": "Show less",
   "quantity": "Quantity",
   "remove": "Remove",
   "cancel": "Cancel",

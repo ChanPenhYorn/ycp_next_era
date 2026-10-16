@@ -287,7 +287,8 @@ class _ProductPageState extends ConsumerState<ProductPage> {
 
 /// Denominations as tiles rather than chips: the amount is the biggest thing on
 /// the tile and the price sits under it, so picking an amount is one clear tap.
-class _DenominationGrid extends StatelessWidget {
+/// Games with many options collapse behind a "Show more" toggle.
+class _DenominationGrid extends StatefulWidget {
   const _DenominationGrid({
     required this.variants,
     required this.selectedId,
@@ -301,7 +302,20 @@ class _DenominationGrid extends StatelessWidget {
   final ValueChanged<Variant> onPick;
 
   @override
+  State<_DenominationGrid> createState() => _DenominationGridState();
+}
+
+class _DenominationGridState extends State<_DenominationGrid> {
+  static const _collapsedCount = 6;
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final variants = widget.variants;
+    final showToggle = variants.length > _collapsedCount;
+    final visible =
+        _expanded || !showToggle ? variants : variants.sublist(0, _collapsedCount);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = 10.0;
@@ -309,20 +323,41 @@ class _DenominationGrid extends StatelessWidget {
         final tileWidth =
             (constraints.maxWidth - gap * (columns - 1)) / columns;
 
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
+        return Column(
           children: [
-            for (final variant in variants)
-              SizedBox(
-                width: tileWidth,
-                child: _DenominationTile(
-                  variant: variant,
-                  locale: locale,
-                  selected: variant.id == selectedId,
-                  onTap: variant.isSoldOut ? null : () => onPick(variant),
+            Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final variant in visible)
+                  SizedBox(
+                    width: tileWidth,
+                    child: _DenominationTile(
+                      variant: variant,
+                      locale: widget.locale,
+                      selected: variant.id == widget.selectedId,
+                      onTap:
+                          variant.isSoldOut
+                              ? null
+                              : () => widget.onPick(variant),
+                    ),
+                  ),
+              ],
+            ),
+            if (showToggle) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => setState(() => _expanded = !_expanded),
+                icon: Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                ),
+                label: Text(
+                  _expanded
+                      ? AppL10n.of(context).showLess
+                      : AppL10n.of(context).showMore,
                 ),
               ),
+            ],
           ],
         );
       },

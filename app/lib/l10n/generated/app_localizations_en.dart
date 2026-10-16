@@ -116,6 +116,12 @@ class AppL10nEn extends AppL10n {
   String get deliveryManual => 'Manual, within 15 minutes';
 
   @override
+  String get showMore => 'Show more';
+
+  @override
+  String get showLess => 'Show less';
+
+  @override
   String get quantity => 'Quantity';
 
   @override

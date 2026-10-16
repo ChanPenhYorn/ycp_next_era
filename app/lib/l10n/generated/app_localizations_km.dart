@@ -117,6 +117,12 @@ class AppL10nKm extends AppL10n {
   String get deliveryManual => 'ដោយដៃ ក្នុងរយៈពេល ១៥ នាទី';
 
   @override
+  String get showMore => 'បង្ហាញបន្ថែម';
+
+  @override
+  String get showLess => 'បង្ហាញតិច';
+
+  @override
   String get quantity => 'ចំនួន';
 
   @override

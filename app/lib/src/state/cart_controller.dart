@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models.dart';
+import '../features/cart/data/cart_mappers.dart';
 import 'providers.dart';
 
 /// Client-side cart. Nothing here is trusted: `create_order` recomputes every
@@ -18,7 +19,7 @@ class CartController extends Notifier<List<CartLine>> {
     try {
       final decoded = jsonDecode(raw) as List;
       return decoded
-          .map((e) => CartLine.fromJson((e as Map).cast<String, dynamic>()))
+          .map((e) => cartLineFromJson((e as Map).cast<String, dynamic>()))
           .toList();
     } catch (_) {
       return const [];
@@ -26,7 +27,9 @@ class CartController extends Notifier<List<CartLine>> {
   }
 
   Future<void> _persist() async {
-    final encoded = jsonEncode([for (final line in state) line.toJson()]);
+    final encoded = jsonEncode([
+      for (final line in state) cartLineToJson(line),
+    ]);
     await ref.read(sharedPreferencesProvider).setString(_key, encoded);
   }
 

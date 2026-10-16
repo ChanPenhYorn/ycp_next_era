@@ -6,8 +6,8 @@ import '../core/field_validation.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
-import '../data/order_repository.dart';
-import '../data/payment_repository.dart';
+import '../features/orders/domain/order_exception.dart';
+import '../features/payments/domain/payment_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/khqr_sheet.dart';
@@ -526,7 +526,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       final order = await ref
           .read(orderRepositoryProvider)
           .createOrder(
-            lines: lines,
+            items: [
+              for (final line in lines)
+                OrderItemRequest(variantId: line.variantId, qty: line.qty),
+            ],
             coupon: _coupon.text.trim().isEmpty ? null : _coupon.text.trim(),
             fields: fields,
             email: _email.text.trim().isEmpty ? null : _email.text.trim(),

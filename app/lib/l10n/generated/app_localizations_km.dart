@@ -71,6 +71,18 @@ class AppL10nKm extends AppL10n {
   String get allProducts => 'ផលិតផលទាំងអស់';
 
   @override
+  String get searchNoResults =>
+      'គ្មានហ្គេមត្រូវនឹងការស្វែងរកនេះទេ។ សាកឈ្មោះផ្សេង។';
+
+  @override
+  String get clearSearch => 'លុបការស្វែងរក';
+
+  @override
+  String searchActive(String term) {
+    return 'ការស្វែងរក៖ $term';
+  }
+
+  @override
   String get noProducts => 'មិនទាន់មានផលិតផល';
 
   @override
@@ -367,6 +379,10 @@ class AppL10nKm extends AppL10n {
       'ទទួលសារភ្លាមៗ នៅពេលការបញ្ជាទិញរួចរាល់ និងមើលកូដក្នុង Telegram។';
 
   @override
+  String get telegramUnlinkHint =>
+      'ដើម្បីផ្តាច់ សូមផ្ញើ /unlink ក្នុងការសន្ទនា។';
+
+  @override
   String get telegramCodeHint => 'ផ្ញើកូដនេះទៅ bot ដើម្បីភ្ជាប់គណនី';
 
   @override
@@ -603,6 +619,12 @@ class AppL10nKm extends AppL10n {
   String get popularGames => 'ហ្គេមពេញនិយម';
 
   @override
+  String get buyAgain => 'ទិញម្តងទៀត';
+
+  @override
+  String get trendingNow => 'កំពុងពេញនិយម';
+
+  @override
   String get promotions => 'ប្រូម៉ូសិន';
 
   @override
@@ -660,16 +682,6 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get trustSupportBody => 'ផ្ញើលេខការបញ្ជាទិញមកយើង យើងនឹងបន្តជួយ។';
-
-  @override
-  String get partnerTitle => 'ដៃគូផ្គត់ផ្គង់';
-
-  @override
-  String get partnerBody =>
-      'ការបញ្ចូលទឹកប្រាក់ជាច្រើនត្រូវបានដំណើរការដោយស្វ័យប្រវត្តិតាមរយៈដៃគូផ្គត់ផ្គង់ Bay2Game របស់យើង។';
-
-  @override
-  String get partnerBadge => 'ដំណើរការដោយស្វ័យប្រវត្តិ';
 
   @override
   String get contactSupport => 'ទាក់ទងជំនួយ';

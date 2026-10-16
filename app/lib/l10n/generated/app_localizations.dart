@@ -217,6 +217,24 @@ abstract class AppL10n {
   /// **'All products'**
   String get allProducts;
 
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No games match this search. Try another name.'**
+  String get searchNoResults;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @searchActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Search: {term}'**
+  String searchActive(String term);
+
   /// No description provided for @noProducts.
   ///
   /// In en, this message translates to:
@@ -787,6 +805,12 @@ abstract class AppL10n {
   /// **'Get a message the moment your order is ready, and check your codes in chat.'**
   String get telegramHint;
 
+  /// No description provided for @telegramUnlinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Send /unlink in the chat to disconnect.'**
+  String get telegramUnlinkHint;
+
   /// No description provided for @telegramCodeHint.
   ///
   /// In en, this message translates to:
@@ -1213,6 +1237,18 @@ abstract class AppL10n {
   /// **'Popular games'**
   String get popularGames;
 
+  /// No description provided for @buyAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy again'**
+  String get buyAgain;
+
+  /// No description provided for @trendingNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Trending now'**
+  String get trendingNow;
+
   /// No description provided for @promotions.
   ///
   /// In en, this message translates to:
@@ -1320,24 +1356,6 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Send us your order number and we will take it from there.'**
   String get trustSupportBody;
-
-  /// No description provided for @partnerTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Supply partner'**
-  String get partnerTitle;
-
-  /// No description provided for @partnerBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Many top-ups are fulfilled automatically through our supply partner Bay2Game.'**
-  String get partnerBody;
-
-  /// No description provided for @partnerBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'Automatic fulfilment'**
-  String get partnerBadge;
 
   /// No description provided for @contactSupport.
   ///

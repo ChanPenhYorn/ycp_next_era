@@ -1,9 +1,10 @@
 /**
- * Telegram helpers.
+ * Telegram Bot API transport.
  *
  * The bot token is a server secret. It must never reach the Flutter bundle:
  * anyone holding it can read every message the bot receives and impersonate it.
  */
+import type { SendOptions, SendResult } from "./types.ts";
 
 const TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const API = `https://api.telegram.org/bot${TOKEN}`;
@@ -12,26 +13,10 @@ export function telegramConfigured(): boolean {
   return TOKEN.length > 0;
 }
 
-export type SendResult = { ok: boolean; error?: string };
-
-/**
- * Messages use Telegram's HTML mode because it only requires escaping three
- * characters, whereas Markdown breaks on product names containing _ or *.
- */
-export function escapeHtml(input: string): string {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
 export async function sendMessage(
   chatId: number | string,
   text: string,
-  options: {
-    disablePreview?: boolean;
-    keyboard?: Array<Array<{ text: string; url?: string }>>;
-  } = {}
+  options: SendOptions = {}
 ): Promise<SendResult> {
   if (!telegramConfigured()) {
     return { ok: false, error: "telegram_not_configured" };

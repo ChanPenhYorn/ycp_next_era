@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
-import '../../data/order_repository.dart';
+import '../../features/orders/domain/order_exception.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 

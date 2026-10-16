@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ycp_store/l10n/generated/app_localizations.dart';
 import 'package:ycp_store/src/data/models.dart';
-import 'package:ycp_store/src/data/order_repository.dart';
+import 'package:ycp_store/src/features/admin/data/admin_mappers.dart';
+import 'package:ycp_store/src/features/profile/domain/profile.dart';
 import 'package:ycp_store/src/state/providers.dart';
 import 'package:ycp_store/src/ui/admin_order_detail_page.dart';
 import 'package:ycp_store/src/ui/admin_orders_page.dart';
@@ -12,17 +13,18 @@ import 'package:ycp_store/src/ui/admin_page.dart';
 import 'package:ycp_store/src/ui/admin_refunds_page.dart';
 import 'package:ycp_store/src/ui/admin_support_page.dart';
 
-Widget _wrap(Widget child, {required List<Override> overrides}) => ProviderScope(
-  overrides: overrides,
-  child: MaterialApp(
-    locale: const Locale('en'),
-    supportedLocales: AppL10n.supportedLocales,
-    localizationsDelegates: AppL10n.localizationsDelegates,
-    // No scroll view: the admin screens are ListViews, and nesting one in a
-    // scroll view gives its viewport an unbounded height.
-    home: Scaffold(body: child),
-  ),
-);
+Widget _wrap(Widget child, {required List<Override> overrides}) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: AppL10n.supportedLocales,
+        localizationsDelegates: AppL10n.localizationsDelegates,
+        // No scroll view: the admin screens are ListViews, and nesting one in a
+        // scroll view gives its viewport an unbounded height.
+        home: Scaffold(body: child),
+      ),
+    );
 
 Override _staff() => profileProvider.overrideWith(
   (ref) async => const Profile(
@@ -86,7 +88,7 @@ void main() {
 
   group('the overview JSON is read as the worker wrote it', () {
     test('every figure maps, and nothing is invented', () {
-      final overview = AdminOverview.fromJson(_overview);
+      final overview = adminOverviewFromJson(_overview);
 
       expect(overview.timezone, 'Asia/Phnom_Penh');
       expect(overview.ordersPending, 3);
@@ -103,7 +105,7 @@ void main() {
     });
 
     test('a missing field is zero, not a crash and not a guess', () {
-      final overview = AdminOverview.fromJson(const {});
+      final overview = adminOverviewFromJson(const {});
 
       expect(overview.ordersPending, 0);
       expect(overview.receivedTodayUsd, 0);
@@ -114,7 +116,7 @@ void main() {
 
   group('an order row carries what the list needs and no more', () {
     test('status, kind, line count and the transfer flag', () {
-      final row = AdminOrderSummary.fromJson({
+      final row = adminOrderSummaryFromJson({
         ..._orderJson(),
         'manual_payment_requested_at': '2026-10-14T09:10:00Z',
       });
@@ -129,7 +131,7 @@ void main() {
     });
 
     test('a refund pending row keeps the reason staff wrote', () {
-      final row = AdminOrderSummary.fromJson(
+      final row = adminOrderSummaryFromJson(
         _orderJson(status: 'refund_pending', refundReason: 'supplier failed'),
       );
 
@@ -140,7 +142,7 @@ void main() {
 
   group('the detail view joins three tables', () {
     test('items, payments and history arrive separately', () {
-      final detail = AdminOrderDetail.fromJson(
+      final detail = adminOrderDetailFromJson(
         {
           ..._orderJson(),
           'customer_note': 'please hurry',
@@ -200,7 +202,7 @@ void main() {
 
   group('a ticket', () {
     test('is open while it is open or in progress', () {
-      SupportTicket read(String status) => SupportTicket.fromJson({
+      SupportTicket read(String status) => supportTicketFromJson({
         'id': 1,
         'subject': 'Wrong id',
         'status': status,
@@ -250,7 +252,7 @@ void main() {
           overrides: [
             _customer(),
             adminOverviewProvider.overrideWith(
-              (ref) async => AdminOverview.fromJson(_overview),
+              (ref) async => adminOverviewFromJson(_overview),
             ),
           ],
         ),
@@ -268,7 +270,7 @@ void main() {
           overrides: [
             _staff(),
             adminOverviewProvider.overrideWith(
-              (ref) async => AdminOverview.fromJson(_overview),
+              (ref) async => adminOverviewFromJson(_overview),
             ),
           ],
         ),
@@ -298,9 +300,7 @@ void main() {
           overrides: [
             _customer(),
             adminOrdersProvider.overrideWith(
-              (ref, query) async => [
-                AdminOrderSummary.fromJson(_orderJson()),
-              ],
+              (ref, query) async => [adminOrderSummaryFromJson(_orderJson())],
             ),
           ],
         ),
@@ -320,9 +320,7 @@ void main() {
           overrides: [
             _staff(),
             adminOrdersProvider.overrideWith(
-              (ref, query) async => [
-                AdminOrderSummary.fromJson(_orderJson()),
-              ],
+              (ref, query) async => [adminOrderSummaryFromJson(_orderJson())],
             ),
           ],
         ),
@@ -366,7 +364,7 @@ void main() {
             _staff(),
             adminRefundQueueProvider.overrideWith(
               (ref) async => [
-                AdminOrderSummary.fromJson(
+                adminOrderSummaryFromJson(
                   _orderJson(
                     status: 'refund_pending',
                     refundReason: 'supplier could not deliver',
@@ -383,10 +381,7 @@ void main() {
       expect(find.text('supplier could not deliver'), findsOneWidget);
       expect(find.text('Record the refund'), findsOneWidget);
       // The screen says out loud that it does not move money.
-      expect(
-        find.textContaining('does not move money'),
-        findsWidgets,
-      );
+      expect(find.textContaining('does not move money'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
@@ -417,7 +412,7 @@ void main() {
             _staff(),
             adminTicketsProvider.overrideWith(
               (ref, status) async => [
-                SupportTicket.fromJson({
+                supportTicketFromJson({
                   'id': 4,
                   'subject': 'Wrong game id',
                   'body': 'I typed the wrong id.',
@@ -470,7 +465,7 @@ void main() {
           overrides: [
             _staff(),
             adminOrderDetailProvider.overrideWith(
-              (ref, orderId) async => AdminOrderDetail.fromJson(
+              (ref, orderId) async => adminOrderDetailFromJson(
                 {
                   ..._orderJson(),
                   'items': [
@@ -537,7 +532,7 @@ void main() {
           overrides: [
             _staff(),
             adminOrderDetailProvider.overrideWith(
-              (ref, orderId) async => AdminOrderDetail.fromJson(
+              (ref, orderId) async => adminOrderDetailFromJson(
                 _orderJson(
                   status: 'refund_pending',
                   refundReason: 'supplier failed',
@@ -565,7 +560,7 @@ void main() {
           overrides: [
             _staff(),
             adminOrderDetailProvider.overrideWith(
-              (ref, orderId) async => AdminOrderDetail.fromJson(
+              (ref, orderId) async => adminOrderDetailFromJson(
                 _orderJson(status: 'expired'),
                 const [],
                 const [],

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ycp_store/src/data/auth_repository.dart';
+import 'package:ycp_store/src/features/auth/domain/auth_rules.dart';
 
 /// The exact mistake that produced an unhelpful error: a missing `@`.
 /// `yornchanpenh81gmail.com` was rejected, but the UI said only "Email address",

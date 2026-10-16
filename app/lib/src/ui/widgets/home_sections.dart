@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/brand.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -260,82 +259,101 @@ class HomeHero extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(wide ? 40 : 22),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.hero),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF2F6BFF), Color(0xFF1B2F7A), AppColors.ink900],
-          stops: [0, 0.55, 1],
+          colors: [Color(0xFF3B54E0), Color(0xFF241B57), AppColors.ink950],
+          stops: [0, 0.5, 1],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.brand.withValues(alpha: 0.25),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        boxShadow: AppGlow.of(AppColors.brand, strength: 0.3, blur: 48),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+          // Two coloured washes so the panel is lit, not just filled.
+          Positioned(
+            right: -60,
+            top: -80,
+            child: _Orb(color: AppColors.violet, size: 260),
+          ),
+          Positioned(
+            left: -50,
+            bottom: -90,
+            child: _Orb(color: AppColors.cyan, size: 220),
+          ),
+          Padding(
+            padding: EdgeInsets.all(wide ? 40 : 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.bolt_rounded, size: 14, color: Colors.white),
-                const SizedBox(width: 4),
-                Text(
-                  l10n.trustInstant,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
                   ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.violet, AppColors.brand],
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.bolt_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.trustInstant,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.heroTitle,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontSize: wide ? 38 : 26,
+                    height: 1.15,
+                    letterSpacing: wide ? -1.2 : -0.6,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Text(
+                    l10n.heroSubtitle,
+                    style: TextStyle(
+                      fontSize: wide ? 15 : 13.5,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                FilledButton.icon(
+                  onPressed: () => context.go('/products'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.brandDark,
+                    minimumSize: const Size(0, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                  ),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                  label: Text(l10n.heroCta),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            l10n.heroTitle,
-            style: TextStyle(
-              fontSize: wide ? 34 : 24,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              height: 1.2,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Text(
-              l10n.heroSubtitle,
-              style: TextStyle(
-                fontSize: wide ? 15 : 13.5,
-                color: Colors.white.withValues(alpha: 0.78),
-                height: 1.6,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: () => context.go('/products'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.brandDark,
-              minimumSize: const Size(0, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-            ),
-            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-            label: Text(l10n.heroCta),
           ),
         ],
       ),
@@ -343,118 +361,25 @@ class HomeHero extends StatelessWidget {
   }
 }
 
-/// Names the supply partner that fulfils most top-ups. Copy states only what
-/// the integration does; nothing here implies an endorsement.
-class PartnerCard extends StatelessWidget {
-  const PartnerCard({super.key});
+/// A soft round light. Tints a panel without a hard edge.
+class _Orb extends StatelessWidget {
+  const _Orb({required this.color, required this.size});
+
+  final Color color;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppL10n.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.ink900,
-        border: Border.all(color: AppColors.ink800),
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.brand, AppColors.brandDark],
-              ),
-              borderRadius: BorderRadius.circular(AppRadius.tile),
-            ),
-            child: const Text(
-              'B2G',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-                letterSpacing: 0.3,
-              ),
-            ),
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color.withValues(alpha: 0.45), color.withValues(alpha: 0)],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.partnerTitle,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  Brand.supplierName,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  l10n.partnerBody,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.ink400,
-                    height: 1.55,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.bolt_rounded,
-                        size: 13,
-                        color: AppColors.accent,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.partnerBadge,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

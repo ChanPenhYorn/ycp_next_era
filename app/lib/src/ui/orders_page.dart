@@ -7,7 +7,10 @@ import '../core/theme.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/empty_state.dart';
+import 'widgets/skeleton.dart';
 import 'widgets/status_chip.dart';
+import 'widgets/surface_card.dart';
 
 class OrdersPage extends ConsumerWidget {
   const OrdersPage({super.key});
@@ -21,25 +24,20 @@ class OrdersPage extends ConsumerWidget {
       onRefresh: () async => ref.invalidate(ordersProvider),
       child: AsyncValueView(
         value: orders,
+        skeleton: const Padding(
+          padding: EdgeInsets.all(16),
+          child: SkeletonList(count: 3, itemHeight: 96),
+        ),
         onRetry: () => ref.invalidate(ordersProvider),
         builder: (items) {
           if (items.isEmpty) {
-            return ListView(
-              children: [
-                const SizedBox(height: 80),
-                Center(
-                  child: Column(
-                    children: [
-                      const Text('🧾', style: TextStyle(fontSize: 36)),
-                      const SizedBox(height: 10),
-                      Text(
-                        l10n.orderEmpty,
-                        style: const TextStyle(color: AppColors.ink400),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            return EmptyState(
+              icon: Icons.receipt_long_outlined,
+              message: l10n.orderEmpty,
+              action: FilledButton(
+                onPressed: () => context.go('/products'),
+                child: Text(l10n.allProducts),
+              ),
             );
           }
 
@@ -50,67 +48,55 @@ class OrdersPage extends ConsumerWidget {
             itemBuilder: (context, index) {
               final order = items[index];
 
-              return InkWell(
+              return SurfaceCard(
                 onTap: () => context.go('/orders/${order.id}'),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.ink900,
-                    border: Border.all(color: AppColors.ink800),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            order.orderNo,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.ink400,
-                            ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          order.orderNo,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.ink400,
                           ),
-                          const Spacer(),
-                          OrderStatusChip(status: order.status),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        order.items
-                            .map((item) => '${item.productName} x${item.qty}')
-                            .join(', '),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.white,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            _formatDate(order.createdAt),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.ink400,
-                            ),
+                        const Spacer(),
+                        OrderStatusChip(status: order.status),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      order.items
+                          .map((item) => '${item.productName} x${item.qty}')
+                          .join(', '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          _formatDate(order.createdAt),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.ink400,
                           ),
-                          const Spacer(),
-                          Text(
-                            money(order.totalUsd),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          money(order.totalUsd),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             },

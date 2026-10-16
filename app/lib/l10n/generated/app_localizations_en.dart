@@ -71,6 +71,17 @@ class AppL10nEn extends AppL10n {
   String get allProducts => 'All products';
 
   @override
+  String get searchNoResults => 'No games match this search. Try another name.';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String searchActive(String term) {
+    return 'Search: $term';
+  }
+
+  @override
   String get noProducts => 'Nothing here yet';
 
   @override
@@ -368,6 +379,9 @@ class AppL10nEn extends AppL10n {
       'Get a message the moment your order is ready, and check your codes in chat.';
 
   @override
+  String get telegramUnlinkHint => 'Send /unlink in the chat to disconnect.';
+
+  @override
   String get telegramCodeHint =>
       'Send this code to the bot to link your account';
 
@@ -605,6 +619,12 @@ class AppL10nEn extends AppL10n {
   String get popularGames => 'Popular games';
 
   @override
+  String get buyAgain => 'Buy again';
+
+  @override
+  String get trendingNow => 'Trending now';
+
+  @override
   String get promotions => 'Promotions';
 
   @override
@@ -663,16 +683,6 @@ class AppL10nEn extends AppL10n {
   @override
   String get trustSupportBody =>
       'Send us your order number and we will take it from there.';
-
-  @override
-  String get partnerTitle => 'Supply partner';
-
-  @override
-  String get partnerBody =>
-      'Many top-ups are fulfilled automatically through our supply partner Bay2Game.';
-
-  @override
-  String get partnerBadge => 'Automatic fulfilment';
 
   @override
   String get contactSupport => 'Contact support';

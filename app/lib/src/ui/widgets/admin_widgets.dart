@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
+import 'empty_state.dart';
+import 'skeleton.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 
@@ -25,18 +27,13 @@ class AdminGate extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
 
     return profile.when(
-      data: (value) => (adminOnly ? (value?.isAdmin ?? false) : (value?.isStaff ?? false))
+      data: (value) =>
+          (adminOnly ? (value?.isAdmin ?? false) : (value?.isStaff ?? false))
           ? child
           : _Denied(l10n.adminOnly),
       loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
+        padding: EdgeInsets.all(16),
+        child: SkeletonList(count: 3, itemHeight: 64),
       ),
       error: (error, _) => _Denied(l10n.adminOnly),
     );
@@ -49,16 +46,8 @@ class _Denied extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: AppColors.ink400),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      EmptyState(icon: Icons.lock_outline_rounded, message: message);
 }
 
 /// Title block for an admin screen, with a way back to the hub.
@@ -85,7 +74,6 @@ class AdminHeader extends StatelessWidget {
           padding: const EdgeInsets.only(right: 4),
           child: IconButton(
             onPressed: onBack,
-            visualDensity: VisualDensity.compact,
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             icon: const Icon(Icons.arrow_back, size: 20),
           ),
@@ -252,39 +240,71 @@ class AdminTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    leading: Icon(icon, color: AppColors.ink200),
-    title: Text(title, style: const TextStyle(fontSize: 14)),
-    subtitle: subtitle == null
-        ? null
-        : Text(
-            subtitle!,
-            style: const TextStyle(fontSize: 11, color: AppColors.ink400),
-          ),
-    trailing: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if ((count ?? 0) > 0)
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(AppRadius.tile),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.warn.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(999),
+              color: AppColors.ink850,
+              borderRadius: BorderRadius.circular(AppRadius.tile),
             ),
-            child: Text(
-              '$count',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: AppColors.warn,
+            child: Icon(icon, size: 18, color: AppColors.ink200),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.ink400,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if ((count ?? 0) > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.warn.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.warn,
+                ),
               ),
             ),
-          ),
-        const Icon(Icons.chevron_right, color: AppColors.ink400),
-      ],
+            const SizedBox(width: 6),
+          ],
+          const Icon(Icons.chevron_right_rounded, color: AppColors.ink400),
+        ],
+      ),
     ),
-    onTap: onTap,
   );
 }
 

@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ycp_store/l10n/generated/app_localizations.dart';
 import 'package:ycp_store/src/data/models.dart';
-import 'package:ycp_store/src/data/order_repository.dart';
+import 'package:ycp_store/src/features/admin/data/admin_mappers.dart';
+import 'package:ycp_store/src/features/orders/data/order_mappers.dart';
+import 'package:ycp_store/src/features/profile/domain/profile.dart';
 import 'package:ycp_store/src/state/providers.dart';
 import 'package:ycp_store/src/ui/admin_transfers_page.dart';
 import 'package:ycp_store/src/ui/widgets/manual_payment_panel.dart';
@@ -36,18 +38,20 @@ Order _order({DateTime? requestedAt}) => Order(
   manualPaymentRequestedAt: requestedAt,
 );
 
-Widget _wrap(Widget child, {required List<Override> overrides}) =>
-    ProviderScope(
-      overrides: overrides,
-      child: MaterialApp(
-        locale: const Locale('en'),
-        supportedLocales: AppL10n.supportedLocales,
-        localizationsDelegates: AppL10n.localizationsDelegates,
-        // No scroll view here: the transfers page is a ListView and nesting it in one
-        // gives the viewport an unbounded height.
-        home: Scaffold(body: child),
-      ),
-    );
+Widget _wrap(
+  Widget child, {
+  required List<Override> overrides,
+}) => ProviderScope(
+  overrides: overrides,
+  child: MaterialApp(
+    locale: const Locale('en'),
+    supportedLocales: AppL10n.supportedLocales,
+    localizationsDelegates: AppL10n.localizationsDelegates,
+    // No scroll view here: the transfers page is a ListView and nesting it in one
+    // gives the viewport an unbounded height.
+    home: Scaffold(body: child),
+  ),
+);
 
 Override _settings(PublicSettings value) =>
     settingsProvider.overrideWith((ref) => value);
@@ -84,19 +88,19 @@ void main() {
 
   group('order state', () {
     test('the request timestamp is read, and absent means never asked', () {
-      final asked = Order.fromJson({
+      final asked = orderFromJson({
         'id': 'x',
         'total_usd': 1.89,
         'manual_payment_requested_at': '2026-10-15T09:00:00Z',
       });
       expect(asked.manualPaymentRequestedAt, isNotNull);
 
-      final notAsked = Order.fromJson({'id': 'x', 'total_usd': 1.89});
+      final notAsked = orderFromJson({'id': 'x', 'total_usd': 1.89});
       expect(notAsked.manualPaymentRequestedAt, isNull);
     });
 
     test('the staff row carries what is needed to fulfil it', () {
-      final request = ManualPaymentRequest.fromJson({
+      final request = manualPaymentRequestFromJson({
         'order_id': 'x',
         'order_no': 'YP1',
         'status': 'pending',
@@ -114,7 +118,7 @@ void main() {
       expect(request.isExpired, isFalse);
 
       // A row whose window has closed is flagged rather than confirmed against.
-      final closed = ManualPaymentRequest.fromJson({
+      final closed = manualPaymentRequestFromJson({
         'order_id': 'x',
         'total_usd': 1.89,
         'kind': 'auto_topup',

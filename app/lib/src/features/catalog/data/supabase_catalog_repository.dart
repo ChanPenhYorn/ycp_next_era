@@ -1,8 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'models.dart';
+import '../../../data/models.dart';
+import 'catalog_mappers.dart';
+import '../domain/catalog_repository.dart';
 
-/// Columns every `Variant.fromJson` read depends on.
+/// Columns every `variantFromJson` read depends on.
 ///
 /// Kept as a constant and reused by each query so the two cannot drift. They
 /// did once: the list query omitted sku/label_km/label_en, so parsing threw
@@ -12,16 +14,17 @@ const variantColumns =
     'id, sku, label_km, label_en, price_usd, '
     'compare_at_price_usd, stock_mode, min_qty, max_qty';
 
-/// Columns `Category.fromJson` reads.
+/// Columns `categoryFromJson` reads.
 const categoryColumns = 'id, slug, name_km, name_en';
 
 /// Read-only access to the public catalogue. Every query here maps to a
 /// `select` policy in `0002_rls.sql`; no privileged key is involved.
-class CatalogRepository {
-  CatalogRepository(this._client);
+class SupabaseCatalogRepository implements CatalogRepository {
+  SupabaseCatalogRepository(this._client);
 
   final SupabaseClient _client;
 
+  @override
   Future<PublicSettings> settings() async {
     final row = await _client
         .from('public_settings')
@@ -49,6 +52,7 @@ class CatalogRepository {
     );
   }
 
+  @override
   Future<List<Category>> categories() async {
     final rows = await _client
         .from('categories')
@@ -58,9 +62,10 @@ class CatalogRepository {
         // a supplier game showed its 112 packs highest-price-first.
         .order('sort_order', ascending: true);
 
-    return rows.map(Category.fromJson).toList();
+    return rows.map(categoryFromJson).toList();
   }
 
+  @override
   Future<List<ProductCard>> products({
     String? categorySlug,
     String? search,
@@ -106,6 +111,7 @@ class CatalogRepository {
     return rows.map((row) => _cardFrom(row, stock)).toList();
   }
 
+  @override
   Future<ProductDetail?> productBySlug(String slug, String locale) async {
     final row = await _client
         .from('products')
@@ -133,7 +139,7 @@ class CatalogRepository {
 
     final variants = variantRows.map((v) {
       final mode = v['stock_mode'] as String? ?? 'stock';
-      return Variant.fromJson({
+      return variantFromJson({
         ...v,
         'in_stock': mode == 'unlimited'
             ? null
@@ -152,14 +158,13 @@ class CatalogRepository {
       card: card,
       description: (rawDescription ?? rawSummary) as String?,
       requiresFields: ((row['requires_fields'] as List?) ?? const [])
-          .map(
-            (e) => RequiredField.fromJson((e as Map).cast<String, dynamic>()),
-          )
+          .map((e) => requiredFieldFromJson((e as Map).cast<String, dynamic>()))
           .toList(),
       variants: variants,
     );
   }
 
+  @override
   Future<List<Review>> reviews(int productId) async {
     final rows = await _client
         .from('reviews')
@@ -216,7 +221,7 @@ class CatalogRepository {
         overrideVariants ??
         rawVariants.map((v) {
           final mode = v['stock_mode'] as String? ?? 'stock';
-          return Variant.fromJson({
+          return variantFromJson({
             ...v,
             'in_stock': mode == 'unlimited'
                 ? null
@@ -255,7 +260,7 @@ class CatalogRepository {
           ? null
           : compares.reduce((a, b) => a > b ? a : b),
       totalStock: totalStock,
-      category: categoryRow == null ? null : Category.fromJson(categoryRow),
+      category: categoryRow == null ? null : categoryFromJson(categoryRow),
     );
   }
 }

@@ -5,12 +5,16 @@ import '../core/brand.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
-import '../data/order_repository.dart';
-import '../data/payment_repository.dart';
+import '../features/orders/domain/order_entities.dart';
+import '../features/orders/domain/order_exception.dart';
+import '../features/payments/domain/payment_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/empty_state.dart';
 import 'widgets/khqr_sheet.dart';
+import 'widgets/skeleton.dart';
+import 'widgets/surface_card.dart';
 
 /// Wallet balance, top-up, and the ledger that explains the balance.
 class WalletPage extends ConsumerStatefulWidget {
@@ -83,6 +87,7 @@ class _WalletPageState extends ConsumerState<WalletPage> {
                 const SizedBox(height: 6),
                 AsyncValueView(
                   value: profile,
+                  skeleton: const SkeletonBlock(height: 36, width: 160),
                   builder: (value) => Text(
                     money(value?.walletBalance ?? 0),
                     style: const TextStyle(
@@ -166,18 +171,13 @@ class _WalletPageState extends ConsumerState<WalletPage> {
           const SizedBox(height: 10),
           AsyncValueView(
             value: transactions,
+            skeleton: const SkeletonList(count: 3, itemHeight: 58),
             onRetry: () => ref.invalidate(walletTransactionsProvider),
             builder: (items) {
               if (items.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    l10n.walletEmpty,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.ink400,
-                    ),
-                  ),
+                return EmptyState(
+                  icon: Icons.account_balance_wallet_outlined,
+                  message: l10n.walletEmpty,
                 );
               }
 
@@ -290,61 +290,58 @@ class _LedgerRow extends StatelessWidget {
 
     final credit = transaction.isCredit;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.ink900,
-        border: Border.all(color: AppColors.ink800),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: credit ? AppColors.accent : AppColors.ink400,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: credit ? AppColors.accent : AppColors.ink400,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                  if (transaction.note != null)
+                    Text(
+                      transaction.note!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.ink400,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  label,
-                  style: const TextStyle(fontSize: 13, color: Colors.white),
-                ),
-                if (transaction.note != null)
-                  Text(
-                    transaction.note!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.ink400,
-                    ),
+                  '${credit ? '+' : ''}${money(transaction.amountUsd)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: credit ? AppColors.accent : AppColors.ink200,
                   ),
+                ),
+                Text(
+                  money(transaction.balanceAfter),
+                  style: const TextStyle(fontSize: 10, color: AppColors.ink400),
+                ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${credit ? '+' : ''}${money(transaction.amountUsd)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: credit ? AppColors.accent : AppColors.ink200,
-                ),
-              ),
-              Text(
-                money(transaction.balanceAfter),
-                style: const TextStyle(fontSize: 10, color: AppColors.ink400),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

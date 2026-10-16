@@ -7,8 +7,11 @@ import '../data/models.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/home_bento.dart';
 import 'widgets/home_sections.dart';
 import 'widgets/product_card.dart';
+import 'widgets/search_field.dart';
+import 'widgets/skeleton.dart';
 import 'widgets/store_footer.dart';
 
 /// Home, in the order `implement.md` §6 asks for: search, popular games,
@@ -26,14 +29,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   void _submitSearch(String value) {
     final term = value.trim();
     if (term.isEmpty) return;
@@ -72,11 +67,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: 14),
           // Wide screens already carry the search in the top bar.
           if (MediaQuery.sizeOf(context).width < 900) ...[
-            _SearchField(
-              controller: _searchController,
-              hint: l10n.searchGames,
-              onSubmitted: _submitSearch,
-            ),
+            GameSearchField(hint: l10n.searchGames, onSubmit: _submitSearch),
             const SizedBox(height: 12),
           ],
           const TrustRow(),
@@ -84,26 +75,53 @@ class _HomePageState extends ConsumerState<HomePage> {
           AsyncValueView(
             value: categories,
             onRetry: () => ref.invalidate(categoriesProvider),
-            builder: (items) => Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final category in items)
-                  ActionChip(
-                    label: Text(category.name(locale)),
-                    onPressed: () =>
-                        context.go('/products?category=${category.slug}'),
-                  ),
-              ],
+            builder: (items) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final category in items) ...[
+                    ActionChip(
+                      label: Text(category.name(locale)),
+                      onPressed: () =>
+                          context.go('/products?category=${category.slug}'),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 22),
+          // What is actually selling, straight after the categories. Reads as
+          // social proof before the first game tile.
+          AsyncValueView(
+            value: all,
+            skeleton: const SkeletonBlock(height: 40, radius: AppRadius.card),
+            onRetry: () => ref.invalidate(productsProvider),
+            builder: (items) => TrendingTicker(products: items),
+          ),
+          const SizedBox(height: 22),
+          const BuyAgainRow(),
+          const SizedBox(height: 24),
           SectionTitle(hasSales ? l10n.popularGames : l10n.featured),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          // A bento top: one big spotlight game, then the rest of the shelf as
+          // the grid. The spotlighted game is dropped from the grid so the same
+          // art never appears twice on one screen.
           AsyncValueView(
             value: topShelf,
+            skeleton: const ProductGridSkeleton(),
             onRetry: () => ref.invalidate(popularGamesProvider),
-            builder: (items) => _Grid(products: items),
+            builder: (items) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (items.isNotEmpty) ...[
+                  SpotlightTile(product: items.first),
+                  const SizedBox(height: 14),
+                  _Grid(products: items.skip(1).toList()),
+                ],
+              ],
+            ),
           ),
           // Rendered only when a real discount exists.
           AsyncValueView(
@@ -133,47 +151,16 @@ class _HomePageState extends ConsumerState<HomePage> {
             builder: (value) => TrustAndSupportSection(settings: value),
           ),
           const SizedBox(height: 26),
-          const PartnerCard(),
-          const SizedBox(height: 26),
           SectionTitle(l10n.allProducts, trailing: l10n.allProducts),
           const SizedBox(height: 10),
           AsyncValueView(
             value: all,
+            skeleton: const ProductGridSkeleton(),
             onRetry: () => ref.invalidate(productsProvider),
             builder: (items) => _Grid(products: items),
           ),
           const StoreFooter(),
         ],
-      ),
-    );
-  }
-}
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({
-    required this.controller,
-    required this.hint,
-    required this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final String hint;
-  final ValueChanged<String> onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      textInputAction: TextInputAction.search,
-      onSubmitted: onSubmitted,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: IconButton(
-          tooltip: hint,
-          icon: const Icon(Icons.arrow_forward),
-          onPressed: () => onSubmitted(controller.text),
-        ),
       ),
     );
   }
@@ -199,17 +186,10 @@ class _Grid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 220,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        // Slightly taller than the old ratio: each card now carries a real
-        // sold count on its footer line.
-        childAspectRatio: 0.66,
-      ),
+      gridDelegate: productGridDelegate,
       itemCount: products.length,
       itemBuilder: (context, index) =>
-          ProductCardTile(product: products[index]),
+          ProductCardTile(product: products[index], index: index),
     );
   }
 }

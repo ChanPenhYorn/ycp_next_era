@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/brand.dart';
 import '../core/env.dart';
 import '../core/theme.dart';
-import '../data/auth_repository.dart';
+import '../features/auth/domain/auth_models.dart';
+import '../features/auth/domain/auth_rules.dart';
 import '../state/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'widgets/brand_mark.dart';
@@ -188,6 +188,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         _mode == AuthMode.signIn ? _signIn() : null,
                     decoration: InputDecoration(
                       labelText: l10n.passwordLabel,
+                      // `_mapError` sends a wrong password, a too-short one and
+                      // an empty one to this field. Without `errorText` here the
+                      // banner stayed hidden too (it only renders when the field
+                      // is null), so a refused sign-in showed nothing at all.
+                      errorText: _errorField == _Field.password ? _error : null,
                       prefixIcon: const Icon(Icons.lock_outline, size: 18),
                       suffixIcon: IconButton(
                         tooltip: _obscurePassword ? 'Show' : 'Hide',
@@ -535,7 +540,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
     _pendingReferral = referral.isEmpty ? null : referral.toUpperCase();
 
-    final res = await ref
+    final needsConfirmation = await ref
         .read(authRepositoryProvider)
         .signUpWithPassword(
           email: email,
@@ -545,7 +550,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
     // No session: this project still requires email confirmation. The mail it
     // just sent carries the same six digits the code panel takes.
-    if (res.session == null) {
+    if (needsConfirmation) {
       setState(() {
         _panel = _Panel.confirm;
         _code.clear();
@@ -670,7 +675,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       try {
         await ref.read(authRepositoryProvider).applyReferralCode(code);
         _pendingReferral = null;
-      } on PostgrestException {
+      } on AuthFailure {
         _pendingReferral = null;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -713,19 +718,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         _error = error.message;
         _errorField = error.field;
       });
-    } on AuthException catch (error) {
+    } on AuthFailure catch (error) {
       if (!mounted) return;
       final (field, message) = _mapError(error, l10n);
       setState(() {
         _busy = false;
         _error = message;
         _errorField = field;
-      });
-    } on PostgrestException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = error.message;
       });
     } catch (_) {
       if (!mounted) return;
@@ -761,7 +760,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   ///
   /// The field is where the message should be shown: under the box that has the
   /// problem when there is one, otherwise in the banner.
-  (_Field?, String) _mapError(AuthException error, AppL10n l10n) {
+  (_Field?, String) _mapError(AuthFailure error, AppL10n l10n) {
     final raw = error.message.toLowerCase();
 
     if (raw.contains('rate limit') || error.statusCode == '429') {

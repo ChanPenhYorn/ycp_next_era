@@ -2,13 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ycp_store/l10n/generated/app_localizations.dart';
 import 'package:ycp_store/src/core/format.dart';
 import 'package:ycp_store/src/data/models.dart';
+import 'package:ycp_store/src/features/orders/data/order_mappers.dart';
 import 'package:ycp_store/src/state/providers.dart';
 import 'package:ycp_store/src/ui/widgets/home_sections.dart';
+import 'package:ycp_store/src/ui/widgets/product_card.dart';
+import 'package:ycp_store/src/ui/widgets/skeleton.dart';
 
 ProductCard _card({
   double price = 10,
@@ -187,6 +192,153 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  });
+
+  group('product grid', () {
+    late SharedPreferences preferences;
+
+    // A name long enough to wrap to two lines, plus a category and a sold
+    // count, so the tile is laid out at its tallest.
+    final longName = ProductCard(
+      id: 2,
+      slug: 'mlbb-exclusive',
+      nameKm: 'ពេជ្រ Mobile Legends Exclusive',
+      nameEn: 'Mobile Legends Exclusive',
+      imageUrl: null,
+      kind: ProductKind.instantStock,
+      ratingAvg: 4.5,
+      ratingCount: 12,
+      soldCount: 671,
+      minPriceUsd: 0.76,
+      maxPriceUsd: 4.64,
+      compareAtPriceUsd: 0.99,
+      totalStock: 5,
+    );
+
+    final soldOut = ProductCard(
+      id: 3,
+      slug: 'gone',
+      nameKm: 'អស់',
+      nameEn: 'Gone',
+      imageUrl: null,
+      kind: ProductKind.instantStock,
+      ratingAvg: 0,
+      ratingCount: 0,
+      soldCount: 0,
+      minPriceUsd: 1,
+      maxPriceUsd: 1,
+      compareAtPriceUsd: null,
+      totalStock: 0,
+    );
+
+    Widget grid(ProductCard card, double width) => ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
+      child: MaterialApp(
+        supportedLocales: AppL10n.supportedLocales,
+        localizationsDelegates: AppL10n.localizationsDelegates,
+        home: Scaffold(
+          body: SizedBox(
+            width: width,
+            height: 720,
+            child: GridView.builder(
+              gridDelegate: productGridDelegate,
+              itemCount: 6,
+              itemBuilder: (context, index) =>
+                  ProductCardTile(product: card, index: index),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // The cell height cannot be a fixed ratio: the art tracks the column width
+    // but the text under it does not, so every width is checked. Khmer is the
+    // taller locale, which is why one grid has to satisfy both.
+    for (final locale in ['en', 'km']) {
+      for (final width in [320.0, 390.0, 480.0, 768.0, 1024.0, 1440.0]) {
+        testWidgets('$locale tiles fit at ${width.toInt()}px', (tester) async {
+          SharedPreferences.setMockInitialValues({'app_locale': locale});
+          preferences = await SharedPreferences.getInstance();
+          tester.view.physicalSize = Size(width * 2, 900 * 2);
+          tester.view.devicePixelRatio = 2;
+          addTearDown(tester.view.reset);
+
+          await tester.pumpWidget(grid(longName, width));
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+
+          // The cell must be exactly the art box plus the text block, or the
+          // delegate and the tile have drifted apart.
+          final tile = tester.getSize(find.byType(ProductCardTile).first);
+          expect(
+            tile.height,
+            closeTo(
+              (tile.width - 2) / kProductArtRatio + 2 + kProductTextBlockHeight,
+              0.5,
+            ),
+          );
+
+          // The name sits in an Expanded, so too little room clips it silently
+          // instead of overflowing. Assert it really has its two lines.
+          final name = locale == 'en' ? longName.nameEn : longName.nameKm;
+          final nameBox = tester.getSize(find.text(name).first);
+          expect(
+            nameBox.height,
+            greaterThanOrEqualTo(2 * 13.5 * 1.3 - 0.01),
+            reason: 'a two-line name needs room at ${width.toInt()}px',
+          );
+          expect(find.text('\$0.76'), findsWidgets);
+        });
+      }
+    }
+
+    testWidgets('a sold-out tile fits too', (tester) async {
+      SharedPreferences.setMockInitialValues({'app_locale': 'en'});
+      preferences = await SharedPreferences.getInstance();
+      tester.view.physicalSize = const Size(320 * 2, 900 * 2);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(grid(soldOut, 320));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the loading skeleton fits at every width', (tester) async {
+      // This is the skeleton that overflowed when the grid ratio was tightened.
+      SharedPreferences.setMockInitialValues({'app_locale': 'km'});
+      preferences = await SharedPreferences.getInstance();
+
+      for (final width in [320.0, 480.0, 1024.0, 1440.0]) {
+        tester.view.physicalSize = Size(width * 2, 900 * 2);
+        tester.view.devicePixelRatio = 2;
+        addTearDown(tester.view.reset);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(preferences),
+            ],
+            child: MaterialApp(
+              supportedLocales: AppL10n.supportedLocales,
+              localizationsDelegates: AppL10n.localizationsDelegates,
+              home: Scaffold(
+                body: SizedBox(
+                  width: width,
+                  height: 720,
+                  child: const ProductGridSkeleton(count: 6),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull, reason: 'skeleton at $width');
+      }
+    });
   });
 
   group('localisation', () {

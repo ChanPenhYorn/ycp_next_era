@@ -1,51 +1,22 @@
-import 'dart:async';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'models.dart';
+import '../domain/payment_entities.dart';
+import '../domain/payment_exception.dart';
+import '../domain/payment_repository.dart';
+import 'payment_mappers.dart';
 
-class PaymentException implements Exception {
-  PaymentException(this.code, {this.detail});
-
-  final String code;
-  final Object? detail;
-
-  @override
-  String toString() => 'PaymentException($code)';
-}
-
-class SettleResult {
-  const SettleResult({
-    required this.ok,
-    required this.state,
-    this.orderStatus,
-    this.reason,
-  });
-
-  /// True once the transaction is APPROVED and the order has been settled.
-  final bool ok;
-
-  /// APPROVED / PENDING / DECLINED / EXPIRED / UNKNOWN
-  final String state;
-  final String? orderStatus;
-  final String? reason;
-
-  bool get isFinal => state == 'DECLINED' || state == 'CANCELLED';
-  bool get isWaiting => state == 'PENDING';
-}
-
-/// Talks to the two Edge Functions. The PayWay API key never leaves the server,
-/// so the app only ever receives a QR string and a status.
-class PaymentRepository {
-  PaymentRepository(this._client);
+class SupabasePaymentRepository implements PaymentRepository {
+  SupabasePaymentRepository(this._client);
 
   final SupabaseClient _client;
 
+  @override
   Future<KhqrPayment> initKhqr(String orderId) async {
     final response = await _invoke('payway-init', {'orderId': orderId});
-    return KhqrPayment.fromJson(response);
+    return khqrPaymentFromJson(response);
   }
 
+  @override
   Future<SettleResult> verify(String orderId) async {
     // A 202 means "still pending", which is a normal answer here.
     final result = await _client.functions.invoke(
@@ -62,7 +33,7 @@ class PaymentRepository {
     );
   }
 
-  /// Polls until the transaction is approved, declined, or the deadline passes.
+  @override
   Stream<SettleResult> poll(
     String orderId, {
     Duration interval = const Duration(seconds: 3),

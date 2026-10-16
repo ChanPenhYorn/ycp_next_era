@@ -10,6 +10,7 @@ import '../data/models.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/motion.dart';
 import 'widgets/required_fields_form.dart';
 
 class ProductPage extends ConsumerStatefulWidget {
@@ -135,24 +136,14 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                       ),
                       if (variants.length > 1) ...[
                         const SizedBox(height: 20),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final variant in variants)
-                              ChoiceChip(
-                                label: Text(
-                                  '${variant.label(locale)} · ${money(variant.priceUsd)}',
-                                ),
-                                selected: variant.id == selected.id,
-                                onSelected: variant.isSoldOut
-                                    ? null
-                                    : (_) => setState(() {
-                                        _selectedVariantId = variant.id;
-                                        _qty = variant.minQty;
-                                      }),
-                              ),
-                          ],
+                        _DenominationGrid(
+                          variants: variants,
+                          selectedId: selected.id,
+                          locale: locale,
+                          onPick: (variant) => setState(() {
+                            _selectedVariantId = variant.id;
+                            _qty = variant.minQty;
+                          }),
                         ),
                       ],
                       if (product.requiresFields.isNotEmpty) ...[
@@ -291,6 +282,121 @@ class _ProductPageState extends ConsumerState<ProductPage> {
         );
 
     context.go('/checkout');
+  }
+}
+
+/// Denominations as tiles rather than chips: the amount is the biggest thing on
+/// the tile and the price sits under it, so picking an amount is one clear tap.
+class _DenominationGrid extends StatelessWidget {
+  const _DenominationGrid({
+    required this.variants,
+    required this.selectedId,
+    required this.locale,
+    required this.onPick,
+  });
+
+  final List<Variant> variants;
+  final int selectedId;
+  final String locale;
+  final ValueChanged<Variant> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 10.0;
+        final columns = constraints.maxWidth >= 520 ? 4 : 3;
+        final tileWidth =
+            (constraints.maxWidth - gap * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final variant in variants)
+              SizedBox(
+                width: tileWidth,
+                child: _DenominationTile(
+                  variant: variant,
+                  locale: locale,
+                  selected: variant.id == selectedId,
+                  onTap: variant.isSoldOut ? null : () => onPick(variant),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DenominationTile extends StatelessWidget {
+  const _DenominationTile({
+    required this.variant,
+    required this.locale,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Variant variant;
+  final String locale;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final soldOut = variant.isSoldOut;
+
+    return PressScale(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.tile),
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.ease,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.brand.withValues(alpha: 0.16)
+                : AppColors.ink850,
+            border: Border.all(
+              color: selected ? AppColors.brand : AppColors.ink700,
+              width: selected ? 1.6 : 1,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.tile),
+            boxShadow: selected ? AppGlow.tight(AppColors.brand) : const [],
+          ),
+          child: Opacity(
+            opacity: soldOut ? 0.45 : 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  variant.label(locale),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? Colors.white : AppColors.ink200,
+                    decoration: soldOut ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  money(variant.priceUsd),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? AppColors.accent : AppColors.ink400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

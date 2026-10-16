@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
+import 'skeleton.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 /// Small helper so pages do not repeat the loading / error / data dance.
@@ -11,6 +12,7 @@ class AsyncValueView<T> extends StatelessWidget {
     required this.value,
     required this.builder,
     this.onRetry,
+    this.skeleton,
     super.key,
   });
 
@@ -18,20 +20,14 @@ class AsyncValueView<T> extends StatelessWidget {
   final Widget Function(T data) builder;
   final VoidCallback? onRetry;
 
+  /// Shape of the content while it loads. Defaults to a short list.
+  final Widget? skeleton;
+
   @override
   Widget build(BuildContext context) {
     return value.when(
       data: builder,
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 28),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ),
+      loading: () => skeleton ?? const SkeletonList(count: 3, itemHeight: 72),
       error: (error, _) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ycp_store/src/data/models.dart';
-import 'package:ycp_store/src/data/order_repository.dart';
+import 'package:ycp_store/src/features/admin/data/admin_mappers.dart';
+import 'package:ycp_store/src/features/profile/domain/profile.dart';
 
 void main() {
   test('StaffMember reads the database role word and the name', () {
-    final member = StaffMember.fromJson({
+    final member = staffMemberFromJson({
       'id': 'u-1',
       'display_name': 'Chanpenh',
       'role': 'admin',
@@ -17,7 +17,7 @@ void main() {
   });
 
   test('a missing name is empty, a missing role is customer', () {
-    final member = StaffMember.fromJson({'id': 'u-2'});
+    final member = staffMemberFromJson({'id': 'u-2'});
 
     expect(member.displayName, '');
     expect(member.role, 'customer');

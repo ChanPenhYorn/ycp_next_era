@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
+import 'app_background.dart';
 import 'brand_mark.dart';
+import 'search_field.dart';
 
 /// Shared chrome. Wide screens get a full top bar with visible links and an
 /// inline search; narrow screens keep the top bar slim and use bottom tabs.
@@ -26,20 +30,43 @@ class AppShell extends ConsumerWidget {
     );
 
     return Scaffold(
+      backgroundColor: AppColors.ink950,
       appBar: AppBar(
         toolbarHeight: isWide ? 68 : 60,
         titleSpacing: isWide ? 24 : 16,
+        backgroundColor: Colors.transparent,
+        // Frosted glass: the glow washes behind the bar stay visible through it.
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.ink950.withValues(alpha: 0.72),
+                border: const Border(
+                  bottom: BorderSide(color: AppColors.ink800),
+                ),
+              ),
+            ),
+          ),
+        ),
         title: Row(
           children: [
-            const BrandMark(size: 32),
-            const SizedBox(width: 10),
-            Text(
-              l10n.appTitle,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: -0.2,
+            GestureDetector(
+              onTap: () => context.go('/'),
+              child: Row(
+                children: [
+                  const BrandMark(size: 32),
+                  const SizedBox(width: 10),
+                  Text(
+                    l10n.appTitle,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
               ),
             ),
             if (isWide) ...[
@@ -54,58 +81,74 @@ class AppShell extends ConsumerWidget {
               Expanded(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 360),
-                  child: _InlineSearch(hint: l10n.searchGames),
+                  child: GameSearchField(
+                    hint: l10n.searchGames,
+                    pill: true,
+                    onSubmit: (value) {
+                      final term = value.trim();
+                      if (term.isEmpty) return;
+                      context.go('/products?q=${Uri.encodeComponent(term)}');
+                    },
+                  ),
                 ),
               ),
             ],
           ],
         ),
         actions: [
-          if (!isWide)
-            IconButton(
-              tooltip: l10n.searchHint,
-              icon: const Icon(Icons.search_rounded),
-              onPressed: () => _openSearch(context),
-            ),
+          const _CoinsChip(),
           const _LocaleButton(),
           const _CartButton(),
           if (isWide) const _AccountButton(),
           const SizedBox(width: 8),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1140),
-          child: child,
+      body: AppBackground(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1140),
+            child: child,
+          ),
         ),
       ),
       bottomNavigationBar: isWide
           ? null
-          : NavigationBar(
-              selectedIndex: index < 0 ? 0 : index,
-              onDestinationSelected: (value) => context.go(_tabs[value]),
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  selectedIcon: const Icon(Icons.home_rounded),
-                  label: l10n.navHome,
+          : ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColors.ink800)),
+                  ),
+                  child: NavigationBar(
+                    selectedIndex: index < 0 ? 0 : index,
+                    onDestinationSelected: (value) => context.go(_tabs[value]),
+                    backgroundColor: AppColors.ink950.withValues(alpha: 0.78),
+                    destinations: [
+                      NavigationDestination(
+                        icon: const Icon(Icons.home_outlined),
+                        selectedIcon: const Icon(Icons.home_rounded),
+                        label: l10n.navHome,
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.grid_view_outlined),
+                        selectedIcon: const Icon(Icons.grid_view_rounded),
+                        label: l10n.navGames,
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.receipt_long_outlined),
+                        selectedIcon: const Icon(Icons.receipt_long_rounded),
+                        label: l10n.orders,
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.person_outline_rounded),
+                        selectedIcon: const Icon(Icons.person_rounded),
+                        label: l10n.accountTitle,
+                      ),
+                    ],
+                  ),
                 ),
-                NavigationDestination(
-                  icon: const Icon(Icons.grid_view_outlined),
-                  selectedIcon: const Icon(Icons.grid_view_rounded),
-                  label: l10n.navGames,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  selectedIcon: const Icon(Icons.receipt_long_rounded),
-                  label: l10n.orders,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.person_outline_rounded),
-                  selectedIcon: const Icon(Icons.person_rounded),
-                  label: l10n.accountTitle,
-                ),
-              ],
+              ),
             ),
     );
   }
@@ -116,39 +159,6 @@ class AppShell extends ConsumerWidget {
     2 => l10n.orders,
     _ => l10n.accountTitle,
   };
-
-  Future<void> _openSearch(BuildContext context) async {
-    final controller = TextEditingController();
-    final term = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.ink900,
-        title: Text(AppL10n.of(context).searchHint),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.search)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(AppL10n.of(context).cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: Text(AppL10n.of(context).searchHint),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-
-    if (term != null && term.trim().isNotEmpty && context.mounted) {
-      context.go('/products?q=${Uri.encodeComponent(term.trim())}');
-    }
-  }
 }
 
 class _NavLink extends StatelessWidget {
@@ -181,53 +191,48 @@ class _NavLink extends StatelessWidget {
   }
 }
 
-class _InlineSearch extends StatefulWidget {
-  const _InlineSearch({required this.hint});
-
-  final String hint;
+class _CoinsChip extends ConsumerWidget {
+  const _CoinsChip();
 
   @override
-  State<_InlineSearch> createState() => _InlineSearchState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Signed-out visitors have no balance, so the chip is not rendered at all
+    // rather than showing a zero that means nothing.
+    final profile = ref.watch(profileProvider).valueOrNull;
+    if (profile == null) return const SizedBox.shrink();
 
-class _InlineSearchState extends State<_InlineSearch> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit(String value) {
-    final term = value.trim();
-    if (term.isEmpty) return;
-    context.go('/products?q=${Uri.encodeComponent(term)}');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      textInputAction: TextInputAction.search,
-      onSubmitted: _submit,
-      style: const TextStyle(fontSize: 14),
-      decoration: InputDecoration(
-        isDense: true,
-        hintText: widget.hint,
-        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: AppColors.brand, width: 1.2),
+    return Tooltip(
+      message: AppL10n.of(context).coins,
+      child: InkWell(
+        onTap: () => context.go('/wallet'),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: AppColors.warn.withValues(alpha: 0.14),
+            border: Border.all(color: AppColors.warn.withValues(alpha: 0.35)),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.monetization_on_rounded,
+                size: 15,
+                color: AppColors.warn,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${profile.coins}',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.warn,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

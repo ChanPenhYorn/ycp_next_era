@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
-import '../../data/payment_repository.dart';
+import '../../features/payments/domain/payment_entities.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 

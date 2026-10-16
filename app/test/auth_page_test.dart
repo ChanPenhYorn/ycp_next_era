@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ycp_store/l10n/generated/app_localizations.dart';
-import 'package:ycp_store/src/data/auth_repository.dart';
+import 'package:ycp_store/src/features/auth/domain/auth_models.dart';
+import 'package:ycp_store/src/features/auth/domain/auth_repository.dart';
 import 'package:ycp_store/src/state/providers.dart';
 import 'package:ycp_store/src/ui/auth_page.dart';
 
@@ -13,10 +14,12 @@ import 'package:ycp_store/src/ui/auth_page.dart';
 Widget _wrap({
   required Widget child,
   AuthCapabilities capabilities = AuthCapabilities.fallback,
+  AuthRepository? auth,
 }) {
   return ProviderScope(
     overrides: [
       authCapabilitiesProvider.overrideWith((ref) async => capabilities),
+      if (auth != null) authRepositoryProvider.overrideWithValue(auth),
     ],
     child: MaterialApp(
       locale: const Locale('en'),
@@ -175,4 +178,41 @@ void main() {
       expect(find.text('Please accept the terms to continue.'), findsOneWidget);
     });
   });
+
+  group('a refused sign-in', () {
+    /// The bug this guards: `_mapError` sends a wrong password to the password
+    /// field, the password box had no `errorText`, and the banner only draws
+    /// when the field is null. So the button stopped spinning and said nothing
+    /// at all — no wrong-password message, no failure, no sign-in.
+    testWidgets('shows the reason under the password field', (tester) async {
+      await tester.pumpWidget(
+        _wrap(child: const AuthPage(), auth: _RefusingAuth()),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'buyer@example.com');
+      await tester.enterText(find.byType(TextField).at(1), 'not-the-password');
+      await _tapSubmit(tester, 'Sign in');
+
+      expect(find.text('Email or password is not right.'), findsOneWidget);
+      // Field-level, not the banner: the banner carries an error icon.
+      expect(find.byIcon(Icons.error_outline), findsNothing);
+    });
+  });
+}
+
+/// Refuses a sign-in with the exact message Supabase returns for a wrong
+/// password. Every other method throws, so a test that reaches one is wrong.
+class _RefusingAuth implements AuthRepository {
+  @override
+  Future<void> signInWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    throw const AuthFailure('Invalid login credentials', statusCode: '400');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} is not stubbed');
 }

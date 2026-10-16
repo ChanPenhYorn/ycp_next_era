@@ -4,12 +4,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/format.dart';
-import '../data/admin_repository.dart';
-import '../data/auth_repository.dart';
-import '../data/catalog_repository.dart';
 import '../data/models.dart';
-import '../data/order_repository.dart';
-import '../data/payment_repository.dart';
+import '../features/admin/data/supabase_admin_repository.dart';
+import '../features/admin/domain/admin_repository.dart';
+import '../features/auth/data/supabase_auth_repository.dart';
+import '../features/auth/domain/auth_models.dart';
+import '../features/auth/domain/auth_repository.dart';
+import '../features/catalog/data/supabase_catalog_repository.dart';
+import '../features/catalog/domain/catalog_repository.dart';
+import '../features/orders/data/supabase_order_repository.dart';
+import '../features/orders/domain/order_repository.dart';
+import '../features/payments/data/supabase_payment_repository.dart';
+import '../features/payments/domain/payment_repository.dart';
+import '../features/profile/data/supabase_profile_repository.dart';
+import '../features/profile/domain/profile.dart';
+import '../features/profile/domain/profile_repository.dart';
 import 'cart_controller.dart';
 import 'locale_controller.dart';
 
@@ -23,7 +32,7 @@ final supabaseProvider = Provider<SupabaseClient>(
 );
 
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => AuthRepository(ref.watch(supabaseProvider)),
+  (ref) => SupabaseAuthRepository(ref.watch(supabaseProvider)),
 );
 
 /// Which sign-in methods are switched on. Read from the project, so enabling
@@ -33,19 +42,23 @@ final authCapabilitiesProvider = FutureProvider<AuthCapabilities>(
 );
 
 final catalogRepositoryProvider = Provider<CatalogRepository>(
-  (ref) => CatalogRepository(ref.watch(supabaseProvider)),
+  (ref) => SupabaseCatalogRepository(ref.watch(supabaseProvider)),
 );
 
 final orderRepositoryProvider = Provider<OrderRepository>(
-  (ref) => OrderRepository(ref.watch(supabaseProvider)),
+  (ref) => SupabaseOrderRepository(ref.watch(supabaseProvider)),
+);
+
+final profileRepositoryProvider = Provider<ProfileRepository>(
+  (ref) => SupabaseProfileRepository(ref.watch(supabaseProvider)),
 );
 
 final paymentRepositoryProvider = Provider<PaymentRepository>(
-  (ref) => PaymentRepository(ref.watch(supabaseProvider)),
+  (ref) => SupabasePaymentRepository(ref.watch(supabaseProvider)),
 );
 
 final adminRepositoryProvider = Provider<AdminRepository>(
-  (ref) => AdminRepository(ref.watch(supabaseProvider)),
+  (ref) => SupabaseAdminRepository(ref.watch(supabaseProvider)),
 );
 
 /// Orders waiting for a human to check a bank transfer. Staff-only in the
@@ -144,13 +157,13 @@ final cartControllerProvider = NotifierProvider<CartController, List<CartLine>>(
 );
 
 /// Emits on sign-in, sign-out and token refresh.
-final authStateProvider = StreamProvider<AuthState>(
-  (ref) => ref.watch(supabaseProvider).auth.onAuthStateChange,
+final authStateProvider = StreamProvider<AppUser?>(
+  (ref) => ref.watch(authRepositoryProvider).authChanges(),
 );
 
-final currentUserProvider = Provider<User?>((ref) {
+final currentUserProvider = Provider<AppUser?>((ref) {
   ref.watch(authStateProvider);
-  return ref.watch(supabaseProvider).auth.currentUser;
+  return ref.watch(authRepositoryProvider).currentUser;
 });
 
 final settingsProvider = FutureProvider<PublicSettings>(
@@ -249,7 +262,7 @@ final reviewsProvider = FutureProvider.family<List<Review>, int>(
 
 final profileProvider = FutureProvider<Profile?>((ref) {
   ref.watch(currentUserProvider);
-  return ref.watch(orderRepositoryProvider).profile();
+  return ref.watch(profileRepositoryProvider).profile();
 });
 
 final ordersProvider = FutureProvider<List<Order>>((ref) {

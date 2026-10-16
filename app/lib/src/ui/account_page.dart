@@ -7,10 +7,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/brand.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
-import '../data/order_repository.dart';
+import '../features/orders/domain/order_exception.dart';
+import '../features/profile/domain/profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/skeleton.dart';
+import 'widgets/surface_card.dart';
 
 class AccountPage extends ConsumerWidget {
   const AccountPage({super.key});
@@ -21,20 +24,66 @@ class AccountPage extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
     final email = ref.watch(currentUserProvider)?.email ?? '';
 
+    final initial = email.isEmpty ? '?' : email[0].toUpperCase();
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          l10n.accountTitle,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.brand, AppColors.brandDark],
+                ),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.accountTitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.ink400,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    email.isEmpty ? '—' : email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         AsyncValueView(
           value: profile,
+          skeleton: const SkeletonBlock(height: 92, radius: AppRadius.card),
           onRetry: () => ref.invalidate(profileProvider),
           builder: (value) {
             if (value == null) {
@@ -43,73 +92,67 @@ class AccountPage extends ConsumerWidget {
 
             return Column(
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.ink900,
-                    border: Border.all(color: AppColors.ink800),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _BalanceTile(
+                        label: l10n.walletBalance,
+                        value: money(value.walletBalance),
+                        onTap: () => context.go('/wallet'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _BalanceTile(
+                        label: l10n.coins,
+                        value: '${value.coins}',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SurfaceCard(
+                  padding: EdgeInsets.zero,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l10n.accountEmail,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.ink400,
+                      _MenuRow(
+                        icon: Icons.receipt_long_outlined,
+                        label: l10n.orders,
+                        onTap: () => context.go('/orders'),
+                      ),
+                      const Divider(height: 1),
+                      _MenuRow(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: l10n.walletTitle,
+                        onTap: () => context.go('/wallet'),
+                      ),
+                      if (value.isStaff) ...[
+                        const Divider(height: 1),
+                        _MenuRow(
+                          icon: Icons.shield_outlined,
+                          label: l10n.adminTitle,
+                          onTap: () => context.go('/admin'),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        email.isEmpty ? '—' : email,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Divider(),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          _Stat(
-                            label: l10n.walletBalance,
-                            value: money(value.walletBalance),
-                            onTap: () => context.go('/wallet'),
-                          ),
-                          const SizedBox(width: 10),
-                          _Stat(label: l10n.coins, value: '${value.coins}'),
-                        ],
-                      ),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
                 _TelegramCard(profile: value),
-                if (value.isStaff) ...[
-                  const SizedBox(height: 14),
-                  OutlinedButton.icon(
-                    onPressed: () => context.go('/admin'),
-                    icon: const Icon(Icons.shield_outlined, size: 18),
-                    label: Text(l10n.adminTitle),
-                  ),
-                ],
               ],
             );
           },
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: () async {
-            await ref.read(supabaseProvider).auth.signOut();
+            await ref.read(authRepositoryProvider).signOut();
             if (context.mounted) context.go('/');
           },
           icon: const Icon(Icons.logout, size: 18),
           label: Text(l10n.signOut),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 28),
         Center(
           child: Text(
             '${Brand.name} · ${Brand.displayName(Localizations.localeOf(context).languageCode)}',
@@ -121,8 +164,8 @@ class AccountPage extends ConsumerWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value, this.onTap});
+class _BalanceTile extends StatelessWidget {
+  const _BalanceTile({required this.label, required this.value, this.onTap});
 
   final String label;
   final String value;
@@ -130,34 +173,72 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.ink850,
-            borderRadius: BorderRadius.circular(10),
+    return SurfaceCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.ink400),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 10, color: AppColors.ink400),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.ink850,
+                borderRadius: BorderRadius.circular(AppRadius.tile),
               ),
-              const SizedBox(height: 4),
-              Text(
-                value,
+              child: Icon(icon, size: 18, color: AppColors.ink200),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.ink400),
+          ],
         ),
       ),
     );
@@ -184,18 +265,8 @@ class _TelegramCardState extends ConsumerState<_TelegramCard> {
     final l10n = AppL10n.of(context);
     final linked = widget.profile.telegramLinked;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.ink900,
-        border: Border.all(
-          color: linked
-              ? AppColors.accent.withValues(alpha: 0.4)
-              : AppColors.ink800,
-        ),
-        borderRadius: BorderRadius.circular(14),
-      ),
+    return SurfaceCard(
+      borderColor: linked ? AppColors.accent.withValues(alpha: 0.4) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -227,7 +298,7 @@ class _TelegramCardState extends ConsumerState<_TelegramCard> {
           const SizedBox(height: 14),
           if (linked)
             Text(
-              'Send /unlink in the chat to disconnect.',
+              l10n.telegramUnlinkHint,
               style: TextStyle(fontSize: 11, color: AppColors.ink400),
             )
           else if (_code == null)
@@ -249,7 +320,7 @@ class _TelegramCardState extends ConsumerState<_TelegramCard> {
 
     try {
       final code = await ref
-          .read(orderRepositoryProvider)
+          .read(profileRepositoryProvider)
           .createTelegramLinkCode();
       if (!mounted) return;
       setState(() {

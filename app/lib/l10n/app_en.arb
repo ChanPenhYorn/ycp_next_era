@@ -27,6 +27,16 @@
   "featured": "Popular",
   "categories": "Categories",
   "allProducts": "All products",
+  "searchNoResults": "No games match this search. Try another name.",
+  "clearSearch": "Clear search",
+  "searchActive": "Search: {term}",
+  "@searchActive": {
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
   "noProducts": "Nothing here yet",
   "trustInstant": "Automatic delivery",
   "heroTitle": "Top up your games in seconds",
@@ -139,6 +149,7 @@
   "connectTelegram": "Connect Telegram",
   "telegramConnected": "Telegram connected",
   "telegramHint": "Get a message the moment your order is ready, and check your codes in chat.",
+  "telegramUnlinkHint": "Send /unlink in the chat to disconnect.",
   "telegramCodeHint": "Send this code to the bot to link your account",
   "telegramWait": "Waiting for you to send the code...",
   "copyCode": "Copy code",
@@ -238,6 +249,8 @@
   "navGames": "Games",
   "searchGames": "Search games...",
   "popularGames": "Popular games",
+  "buyAgain": "Buy again",
+  "trendingNow": "Trending now",
   "promotions": "Promotions",
   "promotionsSubtitle": "Live discounts on selected packages",
   "howItWorks": "How it works",
@@ -256,9 +269,6 @@
   "trustRefundBody": "If a top-up cannot be delivered, the amount is returned to your wallet. Refunds to a bank account are handled by support.",
   "trustSupportTitle": "Support",
   "trustSupportBody": "Send us your order number and we will take it from there.",
-  "partnerTitle": "Supply partner",
-  "partnerBody": "Many top-ups are fulfilled automatically through our supply partner Bay2Game.",
-  "partnerBadge": "Automatic fulfilment",
   "contactSupport": "Contact support",
   "statusRefundPending": "Refund pending",
   "fieldHelpTooltip": "How to find this",

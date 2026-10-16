@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ycp_store/src/data/models.dart';
+import 'package:ycp_store/src/features/admin/data/admin_mappers.dart';
 
 void main() {
   group('AdminCatalogueProduct', () {
     test('reads hidden state, supplier code and variants in sort order', () {
-      final product = AdminCatalogueProduct.fromJson({
+      final product = adminCatalogueProductFromJson({
         'id': 7,
         'slug': 'bay2game-mlbb',
         'name_en': 'Mobile Legends',
@@ -40,7 +40,7 @@ void main() {
     });
 
     test('a product with no supplier and no variants still parses', () {
-      final product = AdminCatalogueProduct.fromJson({
+      final product = adminCatalogueProductFromJson({
         'id': 1,
         'slug': 'steam-wallet',
         'name_en': 'Steam Wallet',
@@ -57,7 +57,7 @@ void main() {
 
   group('AdminCatalogueVariant', () {
     test('margin is price minus cost', () {
-      final variant = AdminCatalogueVariant.fromJson({
+      final variant = adminCatalogueVariantFromJson({
         'id': 1,
         'sku': 'X',
         'label_en': 'X',
@@ -70,7 +70,7 @@ void main() {
     });
 
     test('a sale below cost shows a negative margin', () {
-      final variant = AdminCatalogueVariant.fromJson({
+      final variant = adminCatalogueVariantFromJson({
         'id': 1,
         'sku': 'X',
         'label_en': 'X',
@@ -83,7 +83,7 @@ void main() {
     });
 
     test('margin is unknown, not zero, when cost is missing', () {
-      final variant = AdminCatalogueVariant.fromJson({
+      final variant = adminCatalogueVariantFromJson({
         'id': 1,
         'sku': 'X',
         'label_en': 'X',
@@ -98,7 +98,7 @@ void main() {
 
   group('SupplierQueueItem', () {
     test('manual_waiting needs a person; retrying does not', () {
-      final manual = SupplierQueueItem.fromJson({
+      final manual = supplierQueueItemFromJson({
         'item_id': 9,
         'order_id': 'o-1',
         'order_no': 'CP-1',
@@ -111,7 +111,7 @@ void main() {
         'supplier_last_error': 'supplier_error: Invalid API key',
         'created_at': '2026-10-15T03:00:00Z',
       });
-      final retrying = SupplierQueueItem.fromJson({
+      final retrying = supplierQueueItemFromJson({
         'item_id': 10,
         'order_id': 'o-2',
         'order_no': 'CP-2',

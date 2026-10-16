@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ycp_store/src/data/catalog_repository.dart';
+import 'package:ycp_store/src/features/cart/data/cart_mappers.dart';
+import 'package:ycp_store/src/features/catalog/data/catalog_mappers.dart';
+import 'package:ycp_store/src/features/catalog/data/supabase_catalog_repository.dart';
+import 'package:ycp_store/src/features/orders/data/order_mappers.dart';
 import 'package:ycp_store/src/data/models.dart';
 
 /// Regression tests for the parsing layer.
@@ -50,7 +53,7 @@ void main() {
         ],
       };
 
-      final variant = Variant.fromJson(
+      final variant = variantFromJson(
         (row['variants'] as List).first as Map<String, dynamic>,
       );
       expect(variant.sku, 'MLBB-86');
@@ -59,7 +62,7 @@ void main() {
       expect(variant.isUnlimited, isTrue);
       expect(variant.isSoldOut, isFalse);
 
-      final category = Category.fromJson(
+      final category = categoryFromJson(
         row['category'] as Map<String, dynamic>,
       );
       expect(category.slug, 'game-topup');
@@ -67,7 +70,7 @@ void main() {
 
     test('a partial variant payload degrades instead of throwing', () {
       // The exact shape that took the catalogue down. It must not throw.
-      final variant = Variant.fromJson({
+      final variant = variantFromJson({
         'id': 9,
         'price_usd': 0.99,
         'compare_at_price_usd': null,
@@ -90,7 +93,7 @@ void main() {
         <String>['userid', 'serverid', 'charname'],
       ]) {
         final parsed = fields
-            .map((key) => RequiredField.fromJson({'key': key}))
+            .map((key) => requiredFieldFromJson({'key': key}))
             .toList();
 
         expect(parsed.length, fields.length);
@@ -103,7 +106,7 @@ void main() {
     });
 
     test('order with items and a null paid_at', () {
-      final order = Order.fromJson({
+      final order = orderFromJson({
         'id': '11111111-1111-1111-1111-111111111111',
         'order_no': 'YP261015ABC123',
         'status': 'delivering',
@@ -135,7 +138,7 @@ void main() {
     });
 
     test('wallet ledger entry where order_id is null', () {
-      final tx = WalletTransaction.fromJson({
+      final tx = walletTransactionFromJson({
         'id': 5,
         'kind': 'topup',
         'amount_usd': 25.0,
@@ -182,7 +185,7 @@ void main() {
       );
 
       // SharedPreferences only stores strings, so this is the real path.
-      final restored = CartLine.fromJson(line.toJson());
+      final restored = cartLineFromJson(cartLineToJson(line));
 
       expect(restored.fields['userid'], '262856740');
       expect(restored.fields['serverid'], '3543');
@@ -224,14 +227,14 @@ void main() {
         minQty: 1,
       );
 
-      final restored = CartLine.fromJson(line.toJson());
+      final restored = cartLineFromJson(cartLineToJson(line));
       expect(restored.needsFields, isFalse);
       expect(restored.fields, isEmpty);
     });
   });
 
   group('query columns cannot drift from the parsers', () {
-    // Every field Variant.fromJson reads. If a new one is added there, add it
+    // Every field variantFromJson reads. If a new one is added there, add it
     // here too and the select will fail this test rather than production.
     const variantFieldsReadByParser = [
       'id',
@@ -247,24 +250,24 @@ void main() {
 
     const categoryFieldsReadByParser = ['id', 'slug', 'name_km', 'name_en'];
 
-    test('variantColumns covers Variant.fromJson', () {
+    test('variantColumns covers variantFromJson', () {
       for (final field in variantFieldsReadByParser) {
         expect(
           variantColumns,
           contains(field),
           reason:
-              'variantColumns is missing "$field", which Variant.fromJson reads',
+              'variantColumns is missing "$field", which variantFromJson reads',
         );
       }
     });
 
-    test('categoryColumns covers Category.fromJson', () {
+    test('categoryColumns covers categoryFromJson', () {
       for (final field in categoryFieldsReadByParser) {
         expect(
           categoryColumns,
           contains(field),
           reason:
-              'categoryColumns is missing "$field", which Category.fromJson reads',
+              'categoryColumns is missing "$field", which categoryFromJson reads',
         );
       }
     });

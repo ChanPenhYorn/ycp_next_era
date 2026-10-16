@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme.dart';
 import '../data/models.dart';
-import '../data/order_repository.dart';
+import '../features/orders/domain/order_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/admin_widgets.dart';
@@ -132,7 +132,10 @@ class _TicketCardState extends ConsumerState<_TicketCard> {
                   ),
                 ),
               ),
-              _Tag(_statusLabel(ticket.status, l10n), _statusTone(ticket.status)),
+              _Tag(
+                _statusLabel(ticket.status, l10n),
+                _statusTone(ticket.status),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -179,9 +182,7 @@ class _TicketCardState extends ConsumerState<_TicketCard> {
                     style: const TextStyle(fontSize: 11),
                   ),
                   selected: ticket.priority == value,
-                  onSelected: _busy
-                      ? null
-                      : (_) => _set(priority: value),
+                  onSelected: _busy ? null : (_) => _set(priority: value),
                 ),
             ],
           ),
@@ -256,7 +257,11 @@ class _TicketCardState extends ConsumerState<_TicketCard> {
     } on OrderException catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _toast(error.code == 'not_authorized' ? l10n.adminOnly : l10n.somethingWentWrong);
+      _toast(
+        error.code == 'not_authorized'
+            ? l10n.adminOnly
+            : l10n.somethingWentWrong,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -306,9 +311,6 @@ class _Tag extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       border: Border.all(color: color.withValues(alpha: 0.35)),
     ),
-    child: Text(
-      label,
-      style: TextStyle(fontSize: 10.5, color: color),
-    ),
+    child: Text(label, style: TextStyle(fontSize: 10.5, color: color)),
   );
 }

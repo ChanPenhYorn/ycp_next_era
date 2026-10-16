@@ -5,14 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../data/models.dart';
-import '../data/order_repository.dart';
+import '../features/orders/domain/order_entities.dart';
+import '../features/orders/domain/order_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/confetti.dart';
 import 'widgets/khqr_sheet.dart';
 import 'widgets/manual_payment_panel.dart';
+import 'widgets/order_progress.dart';
 import 'widgets/review_sheet.dart';
 import 'widgets/status_chip.dart';
+import 'widgets/surface_card.dart';
 
 class OrderDetailPage extends ConsumerStatefulWidget {
   const OrderDetailPage({required this.orderId, super.key});
@@ -48,19 +52,29 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Row(
-              children: [
-                Text(
-                  value.orderNo,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+            SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          value.orderNo,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      OrderStatusChip(status: value.status),
+                    ],
                   ),
-                ),
-                const Spacer(),
-                OrderStatusChip(status: value.status),
-              ],
+                  const SizedBox(height: 18),
+                  OrderProgress(status: value.status),
+                ],
+              ),
             ),
             const SizedBox(height: 14),
             for (final item in value.items)
@@ -75,13 +89,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 onReview: () => _writeReview(value, item),
               ),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.ink900,
-                border: Border.all(color: AppColors.ink800),
-                borderRadius: BorderRadius.circular(12),
-              ),
+            SurfaceCard(
               child: Column(
                 children: [
                   _row(l10n.subtotal, money(value.subtotalUsd)),
@@ -150,12 +158,14 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         _codes = codes;
         _busy = false;
       });
-    } on OrderException catch (error) {
+      // The codes are the delivery. If anything deserves a burst, it is this.
+      if (codes.isNotEmpty) showConfetti(context);
+    } on OrderException {
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.code)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppL10n.of(context).somethingWentWrong)),
+      );
     }
   }
 
@@ -232,71 +242,69 @@ class _OrderItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final needsSetup = item.deliveryStatus == DeliveryStatus.manualWaiting;
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.ink900,
-        border: Border.all(color: AppColors.ink800),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${item.productName} · ${item.variantLabel}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SurfaceCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${item.productName} · ${item.variantLabel}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              Text('x${item.qty}', style: const TextStyle(fontSize: 12)),
+                Text('x${item.qty}', style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (codes.isEmpty) ...[
+              if (needsSetup)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.support_agent,
+                      size: 14,
+                      color: AppColors.warn,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.manualWaiting,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.warn,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Text(
+                  money(item.lineTotalUsd),
+                  style: const TextStyle(fontSize: 12, color: AppColors.ink400),
+                ),
+            ] else ...[
+              for (final code in codes) _CodeChip(code: code),
+              if (canReview)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: onReview,
+                    icon: const Icon(Icons.rate_review_outlined, size: 16),
+                    label: Text(
+                      l10n.writeReview,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
             ],
-          ),
-          const SizedBox(height: 8),
-          if (codes.isEmpty) ...[
-            if (needsSetup)
-              Row(
-                children: [
-                  const Icon(
-                    Icons.support_agent,
-                    size: 14,
-                    color: AppColors.warn,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    l10n.manualWaiting,
-                    style: const TextStyle(fontSize: 11, color: AppColors.warn),
-                  ),
-                ],
-              )
-            else
-              Text(
-                money(item.lineTotalUsd),
-                style: const TextStyle(fontSize: 12, color: AppColors.ink400),
-              ),
-          ] else ...[
-            for (final code in codes) _CodeChip(code: code),
-            if (canReview)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: onReview,
-                  icon: const Icon(Icons.rate_review_outlined, size: 16),
-                  label: Text(
-                    l10n.writeReview,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -336,9 +344,9 @@ class _CodeChip extends StatelessWidget {
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: code));
               if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Copied')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppL10n.of(context).copied)),
+                );
               }
             },
           ),

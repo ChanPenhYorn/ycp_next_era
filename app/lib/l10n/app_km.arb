@@ -20,6 +20,16 @@
   "featured": "ពេញនិយម",
   "categories": "ប្រភេទផលិតផល",
   "allProducts": "ផលិតផលទាំងអស់",
+  "searchNoResults": "គ្មានហ្គេមត្រូវនឹងការស្វែងរកនេះទេ។ សាកឈ្មោះផ្សេង។",
+  "clearSearch": "លុបការស្វែងរក",
+  "searchActive": "ការស្វែងរក៖ {term}",
+  "@searchActive": {
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
   "noProducts": "មិនទាន់មានផលិតផល",
   "trustInstant": "ដឹកជញ្ជូនស្វ័យប្រវត្តិ",
   "heroTitle": "បញ្ចូលទឹកប្រាក់ហ្គេមក្នុងរយៈពេលពីរបីវិនាទី",
@@ -115,6 +125,7 @@
   "connectTelegram": "ភ្ជាប់ Telegram",
   "telegramConnected": "បានភ្ជាប់ Telegram",
   "telegramHint": "ទទួលសារភ្លាមៗ នៅពេលការបញ្ជាទិញរួចរាល់ និងមើលកូដក្នុង Telegram។",
+  "telegramUnlinkHint": "ដើម្បីផ្តាច់ សូមផ្ញើ /unlink ក្នុងការសន្ទនា។",
   "telegramCodeHint": "ផ្ញើកូដនេះទៅ bot ដើម្បីភ្ជាប់គណនី",
   "telegramWait": "កំពុងរង់ចាំការផ្ញើកូដ...",
   "copyCode": "ចម្លងកូដ",
@@ -186,6 +197,8 @@
   "navGames": "ហ្គេម",
   "searchGames": "ស្វែងរកហ្គេម...",
   "popularGames": "ហ្គេមពេញនិយម",
+  "buyAgain": "ទិញម្តងទៀត",
+  "trendingNow": "កំពុងពេញនិយម",
   "promotions": "ប្រូម៉ូសិន",
   "promotionsSubtitle": "ការបញ្ចុះតម្លៃពិតលើកញ្ចប់មួយចំនួន",
   "howItWorks": "របៀបទិញ",
@@ -204,9 +217,6 @@
   "trustRefundBody": "បើមិនអាចផ្តល់ជូនបាន ទឹកប្រាក់នឹងត្រឡប់ទៅកាបូបលុយរបស់អ្នកវិញ។ ការសងប្រាក់ទៅគណនីធនាគារ ត្រូវទាក់ទងជំនួយ។",
   "trustSupportTitle": "ជំនួយ",
   "trustSupportBody": "ផ្ញើលេខការបញ្ជាទិញមកយើង យើងនឹងបន្តជួយ។",
-  "partnerTitle": "ដៃគូផ្គត់ផ្គង់",
-  "partnerBody": "ការបញ្ចូលទឹកប្រាក់ជាច្រើនត្រូវបានដំណើរការដោយស្វ័យប្រវត្តិតាមរយៈដៃគូផ្គត់ផ្គង់ Bay2Game របស់យើង។",
-  "partnerBadge": "ដំណើរការដោយស្វ័យប្រវត្តិ",
   "contactSupport": "ទាក់ទងជំនួយ",
   "statusRefundPending": "កំពុងរង់ចាំការសងប្រាក់វិញ",
   "fieldHelpTooltip": "របៀបរកវា",

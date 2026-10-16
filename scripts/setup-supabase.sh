@@ -46,7 +46,13 @@ if [ -n "${DATABASE_PASSWORD:-}" ]; then
 else
   warn "DATABASE_PASSWORD empty in $ENV_FILE, the CLI will prompt"
 fi
-supabase db push "${PUSH_ARGS[@]}"
+# `"${PUSH_ARGS[@]}"` on an empty array trips `set -u` under macOS bash 3.2,
+# so branch instead of expanding blindly.
+if [ ${#PUSH_ARGS[@]} -gt 0 ]; then
+  supabase db push "${PUSH_ARGS[@]}"
+else
+  supabase db push
+fi
 ok "schema, RLS and RPCs applied"
 
 step "Uploading Edge Function secrets"

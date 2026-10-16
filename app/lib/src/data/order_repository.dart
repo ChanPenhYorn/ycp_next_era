@@ -41,6 +41,7 @@ class Profile {
 
   bool get telegramLinked => telegramChatId != null;
   bool get isStaff => role == 'staff' || role == 'admin';
+  bool get isAdmin => role == 'admin';
 }
 
 /// Returned by create_telegram_link_code.

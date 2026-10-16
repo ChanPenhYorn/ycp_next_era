@@ -994,3 +994,81 @@ begin
   end if;
   raise notice 'PASS [supplier_queue]: stuck lines listed, delivered excluded, manual first';
 end $$;
+
+\echo '### 80. only admins change roles; a self-change and a staff caller are refused'
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('44444444-4444-4444-4444-444444444444', 'staff@example.test', '{"display_name":"Staff"}'::jsonb)
+on conflict (id) do nothing;
+update public.profiles set role = 'staff' where id = '44444444-4444-4444-4444-444444444444';
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select pg_temp.expect_error('customer_cannot_set_role',
+  $q$select public.admin_set_role('44444444-4444-4444-4444-444444444444', 'admin')$q$,
+  'not_authorized%');
+select pg_temp.expect_error('customer_cannot_list_staff',
+  $q$select public.admin_list_staff()$q$, 'not_authorized%');
+reset role;
+
+select set_config('request.jwt.claim.sub', '44444444-4444-4444-4444-444444444444', false);
+set role authenticated;
+select pg_temp.expect_error('staff_cannot_set_role',
+  $q$select public.admin_set_role('22222222-2222-2222-2222-222222222222', 'staff')$q$,
+  'not_authorized%');
+select pg_temp.expect_error('staff_cannot_find_user',
+  $q$select public.admin_find_user('buyer@example.test')$q$, 'not_authorized%');
+reset role;
+
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select pg_temp.expect_error('admin_cannot_change_own_role',
+  $q$select public.admin_set_role('11111111-1111-1111-1111-111111111111', 'customer')$q$,
+  'cannot_change_own_role%');
+reset role;
+select set_config('harness.admin_id', '11111111-1111-1111-1111-111111111111', false);
+do $$
+begin
+  if (select role from public.profiles where id = current_setting('harness.admin_id')::uuid) <> 'admin' then
+    raise exception 'FAIL [self_change_kept]: the acting admin lost the role';
+  end if;
+  raise notice 'PASS [roles_guarded]: customer and staff refused, self-change refused, admin kept';
+end $$;
+
+\echo '### 81. an admin promotes and demotes, finds by email, and every change is audited'
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select public.admin_set_role('44444444-4444-4444-4444-444444444444', 'admin') ->> 'role' as promoted;
+select public.admin_set_role('44444444-4444-4444-4444-444444444444', 'staff') ->> 'role' as demoted;
+select public.admin_find_user('BUYER@example.test') ->> 'id' as found_by_email;
+select pg_temp.expect_error('unknown_email_not_found',
+  $q$select public.admin_find_user('nobody@example.test')$q$, 'user_not_found%');
+select count(*) as staff_rows from jsonb_array_elements(public.admin_list_staff()) x;
+reset role;
+select set_config('harness.staff_id', '44444444-4444-4444-4444-444444444444', false);
+do $$
+begin
+  if (select count(*) from public.audit_log
+       where action = 'role_change' and entity_id = current_setting('harness.staff_id')) <> 2 then
+    raise exception 'FAIL [role_audit]: expected two role_change rows (promote, demote)';
+  end if;
+  raise notice 'PASS [role_changes_audited]: promote and demote both recorded';
+end $$;
+
+\echo '### 82. the bootstrap is owner-only and makes an existing account admin'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select pg_temp.expect_error('app_role_cannot_bootstrap',
+  $q$select public.bootstrap_admin('buyer@example.test')$q$, 'permission denied%');
+reset role;
+select public.bootstrap_admin('buyer@example.test') ->> 'role' as bootstrapped;
+do $$
+begin
+  if (select role from public.profiles where id = '22222222-2222-2222-2222-222222222222') <> 'admin' then
+    raise exception 'FAIL [bootstrap]: buyer was not made admin';
+  end if;
+  raise notice 'PASS [bootstrap]: owner made the account admin';
+end $$;
+select pg_temp.expect_error('bootstrap_unknown_email',
+  $q$select public.bootstrap_admin('nobody@example.test')$q$, 'user_not_found%');
+update public.profiles set role = 'customer' where id = '22222222-2222-2222-2222-222222222222';

@@ -1060,3 +1060,25 @@ class SupplierQueueItem {
         ),
       );
 }
+
+/// A staff or admin account as the role screen shows it. `role` is the
+/// database's own word: `customer`, `staff` or `admin`.
+class StaffMember {
+  const StaffMember({
+    required this.id,
+    required this.displayName,
+    required this.role,
+  });
+
+  final String id;
+  final String displayName;
+  final String role;
+
+  bool get isAdmin => role == 'admin';
+
+  factory StaffMember.fromJson(Map<String, dynamic> json) => StaffMember(
+    id: json['id'] as String,
+    displayName: json['display_name'] as String? ?? '',
+    role: json['role'] as String? ?? 'customer',
+  );
+}

@@ -374,5 +374,18 @@
   "adminQueueConfirmTitle": "Mark this line delivered?",
   "adminQueueConfirmBody": "Only do this after you have delivered the top-up by hand. The buyer is not refunded.",
   "adminQueueDelivered": "Line marked delivered.",
-  "adminSavePrice": "Save price"
+  "adminSavePrice": "Save price",
+  "adminStaffTitle": "Staff & roles",
+  "adminStaffNote": "Only admins see this page. Staff run the admin screens; admins also manage roles.",
+  "adminStaffEmpty": "No staff accounts yet.",
+  "adminFindByEmail": "Find an account by email",
+  "adminEmailLabel": "Email",
+  "adminFindButton": "Find",
+  "adminRoleCustomer": "Customer",
+  "adminRoleStaff": "Staff",
+  "adminRoleAdmin": "Admin",
+  "adminSetRole": "Set role",
+  "adminRoleSaved": "Role updated.",
+  "adminCannotChangeOwn": "You cannot change your own role.",
+  "adminUserNotFound": "No account with that email. Ask them to sign up first."
 }

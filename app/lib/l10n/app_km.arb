@@ -322,5 +322,18 @@
   "adminQueueConfirmTitle": "សម្គាល់បន្ទាត់នេះថាបានបញ្ជូន?",
   "adminQueueConfirmBody": "ធ្វើតែបន្ទាប់ពីអ្នកបានបញ្ជូនការបញ្ចូលដោយដៃប៉ុណ្ណោះ។ អតិថិជនមិនត្រូវបានសងប្រាក់វិញទេ។",
   "adminQueueDelivered": "បានសម្គាល់បន្ទាត់ថាបានបញ្ជូន។",
-  "adminSavePrice": "រក្សាទុកតម្លៃ"
+  "adminSavePrice": "រក្សាទុកតម្លៃ",
+  "adminStaffTitle": "បុគ្គលិក និងតួនាទី",
+  "adminStaffNote": "មានតែអ្នកគ្រប់គ្រងប៉ុណ្ណោះដែលឃើញទំព័រនេះ។ បុគ្គលិកប្រើអេក្រង់គ្រប់គ្រង; អ្នកគ្រប់គ្រងកំណត់តួនាទីផងដែរ។",
+  "adminStaffEmpty": "គ្មានគណនីបុគ្គលិកទេ។",
+  "adminFindByEmail": "ស្វែងរកគណនីតាមអ៊ីមែល",
+  "adminEmailLabel": "អ៊ីមែល",
+  "adminFindButton": "ស្វែងរក",
+  "adminRoleCustomer": "អតិថិជន",
+  "adminRoleStaff": "បុគ្គលិក",
+  "adminRoleAdmin": "អ្នកគ្រប់គ្រង",
+  "adminSetRole": "កំណត់តួនាទី",
+  "adminRoleSaved": "បានធ្វើបច្ចុប្បន្នភាពតួនាទី។",
+  "adminCannotChangeOwn": "អ្នកមិនអាចផ្លាស់ប្តូរតួនាទីរបស់ខ្លួនឯងបានទេ។",
+  "adminUserNotFound": "គ្មានគណនីដែលមានអ៊ីមែលនេះទេ។ សូមស្នើឱ្យពួកគេចុះឈ្មោះជាមុន។"
 }

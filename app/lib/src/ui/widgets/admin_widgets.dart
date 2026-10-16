@@ -12,9 +12,12 @@ import '../../state/providers.dart';
 /// only — the database re-checks `is_staff()` in every RPC and every policy, so
 /// reaching a route by hand still yields no data and no action.
 class AdminGate extends ConsumerWidget {
-  const AdminGate({required this.child, super.key});
+  const AdminGate({required this.child, this.adminOnly = false, super.key});
 
   final Widget child;
+
+  /// Role management: only `admin`, not every staff account.
+  final bool adminOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,8 +25,9 @@ class AdminGate extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
 
     return profile.when(
-      data: (value) =>
-          (value?.isStaff ?? false) ? child : _Denied(l10n.adminOnly),
+      data: (value) => (adminOnly ? (value?.isAdmin ?? false) : (value?.isStaff ?? false))
+          ? child
+          : _Denied(l10n.adminOnly),
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(vertical: 48),
         child: Center(

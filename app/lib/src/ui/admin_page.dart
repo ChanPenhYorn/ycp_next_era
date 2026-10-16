@@ -22,6 +22,7 @@ class AdminPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppL10n.of(context);
     final overview = ref.watch(adminOverviewProvider);
+    final isAdmin = ref.watch(profileProvider).value?.isAdmin ?? false;
 
     return AdminGate(
       child: RefreshIndicator(
@@ -169,6 +170,12 @@ class AdminPage extends ConsumerWidget {
                           title: l10n.adminCatalogueTitle,
                           onTap: () => context.go('/admin/catalogue'),
                         ),
+                        if (isAdmin)
+                          AdminTile(
+                            icon: Icons.admin_panel_settings_outlined,
+                            title: l10n.adminStaffTitle,
+                            onTap: () => context.go('/admin/staff'),
+                          ),
                       ],
                     ),
                   ),

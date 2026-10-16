@@ -1040,4 +1040,46 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get adminSavePrice => 'រក្សាទុកតម្លៃ';
+
+  @override
+  String get adminStaffTitle => 'បុគ្គលិក និងតួនាទី';
+
+  @override
+  String get adminStaffNote =>
+      'មានតែអ្នកគ្រប់គ្រងប៉ុណ្ណោះដែលឃើញទំព័រនេះ។ បុគ្គលិកប្រើអេក្រង់គ្រប់គ្រង; អ្នកគ្រប់គ្រងកំណត់តួនាទីផងដែរ។';
+
+  @override
+  String get adminStaffEmpty => 'គ្មានគណនីបុគ្គលិកទេ។';
+
+  @override
+  String get adminFindByEmail => 'ស្វែងរកគណនីតាមអ៊ីមែល';
+
+  @override
+  String get adminEmailLabel => 'អ៊ីមែល';
+
+  @override
+  String get adminFindButton => 'ស្វែងរក';
+
+  @override
+  String get adminRoleCustomer => 'អតិថិជន';
+
+  @override
+  String get adminRoleStaff => 'បុគ្គលិក';
+
+  @override
+  String get adminRoleAdmin => 'អ្នកគ្រប់គ្រង';
+
+  @override
+  String get adminSetRole => 'កំណត់តួនាទី';
+
+  @override
+  String get adminRoleSaved => 'បានធ្វើបច្ចុប្បន្នភាពតួនាទី។';
+
+  @override
+  String get adminCannotChangeOwn =>
+      'អ្នកមិនអាចផ្លាស់ប្តូរតួនាទីរបស់ខ្លួនឯងបានទេ។';
+
+  @override
+  String get adminUserNotFound =>
+      'គ្មានគណនីដែលមានអ៊ីមែលនេះទេ។ សូមស្នើឱ្យពួកគេចុះឈ្មោះជាមុន។';
 }

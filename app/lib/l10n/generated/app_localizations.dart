@@ -2034,6 +2034,84 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Save price'**
   String get adminSavePrice;
+
+  /// No description provided for @adminStaffTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff & roles'**
+  String get adminStaffTitle;
+
+  /// No description provided for @adminStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Only admins see this page. Staff run the admin screens; admins also manage roles.'**
+  String get adminStaffNote;
+
+  /// No description provided for @adminStaffEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No staff accounts yet.'**
+  String get adminStaffEmpty;
+
+  /// No description provided for @adminFindByEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Find an account by email'**
+  String get adminFindByEmail;
+
+  /// No description provided for @adminEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get adminEmailLabel;
+
+  /// No description provided for @adminFindButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Find'**
+  String get adminFindButton;
+
+  /// No description provided for @adminRoleCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get adminRoleCustomer;
+
+  /// No description provided for @adminRoleStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff'**
+  String get adminRoleStaff;
+
+  /// No description provided for @adminRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get adminRoleAdmin;
+
+  /// No description provided for @adminSetRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Set role'**
+  String get adminSetRole;
+
+  /// No description provided for @adminRoleSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Role updated.'**
+  String get adminRoleSaved;
+
+  /// No description provided for @adminCannotChangeOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot change your own role.'**
+  String get adminCannotChangeOwn;
+
+  /// No description provided for @adminUserNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No account with that email. Ask them to sign up first.'**
+  String get adminUserNotFound;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

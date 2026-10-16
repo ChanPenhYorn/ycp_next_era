@@ -1044,4 +1044,45 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get adminSavePrice => 'Save price';
+
+  @override
+  String get adminStaffTitle => 'Staff & roles';
+
+  @override
+  String get adminStaffNote =>
+      'Only admins see this page. Staff run the admin screens; admins also manage roles.';
+
+  @override
+  String get adminStaffEmpty => 'No staff accounts yet.';
+
+  @override
+  String get adminFindByEmail => 'Find an account by email';
+
+  @override
+  String get adminEmailLabel => 'Email';
+
+  @override
+  String get adminFindButton => 'Find';
+
+  @override
+  String get adminRoleCustomer => 'Customer';
+
+  @override
+  String get adminRoleStaff => 'Staff';
+
+  @override
+  String get adminRoleAdmin => 'Admin';
+
+  @override
+  String get adminSetRole => 'Set role';
+
+  @override
+  String get adminRoleSaved => 'Role updated.';
+
+  @override
+  String get adminCannotChangeOwn => 'You cannot change your own role.';
+
+  @override
+  String get adminUserNotFound =>
+      'No account with that email. Ask them to sign up first.';
 }

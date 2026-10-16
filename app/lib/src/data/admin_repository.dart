@@ -255,6 +255,28 @@ class AdminRepository {
   }
 
   // --------------------------------------------------------------------------
+  // Roles (admins only)
+  // --------------------------------------------------------------------------
+
+  Future<List<StaffMember>> staffMembers() async {
+    final result = await _client.rpc('admin_list_staff');
+    return ((result as List?) ?? const [])
+        .map((e) => StaffMember.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// Finds a sign-up by email. Throws `user_not_found` when there is none.
+  Future<StaffMember> findUserByEmail(String email) async {
+    final result = await _jsonRpc('admin_find_user', {'p_email': email});
+    return StaffMember.fromJson(result);
+  }
+
+  /// The database refuses a self-change and removing the last admin.
+  Future<void> setRole({required String userId, required String role}) async {
+    await _voidRpc('admin_set_role', {'p_user_id': userId, 'p_role': role});
+  }
+
+  // --------------------------------------------------------------------------
   // Support
   // --------------------------------------------------------------------------
 

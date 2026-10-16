@@ -129,6 +129,12 @@ final adminSupplierQueueProvider = FutureProvider<List<SupplierQueueItem>>((
   return ref.watch(adminRepositoryProvider).supplierQueue();
 });
 
+/// Staff and admin accounts. Admins only; a staff session gets an error.
+final adminStaffProvider = FutureProvider<List<StaffMember>>((ref) {
+  ref.watch(currentUserProvider);
+  return ref.watch(adminRepositoryProvider).staffMembers();
+});
+
 final localeControllerProvider = NotifierProvider<LocaleController, Locale>(
   LocaleController.new,
 );

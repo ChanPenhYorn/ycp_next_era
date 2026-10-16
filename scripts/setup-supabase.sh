@@ -113,4 +113,7 @@ cat <<EOF
       --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable key>
 EOF
 
+step "Make the first admin (after that account signs up in the app)"
+echo "    ./scripts/bootstrap-admin.sh     # uses ADMIN_EMAIL from .env.local"
+
 printf '\n\033[32mDone.\033[0m\n'

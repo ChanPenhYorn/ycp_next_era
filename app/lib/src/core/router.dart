@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../state/providers.dart';
 import '../ui/admin_catalogue_page.dart';
 import '../ui/admin_order_detail_page.dart';
+import '../ui/admin_staff_page.dart';
 import '../ui/admin_orders_page.dart';
 import '../ui/admin_page.dart';
 import '../ui/admin_refunds_page.dart';
@@ -183,6 +184,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/catalogue',
             pageBuilder: (context, state) =>
                 _fadePage(state, const AdminCataloguePage()),
+          ),
+          GoRoute(
+            path: '/admin/staff',
+            pageBuilder: (context, state) =>
+                _fadePage(state, const AdminStaffPage()),
           ),
           GoRoute(
             path: '/admin/supplier-queue',

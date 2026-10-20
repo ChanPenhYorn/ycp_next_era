@@ -5,6 +5,28 @@ enum ProductKind { instantStock, autoTopup, manualSetup }
 
 enum StockMode { stock, unlimited }
 
+/// What the catalogue currently says about a variant a saved cart still holds.
+///
+/// A cart is stored in `shared_preferences` and outlives the catalogue, so a
+/// line can disagree with the database: staff hide the product, a supplier sync
+/// deactivates the SKU, or a supplier cap arrives that the line was built
+/// before. Reading the live values back lets the cart correct itself and say
+/// what changed, instead of sending a stale line to `create_order` to be
+/// refused.
+class LiveVariant {
+  const LiveVariant({
+    required this.id,
+    required this.sku,
+    required this.minQty,
+    required this.maxQty,
+  });
+
+  final int id;
+  final String sku;
+  final int minQty;
+  final int maxQty;
+}
+
 class RequiredField {
   const RequiredField({
     required this.key,

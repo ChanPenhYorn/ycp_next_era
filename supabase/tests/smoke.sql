@@ -1072,3 +1072,285 @@ end $$;
 select pg_temp.expect_error('bootstrap_unknown_email',
   $q$select public.bootstrap_admin('nobody@example.test')$q$, 'user_not_found%');
 update public.profiles set role = 'customer' where id = '22222222-2222-2222-2222-222222222222';
+
+\echo '### 83. a supplier that cannot take a quantity is capped at one unit'
+-- Bay2Game's /create_order takes a product_code and buyer fields only, so a
+-- line for two would be delivered once. The adapter declares
+-- supportsQuantity: false and the sync sends max_qty: 1.
+reset role;
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_game', 'Fit Game', null, 'fit',
+  '["userid","serverid"]'::jsonb,
+  '[{"product_code":"FIT_100","name":"100 Coins","price_usd":2.00,"sort":1},
+    {"product_code":"FIT_500","name":"500 Coins","price_usd":9.00,"sort":2}]'::jsonb
+) as synced_without_cap;
+-- The general default is untouched, so a supplier that does take a quantity
+-- keeps its 50.
+select sku, min_qty, max_qty from public.product_variants
+ where sku in ('FIT_100','FIT_500') order by sku;
+
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_game', 'Fit Game', null, 'fit',
+  '["userid","serverid"]'::jsonb,
+  '[{"product_code":"FIT_100","name":"100 Coins","price_usd":2.00,"sort":1,"max_qty":1},
+    {"product_code":"FIT_500","name":"500 Coins","price_usd":9.00,"sort":2,"max_qty":1}]'::jsonb
+) as synced_with_cap;
+select sku, min_qty, max_qty from public.product_variants
+ where sku in ('FIT_100','FIT_500') order by sku;
+
+do $$
+begin
+  if exists (select 1 from public.product_variants
+              where sku in ('FIT_100','FIT_500') and (min_qty <> 1 or max_qty <> 1)) then
+    raise exception 'FAIL [supplier_qty_cap]: a quantity-less supplier kept a multi-unit bound';
+  end if;
+  raise notice 'PASS [supplier_qty_cap]: capped at one unit, and a re-sync repairs the old cap';
+end $$;
+
+\echo '### 84. create_order refuses a quantity the supplier cannot deliver'
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select pg_temp.expect_error(
+  'supplier_qty_over_cap',
+  $q$select public.create_order(
+       jsonb_build_array(jsonb_build_object(
+         'variant_id', (select id from public.product_variants where sku = 'FIT_100'),
+         'qty', 2)),
+       null, jsonb_build_object('userid', '262856740', 'serverid', '3543'), null, null)$q$,
+  'qty_out_of_range%');
+-- One unit still goes through.
+select public.create_order(
+  jsonb_build_array(jsonb_build_object(
+    'variant_id', (select id from public.product_variants where sku = 'FIT_100'),
+    'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '3543'), null, null)
+  ->> 'order_no' as fit_order_no;
+reset role;
+
+\echo '### 85. a sync deactivates what the supplier no longer lists'
+reset role;
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_a', 'Fit A', null, 'a', '["userid","serverid"]'::jsonb,
+  '[{"product_code":"FITA_1","name":"A1","price_usd":1.00,"sort":1,"max_qty":1},
+    {"product_code":"FITA_2","name":"A2","price_usd":2.00,"sort":2,"max_qty":1}]'::jsonb
+) as fit_a_first;
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_b', 'Fit B', null, 'b', '["userid","serverid"]'::jsonb,
+  '[{"product_code":"FITB_1","name":"B1","price_usd":3.00,"sort":1,"max_qty":1}]'::jsonb
+) as fit_b_first;
+
+-- Second pull of the same game without A2.
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_a', 'Fit A', null, 'a', '["userid","serverid"]'::jsonb,
+  '[{"product_code":"FITA_1","name":"A1","price_usd":1.00,"sort":1,"max_qty":1}]'::jsonb
+) ->> 'variants_deactivated' as fit_a_deactivated;
+
+select v.sku, v.is_active as variant_active, ss.is_active as link_active
+  from public.product_variants v
+  join public.supplier_skus ss on ss.variant_id = v.id
+ where v.sku in ('FITA_1','FITA_2') order by v.sku;
+select is_active as fit_a_on_sale from public.products where slug = 'bay2game-fit_a';
+
+do $$
+begin
+  if (select is_active from public.product_variants where sku = 'FITA_2') then
+    raise exception 'FAIL [supplier_stale_sku]: a dropped SKU stayed sellable';
+  end if;
+  if not (select is_active from public.product_variants where sku = 'FITA_1') then
+    raise exception 'FAIL [supplier_stale_sku]: a still-listed SKU was switched off';
+  end if;
+  if exists (select 1 from public.supplier_skus ss
+               join public.product_variants v on v.id = ss.variant_id
+              where v.sku = 'FITA_2' and ss.is_active) then
+    raise exception 'FAIL [supplier_stale_sku]: the SKU link stayed active';
+  end if;
+  if not (select is_active from public.products where slug = 'bay2game-fit_a') then
+    raise exception 'FAIL [supplier_stale_sku]: a game with one line left was hidden';
+  end if;
+  raise notice 'PASS [supplier_stale_sku]: dropped SKU and its link deactivated, the rest kept';
+end $$;
+
+-- A SKU that reappears under another game leaves the old game with nothing on
+-- sale, so the old game must stop being shown.
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_b', 'Fit B', null, 'b', '["userid","serverid"]'::jsonb,
+  '[{"product_code":"FITB_1","name":"B1","price_usd":3.00,"sort":1,"max_qty":1},
+    {"product_code":"FITA_1","name":"A1 moved","price_usd":1.00,"sort":2,"max_qty":1}]'::jsonb
+) as fit_b_move;
+select is_active as fit_a_after_move from public.products where slug = 'bay2game-fit_a';
+
+do $$
+begin
+  if (select is_active from public.products where slug = 'bay2game-fit_a') then
+    raise exception 'FAIL [supplier_empty_game]: a game with no active line stayed on sale';
+  end if;
+  raise notice 'PASS [supplier_empty_game]: a game left with nothing on sale is hidden';
+end $$;
+
+-- An empty pull is NOT a snapshot. A supplier outage, a rate limit answered
+-- with an empty body, or a game with every package inactive must never empty
+-- the shop.
+select public.supplier_upsert_catalogue(
+  'bay2game', 'fit_b', 'Fit B', null, 'b', '["userid","serverid"]'::jsonb,
+  '[]'::jsonb
+) as fit_b_empty_pull;
+select count(*) filter (where v.is_active) as still_active,
+       count(*) as total
+  from public.product_variants v
+  join public.products p on p.id = v.product_id
+ where p.slug = 'bay2game-fit_b';
+
+do $$
+begin
+  if (select count(*) from public.product_variants v
+        join public.products p on p.id = v.product_id
+       where p.slug = 'bay2game-fit_b' and v.is_active) <> 2 then
+    raise exception 'FAIL [supplier_empty_pull]: an empty pull deactivated lines';
+  end if;
+  raise notice 'PASS [supplier_empty_pull]: an empty pull leaves the catalogue alone';
+end $$;
+
+\echo '### 86. an auto top-up with no supplier behind it is a staff job, not a pending one'
+reset role;
+-- The shape the demo catalogue has: `auto_topup` with no supplier SKU at all.
+-- No worker can ever order it, so parking it as `pending` hides the order from
+-- the only person who could deliver it.
+insert into public.products (
+  category_id, slug, name_km, name_en, kind, requires_fields, is_active, sort_order
+) values (
+  (select id from public.categories where slug = 'game-topup'),
+  'unlinked-topup', 'បញ្ចូលគ្មានអ្នកផ្គត់ផ្គង់', 'Unlinked Top-Up', 'auto_topup',
+  '[{"key":"userid","label_km":"Game ID","label_en":"Game ID"},
+    {"key":"serverid","label_km":"Server","label_en":"Server"}]'::jsonb,
+  true, 99
+) on conflict (slug) do nothing;
+
+insert into public.product_variants (
+  product_id, sku, label_km, label_en, price_usd, stock_mode, min_qty, max_qty
+) values (
+  (select id from public.products where slug = 'unlinked-topup'),
+  'UNLINKED-1', 'គ្មានអ្នកផ្គត់ផ្គង់', 'Unlinked 1', 2.00, 'unlimited', 1, 1
+) on conflict (sku) do nothing;
+
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_order(
+  jsonb_build_array(jsonb_build_object(
+    'variant_id', (select id from public.product_variants where sku = 'UNLINKED-1'), 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '3543'), null, null) as unlinked_order;
+select id as uoid from public.orders order by created_at desc limit 1 \gset
+reset role;
+select public.mark_order_paid(:'uoid', 'payway', 'PW-UNLINKED-0001', 'abapay_khqr_deeplink', null, null) as unlinked_settled;
+
+-- The demo catalogue's own top-up is supplier-backed, so it still waits.
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_order(
+  jsonb_build_array(jsonb_build_object('variant_id', :mlbb86, 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '3543'), null, null) as linked_order;
+select id as loid from public.orders order by created_at desc limit 1 \gset
+reset role;
+select public.mark_order_paid(:'loid', 'payway', 'PW-LINKED-0001', 'abapay_khqr_deeplink', null, null) as linked_settled;
+
+select o.order_no, o.status, oi.delivery_status, oi.product_name
+  from public.order_items oi join public.orders o on o.id = oi.order_id
+ where oi.order_id in (:'uoid', :'loid') order by oi.delivery_status;
+
+select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
+select set_config('harness.unlinked_order', :'uoid', false),
+       set_config('harness.linked_order', :'loid', false);
+do $$
+declare
+  v_status text;
+  v_order  public.order_status;
+  v_seen   integer;
+begin
+  select oi.delivery_status, o.status into v_status, v_order
+    from public.order_items oi join public.orders o on o.id = oi.order_id
+   where oi.order_id = current_setting('harness.unlinked_order')::uuid;
+
+  if v_status <> 'manual_waiting' then
+    raise exception 'FAIL [unlinked_topup]: line is %, not manual_waiting', v_status;
+  end if;
+  -- The goods are still owed, so the order stays open.
+  if v_order <> 'delivering' then
+    raise exception 'FAIL [unlinked_topup]: order is %, expected delivering', v_order;
+  end if;
+  -- No worker can finish it, so it must not be offered to one...
+  select count(*) into v_seen from public.supplier_pending_items(50)
+   where order_id = current_setting('harness.unlinked_order')::uuid;
+  if v_seen <> 0 then
+    raise exception 'FAIL [unlinked_topup]: a line with no supplier is queued for the worker';
+  end if;
+  -- ...but staff must be able to see it.
+  select count(*) into v_seen
+    from jsonb_array_elements(public.admin_supplier_queue(200)) q
+   where (q ->> 'item_id')::bigint in (
+     select id from public.order_items
+      where order_id = current_setting('harness.unlinked_order')::uuid);
+  if v_seen = 0 then
+    raise exception 'FAIL [unlinked_topup]: staff cannot see the line';
+  end if;
+
+  select oi.delivery_status into v_status from public.order_items oi
+   where oi.order_id = current_setting('harness.linked_order')::uuid;
+  if v_status <> 'pending' then
+    raise exception 'FAIL [linked_topup]: a linked line was handed to staff (%)', v_status;
+  end if;
+
+  raise notice 'PASS [unlinked_topup]: no supplier -> staff queue, linked -> worker';
+end $$;
+
+\echo '### 87. the repair moves lines already stuck, and nothing else'
+reset role;
+-- Pretend the orders were settled before the rule above existed.
+update public.order_items set delivery_status = 'pending'
+ where order_id = current_setting('harness.unlinked_order')::uuid;
+
+-- An order that was never paid, so it is not waiting on delivery at all.
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+set role authenticated;
+select public.create_order(
+  jsonb_build_array(jsonb_build_object(
+    'variant_id', (select id from public.product_variants where sku = 'UNLINKED-1'), 'qty', 1)),
+  null, jsonb_build_object('userid', '262856740', 'serverid', '3543'), null, null) as never_paid;
+select id as eoid from public.orders order by created_at desc limit 1 \gset
+reset role;
+update public.orders set status = 'expired' where id = :'eoid';
+select set_config('harness.expired_order', :'eoid', false);
+
+do $$
+declare
+  v_moved  integer;
+  v_status text;
+begin
+  select public.supplier_backfill_unlinked_items() into v_moved;
+  if v_moved <> 1 then
+    raise exception 'FAIL [backfill_count]: moved %, expected 1', v_moved;
+  end if;
+
+  select delivery_status into v_status from public.order_items
+   where order_id = current_setting('harness.unlinked_order')::uuid;
+  if v_status <> 'manual_waiting' then
+    raise exception 'FAIL [backfill_stuck]: the stuck line is still %', v_status;
+  end if;
+
+  select delivery_status into v_status from public.order_items
+   where order_id = current_setting('harness.linked_order')::uuid;
+  if v_status <> 'pending' then
+    raise exception 'FAIL [backfill_linked]: a supplier-backed line was moved to %', v_status;
+  end if;
+
+  select delivery_status into v_status from public.order_items
+   where order_id = current_setting('harness.expired_order')::uuid;
+  if v_status <> 'pending' then
+    raise exception 'FAIL [backfill_expired]: an unpaid order was dragged into staff work';
+  end if;
+
+  -- Running it again finds nothing to do.
+  if public.supplier_backfill_unlinked_items() <> 0 then
+    raise exception 'FAIL [backfill_idempotent]: a second run moved lines again';
+  end if;
+
+  raise notice 'PASS [backfill_unlinked]: stuck lines repaired, linked and unpaid left alone';
+end $$;

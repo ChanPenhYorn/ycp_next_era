@@ -6,6 +6,7 @@
 #   ./scripts/dev.sh -d macos         # same, on another device
 #   ./scripts/dev.sh --reset          # wipe and re-seed the database first
 #   ./scripts/dev.sh --no-run         # set everything up, do not launch the app
+#   ./scripts/dev.sh --no-worker      # skip the supplier worker loop
 #   ./scripts/dev.sh --reload-functions  # after editing an Edge Function
 #
 # It is safe to run repeatedly: every step checks the current state before
@@ -21,6 +22,7 @@ RUN_APP=1
 VERIFY=1
 RESET=0
 RELOAD=0
+WORKER=1
 FLUTTER_ARGS=()
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
@@ -32,6 +34,7 @@ for arg in "$@"; do
     --reset) RESET=1 ;;
     --no-verify) VERIFY=0 ;;
     --no-run) RUN_APP=0 ;;
+    --no-worker) WORKER=0 ;;
     --reload-functions) RELOAD=1 ;;
     *) FLUTTER_ARGS+=("$arg") ;;
   esac
@@ -109,7 +112,28 @@ if [ "$VERIFY" = "1" ]; then
   "$ROOT/scripts/verify-sandbox.sh" || die "Sandbox verification failed. See the list above."
 fi
 
-# --- 7. launch ------------------------------------------------------------
+# --- 7. the workers nothing else runs -------------------------------------
+# An auto top-up order sits in `delivering` until `supplier-fulfil` is called.
+# No cron calls it: locally this loop is the scheduler, and on a hosted project
+# the same job belongs in a schedule (docs/hosted-deploy.md).
+if [ "$WORKER" = "1" ]; then
+  step "Supplier worker"
+  "$ROOT/scripts/supplier-worker.sh" >/dev/null 2>&1 &
+  sleep 1
+  if pid="$(cat "$ROOT/.dev/supplier-worker.pid" 2>/dev/null)" && kill -0 "$pid" 2>/dev/null; then
+    note "running (pid $pid), one pass every 30s"
+  else
+    note "did not start; run ./scripts/supplier-worker.sh --once to see why"
+  fi
+  note "log: .dev/supplier-worker.log    stop: ./scripts/supplier-worker.sh --stop"
+  note "each pass places real supplier orders while BAY2GAME_API_KEY is live"
+  note "skip the worker with --no-worker"
+else
+  step "Supplier worker"
+  note "--no-worker: orders that need a supplier stay in 'delivering'"
+fi
+
+# --- 8. launch ------------------------------------------------------------
 if [ "$RUN_APP" = "1" ]; then
   has_device=0
   for arg in ${FLUTTER_ARGS[@]+"${FLUTTER_ARGS[@]}"}; do

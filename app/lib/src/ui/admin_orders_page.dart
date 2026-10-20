@@ -29,6 +29,12 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   late String? _status = widget.initialStatus;
   final _search = TextEditingController();
 
+  /// Rows to ask for. The provider default is 60, which used to be a silent
+  /// ceiling: an operator could neither see that it had been hit nor reach an
+  /// order below the cut. "Show more" raises it.
+  static const _pageSize = 60;
+  int _limit = _pageSize;
+
   @override
   void dispose() {
     _search.dispose();
@@ -38,7 +44,11 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
-    final query = AdminOrderQuery(status: _status, search: _search.text);
+    final query = AdminOrderQuery(
+      status: _status,
+      search: _search.text,
+      limit: _limit,
+    );
     final orders = ref.watch(adminOrdersProvider(query));
 
     return AdminGate(
@@ -94,11 +104,30 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
             builder: (rows) => rows.isEmpty
                 ? AdminEmpty(l10n.adminNoOrders)
                 : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Without this the 60-row ceiling was invisible: the list
+                      // simply ended, which reads as "that is all of them".
+                      Text(
+                        l10n.adminShowingCount(rows.length),
+                        style: AppType.caption(context),
+                      ),
+                      const SizedBox(height: AppSpace.sm),
                       for (final row in rows)
                         _OrderRow(
                           order: row,
                           onTap: () => context.go('/admin/orders/${row.id}'),
+                        ),
+                      // Only when the window is full: a shorter list has
+                      // nothing behind it to fetch.
+                      if (rows.length >= _limit)
+                        Align(
+                          alignment: Alignment.center,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                setState(() => _limit += _pageSize),
+                            child: Text(l10n.showMore),
+                          ),
                         ),
                     ],
                   ),

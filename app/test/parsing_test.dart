@@ -215,6 +215,43 @@ void main() {
       expect(updated.requiredFields.length, 1);
     });
 
+    test('the SKU survives a round-trip, so errors can name the line', () {
+      const line = CartLine(
+        variantId: 9,
+        productSlug: 'bay2game-mlbb',
+        productName: 'MLBB',
+        variantLabel: '100 Diamonds',
+        unitPriceUsd: 1.5,
+        qty: 2,
+        maxQty: 50,
+        minQty: 1,
+        sku: 'MLBB_100',
+      );
+
+      final restored = cartLineFromJson(cartLineToJson(line));
+      expect(restored.sku, 'MLBB_100');
+    });
+
+    test('a cart saved before SKUs existed still loads', () {
+      // The real upgrade path: the stored JSON has no sku key at all.
+      final legacy = {
+        'variant_id': 4,
+        'product_slug': 'bay2game-mlbb',
+        'product_name': 'MLBB',
+        'variant_label': '100 Diamonds',
+        'unit_price_usd': 1.5,
+        'qty': 2,
+        'max_qty': 50,
+        'min_qty': 1,
+        'fields': <String, dynamic>{},
+        'required_fields': <dynamic>[],
+      };
+
+      final restored = cartLineFromJson(legacy);
+      expect(restored.sku, isEmpty);
+      expect(restored.qty, 2);
+    });
+
     test('a line without fields round-trips too', () {
       const line = CartLine(
         variantId: 3,

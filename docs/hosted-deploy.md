@@ -63,6 +63,9 @@ Each prod write is a separate confirmed step.
 4. **Push schema:** `supabase db push --linked`.
 5. **Auth config and email templates:** `supabase config push`. Templates live in
    `supabase/templates/`; they must print `{{ .Token }}` (six-digit code, not a link).
+   Keep *Confirm email* on and configure Resend SMTP with the snippet below. A plain
+   push from `supabase/config.toml` sets `enable_confirmations = false` (the local
+   default), which silently skips the registration code.
 6. **Secrets (prod only):** `supabase secrets set --env-file <tmp file>` with only:
    `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_DISPATCH_SECRET`,
    `PAYWAY_*`, `BAY2GAME_API_KEY`, `SUPPLIER_JOB_SECRET`, `STORE_APP_URL`.
@@ -82,11 +85,115 @@ Each prod write is a separate confirmed step.
 12. **Menu button and `STORE_APP_URL`:** already `https://chanpenh.store/`. Re-check after step 11.
 13. **Keep** `dev-api` tunnel for local development only.
 
+## Email OTP via Resend
+
+Hosted project uses Resend SMTP for sign-in codes, signup confirmation and
+password resets. `chanpenh.store` is verified in Resend, and Resend reports the
+confirmation mail as **delivered** to a real Gmail recipient.
+
+DNS records live in Cloudflare, DNS-only (grey cloud):
+
+| Type | Name | Value |
+|---|---|---|
+| TXT | `resend._domainkey` | DKIM public key from Resend |
+| MX | `send` | `feedback-smtp.us-east-1.amazonses.com` priority 10 |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+| CNAME | `rsend` | `send.forge.rmta.net` |
+
+The root MX stays with Zoho; these records only cover the `send`/`rsend`
+subdomains. If the domain is ever re-added, Resend issues new values — copy them
+from <https://resend.com/domains>, do not reuse these.
+
+SMTP settings for Supabase Auth (Authentication → Emails → SMTP):
+
+```toml
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(SUPABASE_AUTH_SMTP_PASS)"   # Resend API key, re_...
+admin_email = "noreply@chanpenh.store" # must be on the verified domain
+sender_name = "Chanpenh"
+```
+
+The hosted project is configured through `supabase config push` with the SMTP
+password stored as a secret. `SUPABASE_AUTH_SMTP_PASS` is only needed in the
+environment when pushing; do not commit it. Live sender: `noreply@chanpenh.store`.
+
+Proof run against the hosted project: `POST /auth/v1/signup` returned
+`confirmation_sent_at`, Resend listed the mail as delivered, and the six-digit
+code from that mail exchanged for a session at `POST /auth/v1/verify`. The test
+user was deleted afterwards.
+
+Local development does **not** use Resend: `supabase/config.toml` declares no SMTP
+block, so the local auth container keeps writing to Mailpit on :54324.
+
+## Schedule the workers (do not skip this)
+
+`supplier-fulfil` and `telegram-dispatch` are the only things that turn a paid
+auto top-up into a delivered one, and neither is called by anything on a timer.
+Without a schedule an order pays, flips to `delivering`, and stays there for
+ever while the buyer waits. Locally `scripts/dev.sh` starts
+`scripts/supplier-worker.sh` for you; on the hosted project the same two calls
+belong in pg_cron.
+
+Put the credentials in Vault first, so the schedule never carries them in
+plaintext. Run this once in the SQL editor (substitute `<ref>`):
+
+```sql
+select vault.create_secret('<anon JWT>',          'worker_jwt',            'scheduled worker auth');
+select vault.create_secret('<SUPPLIER_JOB_SECRET>',    'supplier_job_secret',   'supplier-fulfil job secret');
+select vault.create_secret('<TELEGRAM_DISPATCH_SECRET>','dispatch_secret',       'telegram-dispatch secret');
+
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+select cron.schedule('ycp-supplier-fulfil', '* * * * *', $job$
+  select net.http_post(
+    url := 'https://<ref>.supabase.co/functions/v1/supplier-fulfil',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'worker_jwt'),
+      'x-job-secret',  (select decrypted_secret from vault.decrypted_secrets where name = 'supplier_job_secret')
+    ),
+    body := '{"limit": 20}'::jsonb
+  );
+$job$);
+
+select cron.schedule('ycp-telegram-dispatch', '* * * * *', $job$
+  select net.http_post(
+    url := 'https://<ref>.supabase.co/functions/v1/telegram-dispatch',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'worker_jwt'),
+      'x-dispatch-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'dispatch_secret')
+    ),
+    body := '{}'::jsonb
+  );
+$job$);
+```
+
+Confirm it is really running, not just scheduled:
+
+```sql
+select jobname, schedule, active from cron.job;
+select status_code, content from net._http_response order by created desc limit 5;
+```
+
+A missing or expired `worker_jwt` shows up as `401` there and as `unauthorized`
+in the function logs — that is the failure to watch for, because the orders stay
+silently in `delivering`.
+
+`expire_stale_orders()` and `refresh_all_product_ratings()` are already
+scheduled by migration `20261015000400_wallet_cron_admin.sql`, so pg_cron is
+available on any project that has run the migrations.
+
 ## Rules that apply
 
 From `AGENTS.md`:
 - Never edit an applied migration. New schema = new file in `supabase/migrations/`.
-- Avoid prod runs while developing. Hosted mailer allows 2 emails/hour for the whole project.
+- Avoid prod runs while developing. Hosted auth now uses Resend SMTP (3k/month), but test with the dev stack's Mailpit where possible.
 - Edge Function env changes need `supabase stop && supabase start` locally.
 - `supabase/bundle/combined.sql` is generated. Do not hand-edit.
 

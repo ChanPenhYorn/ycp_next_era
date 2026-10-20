@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/admin_widgets.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/money_text.dart';
 
 /// Refunds that were agreed but not yet paid back.
 ///
@@ -159,12 +160,35 @@ class _RefundCardState extends ConsumerState<_RefundCard> {
 
   Future<void> _record() async {
     final l10n = AppL10n.of(context);
+    final order = widget.order;
     final reference = await askAdminText(
       context,
       title: l10n.adminMarkRefunded,
       label: l10n.adminRefundReference,
       helper: l10n.adminRefundReferenceHint,
       confirmLabel: l10n.adminMarkRefunded,
+      // Recording a refund is money-affecting and cannot be taken back from this
+      // screen, so the order, the amount and the fact that no money moves here
+      // are all on screen before the field.
+      details: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MoneyRow(
+            label: l10n.orderNo,
+            value: Text(order.orderNo, style: AppType.bodyStrong(context)),
+          ),
+          MoneyRow(
+            label: l10n.total,
+            value: Text(
+              money(order.totalUsd),
+              style: AppType.bodyStrong(context),
+            ),
+          ),
+          const SizedBox(height: AppSpace.xs),
+          Text(l10n.adminRefundNote, style: AppType.bodySmall(context)),
+        ],
+      ),
     );
     if (reference == null) return;
 

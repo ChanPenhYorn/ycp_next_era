@@ -13,6 +13,11 @@ import 'search_field.dart';
 
 /// Shared chrome. Wide screens get a full top bar with visible links and an
 /// inline search; narrow screens keep the top bar slim and use bottom tabs.
+///
+/// The staff console is a workplace, not the shopfront. While an `/admin`
+/// screen is up the buyer's chrome — game links, search, balance and cart, and
+/// the bottom tabs — is hidden, so a staff member whose account also shops does
+/// not mix the two. The store stays one tap away through the storefront button.
 class AppShell extends ConsumerWidget {
   const AppShell({required this.location, required this.child, super.key});
 
@@ -25,6 +30,7 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppL10n.of(context);
     final isWide = MediaQuery.sizeOf(context).width >= 900;
+    final isAdmin = location == '/admin' || location.startsWith('/admin/');
     final index = _tabs.indexWhere(
       (tab) => tab == '/' ? location == '/' : location.startsWith(tab),
     );
@@ -52,13 +58,13 @@ class AppShell extends ConsumerWidget {
         title: Row(
           children: [
             GestureDetector(
-              onTap: () => context.go('/'),
+              onTap: () => context.go(isAdmin ? '/admin' : '/'),
               child: Row(
                 children: [
                   const BrandMark(size: 32),
                   const SizedBox(width: 10),
                   Text(
-                    l10n.appTitle,
+                    isAdmin ? l10n.adminConsole : l10n.appTitle,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -69,7 +75,7 @@ class AppShell extends ConsumerWidget {
                 ],
               ),
             ),
-            if (isWide) ...[
+            if (isWide && !isAdmin) ...[
               const SizedBox(width: 28),
               for (var i = 0; i < _tabs.length; i++)
                 _NavLink(
@@ -96,10 +102,13 @@ class AppShell extends ConsumerWidget {
           ],
         ),
         actions: [
-          const _CoinsChip(),
+          if (isAdmin) const _StoreButton(),
+          if (!isAdmin) ...[const _CoinsChip(), const _CartButton()],
           const _LocaleButton(),
-          const _CartButton(),
-          if (isWide) const _AccountButton(),
+          // The bottom tabs carry the account link on narrow screens; with them
+          // hidden in the console, the icon has to be there at every width so
+          // staff can still sign out.
+          if (isWide || isAdmin) const _AccountButton(),
           const SizedBox(width: 8),
         ],
       ),
@@ -111,7 +120,7 @@ class AppShell extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: isWide
+      bottomNavigationBar: isWide || isAdmin
           ? null
           : ClipRect(
               child: BackdropFilter(
@@ -299,6 +308,20 @@ class _CartButton extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Leaves the console and returns to the shopfront. Rendered only while an
+/// admin screen is up, so the buyer's chrome can stay hidden without trapping
+/// staff inside the console.
+class _StoreButton extends StatelessWidget {
+  const _StoreButton();
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: AppL10n.of(context).adminExitToStore,
+    icon: const Icon(Icons.storefront_outlined),
+    onPressed: () => context.go('/'),
+  );
 }
 
 class _AccountButton extends ConsumerWidget {

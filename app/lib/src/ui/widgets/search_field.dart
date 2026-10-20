@@ -1,11 +1,14 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
+import 'product_art.dart';
 
 /// Search that answers while you type. Matches the game name in either
 /// language and the slug, then shows a small results panel under the field.
@@ -134,8 +137,7 @@ class _GameSearchFieldState extends ConsumerState<GameSearchField> {
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final product = items[index];
-                      final price =
-                          '\$${product.minPriceUsd.toStringAsFixed(2)}';
+                      final price = money(product.minPriceUsd);
 
                       return InkWell(
                         onTap: () => onSelected(product),
@@ -157,19 +159,13 @@ class _GameSearchFieldState extends ConsumerState<GameSearchField> {
                                   ),
                                 ),
                                 child: product.imageUrl == null
-                                    ? const Icon(
-                                        Icons.sports_esports_outlined,
-                                        size: 18,
-                                        color: AppColors.ink400,
-                                      )
-                                    : Image.network(
-                                        product.imageUrl!,
+                                    ? const ProductArtFallback()
+                                    : CachedNetworkImage(
+                                        imageUrl: product.imageUrl!,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, _, _) => const Icon(
-                                          Icons.sports_esports_outlined,
-                                          size: 18,
-                                          color: AppColors.ink400,
-                                        ),
+                                        placeholder: (_, _) => const SizedBox(),
+                                        errorWidget: (_, _, _) =>
+                                            const ProductArtFallback(),
                                       ),
                               ),
                               const SizedBox(width: 10),

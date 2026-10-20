@@ -10,6 +10,7 @@ Map<String, dynamic> cartLineToJson(CartLine line) => {
   'qty': line.qty,
   'max_qty': line.maxQty,
   'min_qty': line.minQty,
+  'sku': line.sku,
   'fields': line.fields,
   'required_fields': [
     for (final field in line.requiredFields) requiredFieldToJson(field),
@@ -25,6 +26,8 @@ CartLine cartLineFromJson(Map<String, dynamic> json) => CartLine(
   qty: (json['qty'] as num).toInt(),
   maxQty: (json['max_qty'] as num?)?.toInt() ?? 10,
   minQty: (json['min_qty'] as num?)?.toInt() ?? 1,
+  // Absent on a cart saved by a build before SKUs were carried.
+  sku: json['sku'] as String? ?? '',
   fields: ((json['fields'] as Map?) ?? const {}).map(
     (key, value) => MapEntry(key.toString(), value.toString()),
   ),

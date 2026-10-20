@@ -11,6 +11,14 @@ class AppColors {
   static const ink850 = Color(0xFF151C2C);
   static const ink800 = Color(0xFF1B2437);
   static const ink700 = Color(0xFF263149);
+
+  /// Muted text that still clears 4.5:1 on the raised surfaces. Use this for
+  /// anything read on `ink800` or `ink700`; [ink400] fails there (4.36 and 3.65).
+  static const ink300 = Color(0xFF93A0BA);
+
+  /// Decor only. Clears 4.5:1 on `ink950` and `ink900`, but drops to 4.36 on
+  /// `ink800` and 3.65 on `ink700`, so it must never carry text on a raised
+  /// surface. Reach for [ink300] there instead.
   static const ink400 = Color(0xFF7B88A4);
   static const ink200 = Color(0xFFC3CBE0);
 
@@ -20,14 +28,71 @@ class AppColors {
   static const danger = Color(0xFFFF4D6D);
   static const warn = Color(0xFFFFB020);
 
+  /// Foreground for anything painted *on* [brand]. White only reaches 3.64:1
+  /// there, which fails AA for every button label in the app; the dark ink
+  /// reaches 5.26:1 and keeps the brand fill exactly as designed.
+  static const onBrand = ink950;
+
   /// Neon layer. Used for glows, gradients and highlights, never for body text
   /// on its own: these are bright enough to vibrate against the dark base.
-  static const violet = Color(0xFF8B5CF6);
+  /// Violet is one step lighter than the original `#8B5CF6` so it also clears
+  /// AA when it does end up as text on a raised surface (4.93 on `ink800`).
+  static const violet = Color(0xFF9B7BFF);
   static const cyan = Color(0xFF22D3EE);
   static const pink = Color(0xFFFF4D9D);
 
   /// The two-stop ramp most glows and gradient tiles are built from.
   static const gradient = [brand, violet];
+}
+
+/// One layout scale, so a page never invents its own magic width. Every
+/// responsive decision in the app reads from here.
+class AppBreakpoints {
+  const AppBreakpoints._();
+
+  /// Narrow phones. Below this, stack and drop secondary chrome.
+  static const phone = 600.0;
+
+  /// Large phones and small tablets.
+  static const tablet = 700.0;
+
+  /// The width at which the desktop chrome (top-bar links, inline search,
+  /// side-by-side checkout) takes over from the bottom tabs.
+  static const wide = 900.0;
+
+  /// Full desktop. Wider gutters, wider grids.
+  static const expanded = 1200.0;
+
+  static bool isPhone(double width) => width < phone;
+  static bool isWide(double width) => width >= wide;
+
+  /// Column count from the width a tile actually wants, rather than a magic
+  /// breakpoint. Clamped so a grid never collapses to one huge tile.
+  static int columnsFor({
+    required double width,
+    required double minTile,
+    int max = 4,
+    int min = 1,
+    double spacing = 0,
+  }) {
+    if (width <= 0 || minTile <= 0) return min;
+    final fits = ((width + spacing) / (minTile + spacing)).floor();
+    return fits.clamp(min, max);
+  }
+}
+
+/// One spacing scale. Cards, sections and stacks step through this, so vertical
+/// rhythm is consistent instead of hand-tuned per widget.
+class AppSpace {
+  const AppSpace._();
+
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 24.0;
+  static const xxl = 32.0;
+  static const huge = 48.0;
 }
 
 /// One radius scale, so cards, inputs and buttons read as one family.
@@ -79,12 +144,71 @@ class AppMotion {
   static const spring = Curves.easeOutBack;
 }
 
+/// Named text styles for the sizes the app actually uses.
+///
+/// Each one takes its line height from the theme's locale-tuned text style, so
+/// no call site has to hardcode `height:` — which is how Khmer stacked vowels
+/// and ascenders were being clipped in 15 files. Prefer these over a raw
+/// `TextStyle`; reach for `Theme.of(context).textTheme` when a headline size is
+/// genuinely needed.
+class AppType {
+  const AppType._();
+
+  /// Smallest readable step. Table stamps, counts, captions.
+  static TextStyle caption(BuildContext context) =>
+      _of(context, 11.5, FontWeight.w500, AppColors.ink300);
+
+  /// Field labels, chips, dense table headers.
+  static TextStyle label(BuildContext context) =>
+      _of(context, 12.5, FontWeight.w600, AppColors.ink300);
+
+  /// Secondary copy that still has to be read.
+  static TextStyle bodySmall(BuildContext context) =>
+      _of(context, 13, FontWeight.w400, AppColors.ink200);
+
+  /// Default paragraph copy.
+  static TextStyle body(BuildContext context) =>
+      _of(context, 14, FontWeight.w400, AppColors.ink200);
+
+  /// Emphasised body, for the value side of a label/value pair.
+  static TextStyle bodyStrong(BuildContext context) =>
+      _of(context, 14, FontWeight.w600, Colors.white);
+
+  /// Card and row titles.
+  static TextStyle title(BuildContext context) =>
+      _of(context, 16, FontWeight.w700, Colors.white);
+
+  static TextStyle _of(
+    BuildContext context,
+    double size,
+    FontWeight weight,
+    Color color,
+  ) {
+    final base = Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    return base.copyWith(fontSize: size, fontWeight: weight, color: color);
+  }
+}
+
 class AppTheme {
   const AppTheme._();
+
+  /// Khmer stacks vowels above and below the base glyph and carries tall
+  /// ascenders, so it needs a visibly looser line box than Latin at the same
+  /// point size. Everything that sets a line height goes through here.
+  ///
+  /// 0.4 puts the tightest style (a 40px display line, 1.1 in Latin) at 1.5,
+  /// which is the floor `theme_tokens_test.dart` enforces. Small body sizes end
+  /// up near 1.8, where the stacked vowels need the most relative room.
+  static double lineHeight(bool isKhmer, double latin) =>
+      isKhmer ? latin + 0.4 : latin;
 
   static ThemeData build(Locale locale) {
     final isKhmer = locale.languageCode == 'km';
     final base = ThemeData.dark(useMaterial3: true);
+
+    // Headings on Khmer must not be tracked in: negative letter spacing pulls
+    // stacked vowels into each other.
+    final track = isKhmer ? 0.0 : 1.0;
 
     // Khmer needs a font that actually has the script; Inter/Noto for Latin.
     final textTheme = isKhmer
@@ -106,50 +230,67 @@ class AppTheme {
       displayLarge: headingFont(
         fontSize: 40,
         fontWeight: FontWeight.w700,
-        height: 1.15,
-        letterSpacing: -1.2,
+        height: lineHeight(isKhmer, 1.1),
+        letterSpacing: -1.2 * track,
         color: Colors.white,
       ),
       displayMedium: headingFont(
         fontSize: 32,
         fontWeight: FontWeight.w700,
-        height: 1.18,
-        letterSpacing: -0.9,
+        height: lineHeight(isKhmer, 1.15),
+        letterSpacing: -0.9 * track,
         color: Colors.white,
       ),
       displaySmall: headingFont(
         fontSize: 26,
         fontWeight: FontWeight.w700,
-        height: 1.2,
-        letterSpacing: -0.6,
+        height: lineHeight(isKhmer, 1.2),
+        letterSpacing: -0.6 * track,
         color: Colors.white,
       ),
       headlineMedium: headingFont(
         fontSize: 21,
         fontWeight: FontWeight.w700,
-        height: 1.25,
-        letterSpacing: -0.4,
+        height: lineHeight(isKhmer, 1.25),
+        letterSpacing: -0.4 * track,
         color: Colors.white,
       ),
       headlineSmall: headingFont(
         fontSize: 18,
         fontWeight: FontWeight.w700,
-        height: 1.3,
-        letterSpacing: -0.3,
+        height: lineHeight(isKhmer, 1.3),
+        letterSpacing: -0.3 * track,
         color: Colors.white,
       ),
       titleLarge: headingFont(
         fontSize: 16,
         fontWeight: FontWeight.w700,
-        height: 1.35,
-        letterSpacing: -0.2,
+        height: lineHeight(isKhmer, 1.35),
+        letterSpacing: -0.2 * track,
         color: Colors.white,
       ),
       titleMedium: headingFont(
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        height: 1.35,
+        height: lineHeight(isKhmer, 1.35),
         color: Colors.white,
+      ),
+      // Body also needs the looser box: these carry the long Khmer strings in
+      // lists, tables and notes where a clipped vowel is easiest to hit.
+      bodyLarge: tightened.bodyLarge?.copyWith(
+        height: lineHeight(isKhmer, 1.4),
+      ),
+      bodyMedium: tightened.bodyMedium?.copyWith(
+        height: lineHeight(isKhmer, 1.4),
+      ),
+      bodySmall: tightened.bodySmall?.copyWith(
+        height: lineHeight(isKhmer, 1.4),
+      ),
+      labelLarge: tightened.labelLarge?.copyWith(
+        height: lineHeight(isKhmer, 1.35),
+      ),
+      labelMedium: tightened.labelMedium?.copyWith(
+        height: lineHeight(isKhmer, 1.35),
       ),
     );
 
@@ -158,6 +299,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.ink950,
       colorScheme: base.colorScheme.copyWith(
         primary: AppColors.brand,
+        onPrimary: AppColors.onBrand,
         secondary: AppColors.accent,
         surface: AppColors.ink900,
         error: AppColors.danger,
@@ -201,9 +343,9 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.brand,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.onBrand,
           disabledBackgroundColor: AppColors.ink700,
-          disabledForegroundColor: AppColors.ink400,
+          disabledForegroundColor: AppColors.ink300,
           minimumSize: const Size.fromHeight(52),
           shadowColor: AppColors.brand.withValues(alpha: 0.55),
           elevation: 6,

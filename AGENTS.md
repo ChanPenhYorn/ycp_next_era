@@ -94,6 +94,9 @@ answers `*_not_configured` while the key looks present.
 - Keep test-harness files in `supabase/tests/`; they are not deployed.
 - Edge Functions `payway-callback`, `dev-signin`, `telegram-webhook` run with
   `verify_jwt = false`; the supplier workers need an `Authorization` JWT **and** `x-job-secret`.
+- Nothing schedules the workers. `scripts/supplier-worker.sh` is the local loop
+  (`dev.sh` starts it); pg_cron is the hosted one (`docs/hosted-deploy.md`).
+  Without it a paid auto top-up stays in `delivering` for ever.
 
 ## Suppliers
 
@@ -103,6 +106,10 @@ retail price — unpriced SKUs sell at zero margin, never a loss. Product art is
 into the `product-images` bucket because the supplier CDN sends no CORS header and Flutter
 web renders images through `fetch`; browser-visible art needs `STORAGE_PUBLIC_URL`
 (`http://127.0.0.1:54321` locally — `SUPABASE_URL` is the unresolvable `kong:8000`).
+Store the supplier's own bytes untouched. Do not pad or reshape the mirror: supplier art
+is square or portrait, the cards `cover`-crop it, and padded copies shrink the art behind
+letterbox bars. The demo products in `supabase/seed/demo.sql` have no art on purpose; the
+app draws their name instead (`ProductArtFallback`).
 
 ## Config / auth
 

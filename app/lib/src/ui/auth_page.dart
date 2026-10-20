@@ -883,7 +883,6 @@ class _Header extends StatelessWidget {
             fontSize: 21,
             fontWeight: FontWeight.bold,
             color: Colors.white,
-            height: 1.3,
           ),
         ),
         if (subtitle.isNotEmpty) ...[

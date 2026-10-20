@@ -32,3 +32,15 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  assets:
+    # Pre-bundled so google_fonts loads these from the app bundle instead of
+    # fetching them from fonts.gstatic.com on first paint. Khmer is the default
+    # locale, so that fetch sat on the critical path of every cold load and
+    # reflowed the page when it landed.
+    #
+    # The names are load-bearing: google_fonts resolves a family and weight by
+    # looking for an asset whose path *ends with* `<Family>-<Weight>`, so
+    # `NotoSansKhmer-Bold.ttf` serves `GoogleFonts.notoSansKhmer(w700: true)`
+    # and the `-Regular`/`-Medium`/… suffixes are not cosmetic.
+    - assets/google_fonts/

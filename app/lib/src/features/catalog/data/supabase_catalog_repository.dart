@@ -164,6 +164,32 @@ class SupabaseCatalogRepository implements CatalogRepository {
     );
   }
 
+  /// `variants_public_read` filters inactive variants, and the embedded
+  /// `products` row arrives null when `products_public_read` hides it, so a
+  /// variant of a hidden product is the row with a null product. Both halves of
+  /// `create_order`'s check are therefore visible from this single query, along
+  /// with the quantity range the line has to satisfy.
+  @override
+  Future<Map<int, LiveVariant>> liveVariants(List<int> variantIds) async {
+    if (variantIds.isEmpty) return const {};
+
+    final rows = await _client
+        .from('product_variants')
+        .select('id, sku, min_qty, max_qty, product:products ( is_active )')
+        .inFilter('id', variantIds);
+
+    return {
+      for (final row in rows)
+        if ((row['product'] as Map?)?['is_active'] == true)
+          (row['id'] as num).toInt(): LiveVariant(
+            id: (row['id'] as num).toInt(),
+            sku: row['sku'] as String? ?? '',
+            minQty: (row['min_qty'] as num?)?.toInt() ?? 1,
+            maxQty: (row['max_qty'] as num?)?.toInt() ?? 1,
+          ),
+    };
+  }
+
   @override
   Future<List<Review>> reviews(int productId) async {
     final rows = await _client

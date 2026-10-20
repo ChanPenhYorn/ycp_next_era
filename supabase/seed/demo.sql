@@ -121,23 +121,20 @@ from (values
 ) as seed(sku, code)
 join public.product_variants v on v.sku = seed.sku;
 
--- Placeholder art. Deliberately an external URL rather than a Storage path,
--- because this file must run against any project. placehold.co sends
--- Access-Control-Allow-Origin, which Flutter web's CanvasKit renderer needs.
+-- No art for the demo products, on purpose. A bundled image would be dead
+-- weight for four rows, and a hotlinked one breaks the day the third party
+-- moves it: the `placehold.co` links these rows used to carry rendered as a
+-- flat box with the product name typed into it, next to real game art.
+--
+-- The app draws a product's own name when there is no art — see
+-- ProductArtFallback in app/lib/src/ui/widgets/product_art.dart.
 --
 -- Real products get their imagery from the supplier sync, which mirrors it into
 -- the product-images bucket. See mirrorImage() in supplier-sync: Bay2Game's CDN
 -- sends no CORS header, so hotlinking their art would render on mobile and be
--- invisible in a browser.
-update public.products
-   set image_url = case slug
-     when 'mobile-legends-diamonds' then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=Mobile+Legends'
-     when 'steam-wallet'            then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=Steam+Wallet'
-     when 'google-play-card'        then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=Google+Play'
-     when 'nordvpn'                 then 'https://placehold.co/600x450/16224a/c3cbe0/png?text=NordVPN'
-     else image_url
-   end
- where image_url is null;
+-- invisible in a browser. The mirror keeps the supplier's own bytes: the cards
+-- crop raw art with `cover`, which fills the tile. Padded 4:3 copies made the
+-- art smaller behind letterbox bars, so nothing reshapes the bucket.
 
 insert into public.coupons (code, kind, value, min_order_usd, max_uses, per_user_limit)
 values ('WELCOME10', 'percent', 10, 1.00, 1000, 1)

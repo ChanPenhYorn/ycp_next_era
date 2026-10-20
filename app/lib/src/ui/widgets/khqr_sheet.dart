@@ -50,14 +50,23 @@ class _KhqrSheetState extends ConsumerState<KhqrSheet> {
   String _state = 'PENDING';
   String? _failure;
 
+  /// Drives the countdown and nothing else. A whole-sheet `setState` once a
+  /// second rebuilt the QR image and every button 60 times a minute.
+  final _remaining = ValueNotifier<Duration>(Duration.zero);
+
   @override
   void initState() {
     super.initState();
     _startPolling();
-    // Repaints the countdown once a second.
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
+    _updateRemaining();
+    _ticker = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateRemaining(),
+    );
+  }
+
+  void _updateRemaining() {
+    _remaining.value = widget.payment.expiresAt.difference(DateTime.now());
   }
 
   void _startPolling() {
@@ -85,14 +94,13 @@ class _KhqrSheetState extends ConsumerState<KhqrSheet> {
   void dispose() {
     _subscription?.cancel();
     _ticker?.cancel();
+    _remaining.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
-    final remaining = widget.payment.expiresAt.difference(DateTime.now());
-    final expired = remaining.isNegative;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -146,22 +154,42 @@ class _KhqrSheetState extends ConsumerState<KhqrSheet> {
             ),
           ),
           const SizedBox(height: 14),
-          Text(
-            expired
-                ? l10n.khqrExpired
-                : '${l10n.waitingPayment}  ${_formatRemaining(remaining)}',
-            style: TextStyle(
-              fontSize: 12,
-              color: expired ? AppColors.danger : AppColors.ink400,
-            ),
+          // A live region, so a screen-reader user hears the countdown expire
+          // rather than sitting in silence until the sheet closes itself.
+          ValueListenableBuilder<Duration>(
+            valueListenable: _remaining,
+            builder: (context, remaining, _) {
+              final expired = remaining.isNegative;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      expired
+                          ? l10n.khqrExpired
+                          : '${l10n.waitingPayment}  '
+                                '${_formatRemaining(remaining)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: expired ? AppColors.danger : AppColors.ink300,
+                      ),
+                    ),
+                  ),
+                  if (_failure != null && expired) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _failure!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.ink300,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
-          if (_failure != null && expired) ...[
-            const SizedBox(height: 4),
-            Text(
-              _failure!,
-              style: const TextStyle(fontSize: 11, color: AppColors.ink400),
-            ),
-          ],
           const SizedBox(height: 18),
           if (widget.payment.deepLink != null)
             OutlinedButton.icon(

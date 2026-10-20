@@ -377,6 +377,11 @@ String adminStamp(DateTime value) {
 /// When [mandatory] is set, an empty answer is refused here as well as in the
 /// database: a refund whose reason is whitespace is a refund nobody can read
 /// later.
+///
+/// Pass [details] to put the facts the operator must check — which order, how
+/// much, what this action will not do — above the field. A money-affecting
+/// dialog that asks a bare question is how the audit found a refund being
+/// recorded without the order number or the amount on screen.
 Future<String?> askAdminText(
   BuildContext context, {
   required String title,
@@ -386,6 +391,7 @@ Future<String?> askAdminText(
   bool mandatory = false,
   TextInputType? keyboardType,
   String? initialValue,
+  Widget? details,
 }) async {
   final controller = TextEditingController(text: initialValue);
 
@@ -396,17 +402,27 @@ Future<String?> askAdminText(
         final l10n = AppL10n.of(dialogContext);
         return AlertDialog(
           title: Text(title),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: keyboardType,
-            maxLines: keyboardType == null ? 3 : 1,
-            minLines: 1,
-            decoration: InputDecoration(
-              labelText: label,
-              helperText: helper,
-              helperMaxLines: 4,
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (details != null) ...[
+                details,
+                const SizedBox(height: AppSpace.md),
+              ],
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: keyboardType,
+                maxLines: keyboardType == null ? 3 : 1,
+                minLines: 1,
+                decoration: InputDecoration(
+                  labelText: label,
+                  helperText: helper,
+                  helperMaxLines: 4,
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(

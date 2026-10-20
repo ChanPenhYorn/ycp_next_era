@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,11 +10,45 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/empty_state.dart';
 
-class CartPage extends ConsumerWidget {
+class CartPage extends ConsumerStatefulWidget {
   const CartPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends ConsumerState<CartPage> {
+  @override
+  void initState() {
+    super.initState();
+    // A line can outlive its product (staff hide it, a supplier sync drops the
+    // SKU), and its quantity range can go stale the same way. Correct it here,
+    // where the buyer sees the cart, rather than at checkout where the only
+    // feedback is a failed order.
+    unawaited(_reconcile());
+  }
+
+  Future<void> _reconcile() async {
+    final result = await ref
+        .read(cartControllerProvider.notifier)
+        .reconcileWithCatalogue();
+    if (!mounted || result.isEmpty) return;
+    final l10n = AppL10n.of(context);
+    // A removed line matters more than a lowered quantity, so it wins when both
+    // happened in one reconciliation.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.removed.isNotEmpty
+              ? l10n.itemUnavailable
+              : l10n.qtyOnePerOrder,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
     final lines = ref.watch(cartControllerProvider);
     final subtotal = ref.watch(cartSubtotalProvider);
@@ -78,44 +114,51 @@ class CartPage extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.ink850,
-                        border: Border.all(color: AppColors.ink700),
-                        borderRadius: BorderRadius.circular(AppRadius.control),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: line.qty > line.minQty
-                                ? () => ref
-                                      .read(cartControllerProvider.notifier)
-                                      .setQty(line.variantId, line.qty - 1)
-                                : null,
-                            icon: const Icon(Icons.remove, size: 16),
+                    // A fixed-quantity line (a top-up the supplier will only
+                    // deliver once) gets no stepper: there is nothing to
+                    // change, and a dead control invites a tap that does
+                    // nothing.
+                    if (line.maxQty > line.minQty)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.ink850,
+                          border: Border.all(color: AppColors.ink700),
+                          borderRadius: BorderRadius.circular(
+                            AppRadius.control,
                           ),
-                          SizedBox(
-                            width: 28,
-                            child: Text(
-                              '${line.qty}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: line.qty > line.minQty
+                                  ? () => ref
+                                        .read(cartControllerProvider.notifier)
+                                        .setQty(line.variantId, line.qty - 1)
+                                  : null,
+                              icon: const Icon(Icons.remove, size: 16),
+                            ),
+                            SizedBox(
+                              width: 28,
+                              child: Text(
+                                '${line.qty}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: line.qty < line.maxQty
-                                ? () => ref
-                                      .read(cartControllerProvider.notifier)
-                                      .setQty(line.variantId, line.qty + 1)
-                                : null,
-                            icon: const Icon(Icons.add, size: 16),
-                          ),
-                        ],
+                            IconButton(
+                              onPressed: line.qty < line.maxQty
+                                  ? () => ref
+                                        .read(cartControllerProvider.notifier)
+                                        .setQty(line.variantId, line.qty + 1)
+                                  : null,
+                              icon: const Icon(Icons.add, size: 16),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     IconButton(
                       tooltip: l10n.remove,
                       onPressed: () => ref

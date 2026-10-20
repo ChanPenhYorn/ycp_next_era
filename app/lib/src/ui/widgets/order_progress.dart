@@ -62,7 +62,6 @@ class OrderProgress extends StatelessWidget {
                   maxLines: 2,
                   style: TextStyle(
                     fontSize: 11,
-                    height: 1.3,
                     fontWeight: i == stage ? FontWeight.w700 : FontWeight.w500,
                     color: i <= stage ? Colors.white : AppColors.ink400,
                   ),

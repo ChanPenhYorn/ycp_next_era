@@ -300,6 +300,10 @@ class AppL10nEn extends AppL10n {
   String get somethingWentWrong => 'Something went wrong. Please try again.';
 
   @override
+  String get itemUnavailable =>
+      'Some items are no longer available. We removed them from your cart.';
+
+  @override
   String get guestMustSignIn => 'Please sign in to continue';
 
   @override
@@ -692,6 +696,26 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get contactSupport => 'Contact support';
+
+  @override
+  String get qtyOnePerOrder =>
+      'This top-up is delivered one at a time. Quantity set to 1 - tap buy again to continue.';
+
+  @override
+  String get tooManyLines =>
+      'That is more than 20 items in one order. Please split it into two orders.';
+
+  @override
+  String get accountBlocked =>
+      'Your account is on hold. Contact support and we will sort it out.';
+
+  @override
+  String get paymentUnreachable =>
+      'Could not reach the payment service. Your order is saved, so try again or pay another way.';
+
+  @override
+  String get orderNotPayable =>
+      'This order can no longer be paid. It may already be paid or expired - check its status below.';
 
   @override
   String get statusRefundPending => 'Refund pending';
@@ -1096,9 +1120,49 @@ class AppL10nEn extends AppL10n {
   String get adminRoleSaved => 'Role updated.';
 
   @override
+  String get adminConsole => 'Staff console';
+
+  @override
+  String get adminExitToStore => 'Back to the store';
+
+  @override
   String get adminCannotChangeOwn => 'You cannot change your own role.';
 
   @override
   String get adminUserNotFound =>
       'No account with that email. Ask them to sign up first.';
+
+  @override
+  String get adminConfirmPaymentNote =>
+      'This marks the order paid and hands the line to the supplier. It cannot be undone from this screen.';
+
+  @override
+  String get adminDismissNote =>
+      'This drops the buyer\'s claim. The order stays unpaid.';
+
+  @override
+  String get adminSetRoleTitle => 'Change this role?';
+
+  @override
+  String get adminSetRoleBody =>
+      'The change takes effect immediately. Set another role to undo it.';
+
+  @override
+  String get adminResolveFailedTitle => 'Mark this line failed?';
+
+  @override
+  String get adminResolveFailedBody =>
+      'The buyer is not refunded by this. A failed line needs a separate refund decision.';
+
+  @override
+  String get adminTicketCloseTitle => 'Close this ticket?';
+
+  @override
+  String get adminTicketCloseBody =>
+      'It moves to Closed and drops out of the working list.';
+
+  @override
+  String adminShowingCount(int count) {
+    return 'Showing the $count most recent.';
+  }
 }

@@ -9,6 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/admin_widgets.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/confirm_action.dart';
 
 /// Buyer tickets.
 ///
@@ -215,6 +216,9 @@ class _TicketCardState extends ConsumerState<_TicketCard> {
                 ),
               if (ticket.status != 'closed')
                 TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                  ),
                   onPressed: _busy ? null : () => _set(status: 'closed'),
                   child: Text(l10n.adminTicketClose),
                 ),
@@ -239,6 +243,19 @@ class _TicketCardState extends ConsumerState<_TicketCard> {
   Future<void> _set({String? status, String? priority}) async {
     final l10n = AppL10n.of(context);
     final note = _note.text.trim();
+
+    // Closing used to apply on one tap from a low-emphasis text button, and
+    // nothing on this screen brings a closed ticket back.
+    if (status == 'closed') {
+      final confirmed = await confirmAction(
+        context,
+        title: l10n.adminTicketCloseTitle,
+        confirmLabel: l10n.adminTicketClose,
+        message: l10n.adminTicketCloseBody,
+        destructive: true,
+      );
+      if (!confirmed || !mounted) return;
+    }
 
     setState(() => _busy = true);
     try {

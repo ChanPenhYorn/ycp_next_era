@@ -53,6 +53,18 @@ Widget _wrap(
   ),
 );
 
+ManualPaymentRequest _transferRequest() => ManualPaymentRequest(
+  orderId: 'x',
+  orderNo: 'YP260101ABCDEF',
+  status: OrderStatus.pending,
+  totalUsd: 1.89,
+  kind: 'auto_topup',
+  expiresAt: DateTime.now().add(const Duration(hours: 24)),
+  requestedAt: DateTime.now(),
+  buyerNote: 'paid at 10:20',
+  customerFields: const {'userid': '262856740'},
+);
+
 Override _settings(PublicSettings value) =>
     settingsProvider.overrideWith((ref) => value);
 
@@ -100,6 +112,9 @@ void main() {
     });
 
     test('the staff row carries what is needed to fulfil it', () {
+      // Relative, so the fixture does not expire on the calendar the way a
+      // literal date does.
+      final openUntil = DateTime.now().toUtc().add(const Duration(hours: 4));
       final request = manualPaymentRequestFromJson({
         'order_id': 'x',
         'order_no': 'YP1',
@@ -108,7 +123,7 @@ void main() {
         'kind': 'auto_topup',
         'requested_at': '2026-10-15T09:00:00Z',
         'buyer_note': 'paid at 10:20',
-        'expires_at': '2026-10-16T09:00:00Z',
+        'expires_at': openUntil.toIso8601String(),
         'customer_fields': {'userid': '262856740', 'serverid': '2001'},
         'contact_email': 'buyer@example.test',
       });
@@ -247,25 +262,13 @@ void main() {
     testWidgets('a request shows the game id, the amount and both actions', (
       tester,
     ) async {
-      final request = ManualPaymentRequest(
-        orderId: 'x',
-        orderNo: 'YP260101ABCDEF',
-        status: OrderStatus.pending,
-        totalUsd: 1.89,
-        kind: 'auto_topup',
-        expiresAt: DateTime.now().add(const Duration(hours: 24)),
-        requestedAt: DateTime.now(),
-        buyerNote: 'paid at 10:20',
-        customerFields: const {'userid': '262856740'},
-      );
-
       await tester.pumpWidget(
         _wrap(
           const AdminTransfersPage(),
           overrides: [
             staff(),
             manualPaymentRequestsProvider.overrideWith(
-              (ref) async => [request],
+              (ref) async => [_transferRequest()],
             ),
           ],
         ),
@@ -280,6 +283,87 @@ void main() {
       expect(find.text('Confirm payment'), findsOneWidget);
       expect(find.text('Dismiss request'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    // Settling a transfer is the one action here that moves money, and it used
+    // to happen on a single tap with no echo of the order or the amount.
+    testWidgets('confirming a transfer reads the order and the amount back', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          const AdminTransfersPage(),
+          overrides: [
+            staff(),
+            manualPaymentRequestsProvider.overrideWith(
+              (ref) async => [_transferRequest()],
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Confirm payment'));
+      await tester.pumpAndSettle();
+
+      // The dialog repeats the order number and the amount being settled.
+      expect(find.text('YP260101ABCDEF'), findsWidgets);
+      expect(find.text(r'$1.89'), findsWidgets);
+      expect(
+        find.text(
+          'This marks the order paid and hands the line to the supplier. '
+          'It cannot be undone from this screen.',
+        ),
+        findsOneWidget,
+      );
+
+      // Backing out must not settle. Reaching the repository here would fail
+      // loudly — there is no Supabase session in a widget test — so the absence
+      // of a snackbar is what proves the gate stopped it.
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('YP260101ABCDEF'), findsOneWidget);
+    });
+
+    testWidgets('dismissing needs a reason before it can be submitted', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          const AdminTransfersPage(),
+          overrides: [
+            staff(),
+            manualPaymentRequestsProvider.overrideWith(
+              (ref) async => [_transferRequest()],
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Dismiss request'));
+      await tester.pumpAndSettle();
+
+      // The dialog names what is being dropped, in the words the buyer will see.
+      expect(
+        find.text("This drops the buyer's claim. The order stays unpaid."),
+        findsOneWidget,
+      );
+
+      // The reason is required in the database, so it is required here too.
+      FilledButton submit() => tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Dismiss request'),
+      );
+      expect(submit().onPressed, isNull);
+
+      await tester.enterText(
+        find.byType(TextField).last,
+        'buyer paid elsewhere',
+      );
+      await tester.pump();
+      expect(submit().onPressed, isNotNull);
     });
   });
 }

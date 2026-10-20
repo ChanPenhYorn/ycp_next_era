@@ -162,6 +162,29 @@ Deno.test("fulfil delivers and sends mapped params with a stable reference", asy
   );
 });
 
+Deno.test("declares that it cannot take a line quantity", () => {
+  // /create_order has no quantity parameter, so the catalogue caps every
+  // synced variant at one unit. If this ever flips to true without the API
+  // gaining a quantity parameter, a line for two would be delivered once.
+  assertEquals(bay2game.supportsQuantity, false);
+});
+
+Deno.test("fulfil sends one unit and never a quantity parameter", async () => {
+  await withFetch(
+    () => success,
+    async (calls) => {
+      // A quantity of two cannot be expressed by this API. The catalogue is
+      // what stops such a line existing; this asserts the adapter does not
+      // silently pretend a second unit was ordered.
+      await bay2game.fulfil(order({ quantity: 2 }));
+      assertEquals(calls.length, 1);
+      assertEquals(calls[0].path, "/create_order");
+      assertEquals(calls[0].query.has("quantity"), false);
+      assertEquals(calls[0].query.has("qty"), false);
+    },
+  );
+});
+
 Deno.test("fulfil accepts lowercase success from create_order", async () => {
   await withFetch(
     () => ({ body: { status: "success", amount: "7.00" } }),
@@ -324,6 +347,62 @@ Deno.test("fulfil throws on a 4xx HTTP error so the worker notes it for staff", 
   );
 });
 
+Deno.test("fulfil reads the 402 body: an unfunded wallet is a balance problem, not a mystery", async () => {
+  // Verified against the live API on 2026-10-16: an empty wallet answers
+  // HTTP 402 with the message in the body. Classifying that as a generic 4xx
+  // hid the reason from staff and retried on the wrong cadence.
+  await withFetch(
+    (path) =>
+      path === "/check_order"
+        ? {
+          body: {
+            status: "error",
+            message: "Order not found or you don't have permission to view it",
+          },
+        }
+        : {
+          status: 402,
+          text: JSON.stringify({
+            status: "FAILED",
+            message: "Insufficient balance. Required: 0.20, Available: 0.00",
+          }),
+        },
+    async (calls) => {
+      const result = await bay2game.fulfil(order());
+      assertEquals(result.outcome, "retry");
+      if (result.outcome === "retry") {
+        assertEquals(result.retryInMinutes, 60);
+        assertEquals(
+          result.reason,
+          "supplier_out_of_balance: Insufficient balance. Required: 0.20, Available: 0.00",
+        );
+      }
+      // One attempt only: this must never refund, and never order twice.
+      assertEquals(calls.filter((c) => c.path === "/create_order").length, 1);
+      assertEquals(calls.filter((c) => c.path === "/check_order").length, 1);
+    },
+  );
+
+  // A body that is not JSON means the same thing and must not become a 4xx.
+  await withFetch(
+    (path) =>
+      path === "/check_order"
+        ? { body: { status: "error", message: "not found" } }
+        : { status: 402, text: "<html>payment required</html>" },
+    async () => {
+      const result = await bay2game.fulfil(order());
+      assertEquals(result.outcome, "retry");
+      if (result.outcome === "retry") {
+        assertEquals(
+          result.reason,
+          "supplier_out_of_balance: insufficient supplier balance",
+        );
+        assertEquals(result.retryInMinutes, 60);
+      }
+    },
+  );
+});
+
 Deno.test("fulfil throws bay2game_not_configured when the key is absent", async () => {
   Deno.env.delete("BAY2GAME_API_KEY");
   try {
@@ -351,6 +430,33 @@ Deno.test("checkOrder reports delivered only when both status fields say success
       const result = await checkOrder("CP-1001-7");
       assertEquals(result.delivered, true);
       assertEquals(result.amountUsd, 7);
+    },
+  );
+});
+
+Deno.test("checkOrder accepts the lowercase status the live API actually returns", async () => {
+  // Verified against https://api.bay2game.xyz/api on 2026-10-16: every
+  // endpoint answers `status: "success"` in lower case, while the docs show
+  // "SUCCESS". A literal comparison here is silently always false, which turns
+  // the ambiguity guard into a no-op and lets a landed order be placed again.
+  await withFetch(
+    () => ({ body: { status: "success", order: { status: "success", amount: 0.23 } } }),
+    async () => {
+      const result = await checkOrder("YP261015-42");
+      assertEquals(result.delivered, true);
+      assertEquals(result.amountUsd, 0.23);
+    },
+  );
+
+  // The error shape is lowercase too: an unknown reference must not read as
+  // delivered.
+  await withFetch(
+    () => ({
+      body: { status: "error", message: "Order not found or you don't have permission to view it" },
+    }),
+    async () => {
+      const result = await checkOrder("YP261015-43");
+      assertEquals(result.delivered, false);
     },
   );
 });

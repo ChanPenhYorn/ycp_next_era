@@ -11,6 +11,8 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/admin_widgets.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/confirm_action.dart';
+import 'widgets/money_text.dart';
 
 /// Bank transfers the buyer says they have made.
 ///
@@ -191,20 +193,21 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: _busy ? null : _confirm,
-                  child: Text(l10n.adminConfirmPayment),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _busy ? null : _dismiss,
-                child: Text(l10n.adminDismissRequest),
-              ),
-            ],
+          // Confirm and dismiss used to sit side by side at the same size,
+          // separated only by font weight, even though one settles money and the
+          // other drops the buyer's claim. They are now two different shapes:
+          // a full-width confirm, and a quieter danger-toned dismiss below it.
+          FilledButton(
+            onPressed: _busy ? null : _confirm,
+            child: Text(l10n.adminConfirmPayment),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              onPressed: _busy ? null : _dismiss,
+              child: Text(l10n.adminDismissRequest),
+            ),
           ),
         ],
       ),
@@ -219,6 +222,19 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       _toast(l10n.adminAmountReceived);
       return;
     }
+
+    // Reading the order number and the amount back before settling is the whole
+    // point of this step: it matches the bank statement against one order, hands
+    // the line to the supplier, and cannot be undone from this screen.
+    final confirmed = await confirmAction(
+      context,
+      title: l10n.adminConfirmPayment,
+      confirmLabel: l10n.adminConfirmPayment,
+      message: l10n.adminConfirmPaymentNote,
+      reference: widget.request.orderNo,
+      amount: Text(money(amount), style: AppType.bodyStrong(context)),
+    );
+    if (!confirmed || !mounted) return;
 
     setState(() => _busy = true);
     try {
@@ -280,22 +296,48 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     try {
       return await showDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: Text(l10n.adminDismissRequest),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: InputDecoration(labelText: l10n.adminDismissReason),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.adminDismissNote, style: AppType.body(dialogContext)),
+              const SizedBox(height: AppSpace.md),
+              MoneyRow(
+                label: l10n.orderNo,
+                value: Text(
+                  widget.request.orderNo,
+                  style: AppType.bodyStrong(dialogContext),
+                ),
+              ),
+              const SizedBox(height: AppSpace.sm),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(labelText: l10n.adminDismissReason),
+              ),
+            ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(l10n.close),
             ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(controller.text.trim()),
-              child: Text(l10n.adminDismissRequest),
+            // The reason is required in the database, so an empty one is
+            // refused here rather than round-tripping to a `reason_required`
+            // error the operator has to decode.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, _) => FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                ),
+                onPressed: value.text.trim().isEmpty
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(value.text.trim()),
+                child: Text(l10n.adminDismissRequest),
+              ),
             ),
           ],
         ),

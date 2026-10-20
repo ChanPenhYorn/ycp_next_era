@@ -9,6 +9,7 @@ import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/home_bento.dart';
 import 'widgets/home_sections.dart';
+import 'widgets/motion.dart';
 import 'widgets/product_card.dart';
 import 'widgets/search_field.dart';
 import 'widgets/skeleton.dart';
@@ -38,7 +39,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
-    final locale = ref.watch(localeControllerProvider).languageCode;
     final settings = ref.watch(settingsProvider);
     final categories = ref.watch(categoriesProvider);
     final popular = ref.watch(popularGamesProvider);
@@ -63,15 +63,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const HomeHero(),
-          const SizedBox(height: 14),
+          const StaggeredEntrance(child: HomeIntroBand()),
+          const SizedBox(height: AppSpace.lg),
           // Wide screens already carry the search in the top bar.
           if (MediaQuery.sizeOf(context).width < 900) ...[
             GameSearchField(hint: l10n.searchGames, onSubmit: _submitSearch),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpace.lg),
           ],
-          const TrustRow(),
-          const SizedBox(height: 22),
           AsyncValueView(
             value: categories,
             onRetry: () => ref.invalidate(categoriesProvider),
@@ -80,11 +78,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Row(
                 children: [
                   for (final category in items) ...[
-                    ActionChip(
-                      label: Text(category.name(locale)),
-                      onPressed: () =>
-                          context.go('/products?category=${category.slug}'),
-                    ),
+                    CategoryPill(category: category),
                     const SizedBox(width: 8),
                   ],
                 ],
@@ -105,23 +99,36 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: 24),
           SectionTitle(hasSales ? l10n.popularGames : l10n.featured),
           const SizedBox(height: 12),
-          // A bento top: one big spotlight game, then the rest of the shelf as
-          // the grid. The spotlighted game is dropped from the grid so the same
-          // art never appears twice on one screen.
+          // A bento top: the top few games rotate through one spotlight, then
+          // the rest of the shelf becomes the grid. The spotlighted games are
+          // dropped from the grid so the same art never appears twice on one
+          // screen.
           AsyncValueView(
             value: topShelf,
             skeleton: const ProductGridSkeleton(),
             onRetry: () => ref.invalidate(popularGamesProvider),
-            builder: (items) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (items.isNotEmpty) ...[
-                  SpotlightTile(product: items.first),
-                  const SizedBox(height: 14),
-                  _Grid(products: items.skip(1).toList()),
+            builder: (items) {
+              final spotlights = items.take(spotlightSlides).toList();
+              final rest = items.skip(spotlights.length).toList();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (spotlights.isNotEmpty) ...[
+                    SpotlightCarousel(
+                      products: spotlights,
+                      badge: hasSales ? l10n.popularGames : l10n.featured,
+                    ),
+                    // A short shelf is fully consumed by the spotlight, so the
+                    // grid is omitted rather than printing "no products"
+                    // directly under four games.
+                    if (rest.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _Grid(products: rest),
+                    ],
+                  ],
                 ],
-              ],
-            ),
+              );
+            },
           ),
           // Rendered only when a real discount exists.
           AsyncValueView(

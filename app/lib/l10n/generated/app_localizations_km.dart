@@ -301,6 +301,10 @@ class AppL10nKm extends AppL10n {
   String get somethingWentWrong => 'មានបញ្ហា។ សូមព្យាយាមម្ដងទៀត។';
 
   @override
+  String get itemUnavailable =>
+      'ទំនិញមួយចំនួនលែងមានលក់ទៀតទេ។ យើងបានដកវាចេញពីកន្ត្រករបស់អ្នក។';
+
+  @override
   String get guestMustSignIn => 'សូមចូលប្រើជាមុនសិន';
 
   @override
@@ -691,6 +695,26 @@ class AppL10nKm extends AppL10n {
 
   @override
   String get contactSupport => 'ទាក់ទងជំនួយ';
+
+  @override
+  String get qtyOnePerOrder =>
+      'ការបញ្ចូលនេះផ្តល់ជូនម្ដងមួយ។ ចំនួនត្រូវបានកែត្រឡប់ទៅ ១ វិញ សូមចុចទិញម្ដងទៀត។';
+
+  @override
+  String get tooManyLines =>
+      'ការបញ្ជាទិញនេះលើសពី ២០ មុខទំនិញ។ សូមបំបែកជាការបញ្ជាទិញពីរ។';
+
+  @override
+  String get accountBlocked =>
+      'គណនីរបស់អ្នកត្រូវបានផ្អាកជាបណ្ដោះអាសន្ន។ សូមទាក់ទងជំនួយ យើងនឹងដោះស្រាយជូន។';
+
+  @override
+  String get paymentUnreachable =>
+      'មិនអាចភ្ជាប់ទៅសេវាទូទាត់បានទេ។ ការបញ្ជាទិញរបស់អ្នកត្រូវបានរក្សាទុក សូមព្យាយាមម្ដងទៀត ឬបង់តាមមធ្យោបាយផ្សេង។';
+
+  @override
+  String get orderNotPayable =>
+      'ការបញ្ជាទិញនេះមិនអាចទូទាត់បានទៀតទេ។ វាប្រហែលជាបានបង់រួច ឬផុតកំណត់ - សូមពិនិត្យស្ថានភាពខាងក្រោម។';
 
   @override
   String get statusRefundPending => 'កំពុងរង់ចាំការសងប្រាក់វិញ';
@@ -1094,10 +1118,50 @@ class AppL10nKm extends AppL10n {
   String get adminRoleSaved => 'បានធ្វើបច្ចុប្បន្នភាពតួនាទី។';
 
   @override
+  String get adminConsole => 'កុងសូលបុគ្គលិក';
+
+  @override
+  String get adminExitToStore => 'ត្រឡប់ទៅហាង';
+
+  @override
   String get adminCannotChangeOwn =>
       'អ្នកមិនអាចផ្លាស់ប្តូរតួនាទីរបស់ខ្លួនឯងបានទេ។';
 
   @override
   String get adminUserNotFound =>
       'គ្មានគណនីដែលមានអ៊ីមែលនេះទេ។ សូមស្នើឱ្យពួកគេចុះឈ្មោះជាមុន។';
+
+  @override
+  String get adminConfirmPaymentNote =>
+      'ការនេះសម្គាល់ការបញ្ជាទិញថាបានទូទាត់ ហើយបញ្ជូនបន្ទាត់ទៅអ្នកផ្គត់ផ្គង់។ មិនអាចត្រឡប់វិញពីទំព័រនេះទេ។';
+
+  @override
+  String get adminDismissNote =>
+      'ការនេះបោះបង់ការទាមទាររបស់អតិថិជន។ ការបញ្ជាទិញនៅតែមិនទាន់ទូទាត់។';
+
+  @override
+  String get adminSetRoleTitle => 'ប្ដូរតួនាទីនេះ?';
+
+  @override
+  String get adminSetRoleBody =>
+      'ការផ្លាស់ប្ដូរមានប្រសិទ្ធភាពភ្លាមៗ។ កំណត់តួនាទីផ្សេងដើម្បីត្រឡប់វិញ។';
+
+  @override
+  String get adminResolveFailedTitle => 'សម្គាល់បន្ទាត់នេះថាបរាជ័យ?';
+
+  @override
+  String get adminResolveFailedBody =>
+      'អតិថិជនមិនត្រូវបានសងប្រាក់វិញដោយការនេះទេ។ បន្ទាត់ដែលបរាជ័យត្រូវការការសម្រេចចិត្តសងប្រាក់ដោយឡែក។';
+
+  @override
+  String get adminTicketCloseTitle => 'បិទសំណើនេះ?';
+
+  @override
+  String get adminTicketCloseBody =>
+      'វានឹងផ្លាស់ទៅស្ថានភាពបិទ ហើយចេញពីបញ្ជីការងារ។';
+
+  @override
+  String adminShowingCount(int count) {
+    return 'បង្ហាញ $count ចុងក្រោយបំផុត។';
+  }
 }

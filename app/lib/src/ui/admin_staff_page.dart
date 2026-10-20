@@ -9,6 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/admin_widgets.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/confirm_action.dart';
 
 /// Who can run the staff screens, and who can manage roles.
 ///
@@ -146,6 +147,23 @@ class _AdminStaffPageState extends ConsumerState<AdminStaffPage> {
 
   Future<void> _setRole(StaffMember member, String role) async {
     final l10n = AppL10n.of(context);
+    final name = member.displayName.isEmpty ? member.id : member.displayName;
+
+    // A role tap used to apply immediately, with no confirmation and no undo
+    // on this screen. Reading the account and the new role back is the whole
+    // point: this is the permission that decides who can settle money.
+    final confirmed = await confirmAction(
+      context,
+      title: l10n.adminSetRoleTitle,
+      confirmLabel: l10n.adminSetRole,
+      message: l10n.adminSetRoleBody,
+      reference: name,
+      referenceLabel: l10n.nameLabel,
+      amount: Text(_roleLabel(l10n, role), style: AppType.bodyStrong(context)),
+      amountLabel: l10n.adminSetRole,
+    );
+    if (!confirmed || !mounted) return;
+
     setState(() => _busy = true);
     try {
       await ref
@@ -189,6 +207,14 @@ class _AdminStaffPageState extends ConsumerState<AdminStaffPage> {
   }
 }
 
+/// The three role labels, in one place so the chips and the confirmation that
+/// guards them cannot disagree. The database role is the key.
+String _roleLabel(AppL10n l10n, String role) => switch (role) {
+  'staff' => l10n.adminRoleStaff,
+  'admin' => l10n.adminRoleAdmin,
+  _ => l10n.adminRoleCustomer,
+};
+
 class _RoleCard extends StatelessWidget {
   const _RoleCard({
     required this.member,
@@ -203,11 +229,6 @@ class _RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
-    final roles = <String, String>{
-      'customer': l10n.adminRoleCustomer,
-      'staff': l10n.adminRoleStaff,
-      'admin': l10n.adminRoleAdmin,
-    };
 
     return Container(
       width: double.infinity,
@@ -234,13 +255,13 @@ class _RoleCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final entry in roles.entries)
+              for (final role in const ['customer', 'staff', 'admin'])
                 ChoiceChip(
-                  label: Text(entry.value),
-                  selected: member.role == entry.key,
-                  onSelected: busy || member.role == entry.key
+                  label: Text(_roleLabel(l10n, role)),
+                  selected: member.role == role,
+                  onSelected: busy || member.role == role
                       ? null
-                      : (_) => onChange(member, entry.key),
+                      : (_) => onChange(member, role),
                 ),
             ],
           ),

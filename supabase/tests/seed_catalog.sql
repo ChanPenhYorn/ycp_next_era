@@ -47,6 +47,18 @@ insert into public.product_variants (product_id, sku, label_km, label_en, price_
   ((select id from public.products where slug = 'steam-wallet-code'), 'STEAM-10', 'Steam $10', 'Steam $10', 10.90, 12.00, 10.10, 'stock', 1, 5)
 on conflict (sku) do nothing;
 
+-- The demo top-up lines are supplier-backed, as they are in production. The
+-- link is what routes a paid order to the supplier worker: `deliver_order`
+-- only leaves a line `pending` when an active SKU is behind it, and hands a
+-- line with no link straight to staff. The unlinked case has its own fixtures
+-- near the end of smoke.sql.
+insert into public.supplier_skus (supplier_id, variant_id, supplier_sku, cost_usd, is_active, last_synced_at, last_cost_usd)
+select s.id, v.id, v.sku, v.cost_usd, true, now(), v.cost_usd
+  from public.product_variants v
+  join public.suppliers s on s.code = 'bay2game'
+ where v.sku in ('MLBB-86', 'MLBB-172')
+on conflict (supplier_id, variant_id, supplier_sku) do nothing;
+
 insert into public.coupons (code, kind, value, min_order_usd, max_uses, per_user_limit)
 values ('WELCOME10', 'percent', 10, 1.00, 1000, 1)
 on conflict (code) do nothing;

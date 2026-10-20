@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,6 +59,59 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         controller.text = line.fields[field.key] ?? '';
       }
     }
+
+    // A cart line can outlive its product (staff hide it, a supplier sync drops
+    // the SKU), and its quantity range can go stale the same way. Correct both
+    // before the buyer commits, and say so, rather than letting `create_order`
+    // fail later with a generic error.
+    unawaited(_reconcile());
+  }
+
+  Future<void> _reconcile() async {
+    final result = await ref
+        .read(cartControllerProvider.notifier)
+        .reconcileWithCatalogue();
+    if (!mounted || result.isEmpty) return;
+    final l10n = AppL10n.of(context);
+    // A removed line matters more than a lowered quantity, so it wins when both
+    // happened in one reconciliation.
+    _toast(
+      result.removed.isNotEmpty ? l10n.itemUnavailable : l10n.qtyOnePerOrder,
+    );
+  }
+
+  /// Corrects the lines `create_order` refused for their quantity, and reports
+  /// whether anything was actually changed.
+  ///
+  /// The database names the SKU it refused, which finds the line directly. A
+  /// line saved before SKUs were carried has none, so the catalogue is read
+  /// again instead: that fills in the SKU and the current cap, and is what the
+  /// failed line needed anyway.
+  Future<bool> _correctOutOfRangeLines(String? skus) async {
+    final wanted = (skus ?? '')
+        .split(',')
+        .map((sku) => sku.trim())
+        .where((sku) => sku.isNotEmpty)
+        .toSet();
+
+    final controller = ref.read(cartControllerProvider.notifier);
+
+    if (wanted.isNotEmpty) {
+      final targets = ref
+          .read(cartControllerProvider)
+          .where((line) => wanted.contains(line.sku))
+          .map((line) => line.variantId)
+          .toList();
+      if (targets.isNotEmpty) {
+        for (final variantId in targets) {
+          await controller.capToOne(variantId);
+        }
+        return true;
+      }
+    }
+
+    final result = await controller.reconcileWithCatalogue();
+    return result.capped.isNotEmpty || result.removed.isNotEmpty;
   }
 
   @override
@@ -433,8 +488,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       // for it; the order page is where the transfer fallback lives.
       if (mounted) context.go('/orders/${order.orderId}');
     } catch (_) {
+      // The order exists: createOrder already succeeded. "Something went
+      // wrong" would leave the buyer staring at a QR that never opened with no
+      // idea that their order is sitting there payable, so say what happened
+      // and where to go next.
       if (mounted) setState(() => _busy = false);
-      _toast(l10n.somethingWentWrong);
+      _toast(l10n.paymentUnreachable);
       if (mounted) context.go('/orders/${order.orderId}');
     }
   }
@@ -460,12 +519,23 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         if (!mounted) return;
         context.go('/orders/${order.orderId}');
       } else {
-        _toast(l10n.insufficientBalance);
+        // Two failures reach here: not enough balance, or the order is no
+        // longer payable (already paid, expired, cancelled). Saying "not enough
+        // balance" for the second one sends the buyer to top up a wallet that
+        // was never the problem.
+        _toast(
+          result.reason == 'insufficient_balance'
+              ? l10n.insufficientBalance
+              : l10n.orderNotPayable,
+        );
         context.go('/orders/${order.orderId}');
       }
     } catch (_) {
-      _toast(l10n.somethingWentWrong);
-      setState(() => _busy = false);
+      // The order exists by then, so send the buyer to where it can still be
+      // paid rather than leaving them on a checkout page that looks broken.
+      if (mounted) setState(() => _busy = false);
+      _toast(l10n.paymentUnreachable);
+      if (mounted) context.go('/orders/${order.orderId}');
     }
   }
 
@@ -556,6 +626,30 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         return null;
       }
 
+      if (error.code == 'qty_out_of_range') {
+        // A cart saved before this line's per-line cap was known: the buyer has
+        // two of something the supplier only delivers once. Retrying the same
+        // cart can only fail again, so the line is corrected here and the buyer
+        // is told what changed.
+        final corrected = await _correctOutOfRangeLines(error.detail);
+        if (mounted) {
+          setState(() => _busy = false);
+          _toast(corrected ? l10n.qtyOnePerOrder : l10n.somethingWentWrong);
+        }
+        return null;
+      }
+
+      if (error.code == 'product_unavailable' ||
+          error.code == 'variant_unavailable') {
+        // The catalogue changed between load and submit. Reconcile again so the
+        // next attempt is honest, and name the reason instead of "something
+        // went wrong".
+        await _reconcile();
+        ref.invalidate(productsProvider);
+        if (mounted) setState(() => _busy = false);
+        return null;
+      }
+
       _toast(_humanise(error.code, l10n));
       if (mounted) setState(() => _busy = false);
       ref.invalidate(productsProvider);
@@ -602,18 +696,26 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     'coupon_exhausted' => l10n.couponInvalid,
     'coupon_user_limit' => l10n.couponInvalid,
     'coupon_min_order' => l10n.couponInvalid,
-    'qty_out_of_range' => l10n.somethingWentWrong,
+    'qty_out_of_range' => l10n.qtyOnePerOrder,
+    'product_unavailable' => l10n.itemUnavailable,
+    'variant_unavailable' => l10n.itemUnavailable,
     'missing_fields' => l10n.requiredInfo,
     'invalid_fields' => l10n.fieldWrongFormat,
     'empty_cart' => l10n.cartEmpty,
     'auth_required' => l10n.guestMustSignIn,
-    'account_blocked' => l10n.somethingWentWrong,
+    'account_blocked' => l10n.accountBlocked,
     'order_expired' => l10n.statusExpired,
+    'too_many_lines' => l10n.tooManyLines,
     // Naming the real problem beats "Something went wrong": this one means a
     // credential is missing on the project, not that the user did anything
     // wrong, and it is the first thing hit on a fresh environment.
     'payway_not_configured' => l10n.paywayNotConfigured,
     'payway_rejected' => l10n.paywayRejected,
+    // Transport failures on the QR step. The order exists by then, so the
+    // message points at the transfer fallback instead of just failing.
+    'network_error' => l10n.paymentUnreachable,
+    'non_json_response' => l10n.paymentUnreachable,
+    'order_lookup_failed' => l10n.paymentUnreachable,
     _ => l10n.somethingWentWrong,
   };
 
@@ -730,7 +832,9 @@ class _Panel extends StatelessWidget {
                   height: 22,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColors.brand.withValues(alpha: 0.18),
+                    // Solid, not a brand tint: brand-on-brand-tint measured
+                    // about 2.4:1. The dark ink on the brand fill is 5.26:1.
+                    color: AppColors.brand,
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
@@ -738,7 +842,7 @@ class _Panel extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.brand,
+                      color: AppColors.onBrand,
                     ),
                   ),
                 ),

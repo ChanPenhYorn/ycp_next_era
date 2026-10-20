@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/admin_widgets.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/confirm_action.dart';
 import 'widgets/status_chip.dart';
 
 /// One order, with everything a person needs to act on it: the lines and their
@@ -191,6 +192,23 @@ class _BodyState extends ConsumerState<_Body> {
   );
 
   Future<void> _resolve(AdminOrderItem item, String delivery) async {
+    final l10n = AppL10n.of(context);
+
+    // Failing a line is not a status change like the others: it is the point at
+    // which someone has to decide whether the buyer gets their money back, and
+    // it used to sit as a low-emphasis text button beside "Mark delivered" and
+    // apply on one tap.
+    if (delivery == 'failed') {
+      final confirmed = await confirmAction(
+        context,
+        title: l10n.adminResolveFailedTitle,
+        confirmLabel: l10n.adminResolveFailed,
+        message: l10n.adminResolveFailedBody,
+        destructive: true,
+      );
+      if (!confirmed || !mounted) return;
+    }
+
     setState(() => _busy = true);
     try {
       await ref
@@ -368,11 +386,7 @@ class _ItemRow extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               item.supplierLastError!,
-              style: const TextStyle(
-                fontSize: 10.5,
-                color: AppColors.danger,
-                height: 1.35,
-              ),
+              style: const TextStyle(fontSize: 10.5, color: AppColors.danger),
             ),
           ],
           if (!done) ...[
@@ -385,6 +399,9 @@ class _ItemRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                  ),
                   onPressed: busy ? null : () => onResolve(item, 'failed'),
                   child: Text(l10n.adminResolveFailed),
                 ),

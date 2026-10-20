@@ -9,6 +9,7 @@ import '../../data/models.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../state/providers.dart';
 import 'motion.dart';
+import 'product_art.dart';
 
 /// One game tile. On desktop it lifts and lights up under the pointer; on touch
 /// it scales down while pressed. The art zooms a little on hover so the tile
@@ -97,14 +98,15 @@ class _ProductCardTileState extends ConsumerState<ProductCardTile> {
                           duration: AppMotion.slow,
                           curve: AppMotion.ease,
                           child: product.imageUrl == null
-                              ? const _ArtPlaceholder()
+                              ? ProductArtFallback(name: product.name(locale))
                               : CachedNetworkImage(
                                   imageUrl: product.imageUrl!,
                                   fit: BoxFit.cover,
                                   placeholder: (_, _) =>
                                       const ColoredBox(color: AppColors.ink850),
-                                  errorWidget: (_, _, _) =>
-                                      const _ArtPlaceholder(),
+                                  errorWidget: (_, _, _) => ProductArtFallback(
+                                    name: product.name(locale),
+                                  ),
                                 ),
                         ),
                         // Bottom scrim, so the price line never fights the art.
@@ -183,7 +185,6 @@ class _ProductCardTileState extends ConsumerState<ProductCardTile> {
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
-                                height: 1.3,
                               ),
                             ),
                           ),
@@ -304,24 +305,6 @@ class _ProductCardTileState extends ConsumerState<ProductCardTile> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ArtPlaceholder extends StatelessWidget {
-  const _ArtPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: AppColors.ink850,
-      child: Center(
-        child: Icon(
-          Icons.sports_esports_outlined,
-          size: 34,
-          color: AppColors.ink400,
         ),
       ),
     );

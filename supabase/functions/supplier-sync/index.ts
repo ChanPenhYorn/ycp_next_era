@@ -187,6 +187,11 @@ Deno.serve(async (req) => {
       try {
         const products = await adapter.products(game.gameCode);
 
+        // A supplier that cannot honour a line quantity gets max_qty = 1, so
+        // the storefront offers one unit and create_order refuses more. The
+        // RPC's own default (50) stays for suppliers that do take a quantity.
+        const maxQty = adapter.supportsQuantity === false ? 1 : null;
+
         if (body.dryRun) {
           results.push({
             game: game.gameCode,
@@ -229,6 +234,7 @@ Deno.serve(async (req) => {
             name: product.name,
             price_usd: product.priceUsd,
             sort: index,
+            ...(maxQty === null ? {} : { max_qty: maxQty }),
           })),
         });
 

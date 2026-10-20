@@ -79,20 +79,26 @@ final adminOverviewProvider = FutureProvider<AdminOverview>((ref) {
 /// Filter for the staff order list. Value equality so Riverpod caches one
 /// result per distinct filter.
 class AdminOrderQuery {
-  const AdminOrderQuery({this.status, this.search});
+  const AdminOrderQuery({this.status, this.search, this.limit = 60});
 
   /// A raw `order_status` value, or null for every status.
   final String? status;
   final String? search;
 
+  /// How many of the most recent rows to ask for. The list raises this when an
+  /// operator asks for more, so an order older than the default window is
+  /// reachable instead of silently missing.
+  final int limit;
+
   @override
   bool operator ==(Object other) =>
       other is AdminOrderQuery &&
       other.status == status &&
-      other.search == search;
+      other.search == search &&
+      other.limit == limit;
 
   @override
-  int get hashCode => Object.hash(status, search);
+  int get hashCode => Object.hash(status, search, limit);
 }
 
 final adminOrdersProvider =
@@ -103,7 +109,11 @@ final adminOrdersProvider =
       ref.watch(currentUserProvider);
       return ref
           .watch(adminRepositoryProvider)
-          .orders(status: query.status, search: query.search);
+          .orders(
+            status: query.status,
+            search: query.search,
+            limit: query.limit,
+          );
     });
 
 /// Orders staff have agreed to refund but not yet reversed. Same query as the

@@ -59,6 +59,16 @@ export interface SupplierAdapter {
   /** True when the API key is present. */
   configured(): boolean;
   /**
+   * Whether the supplier's order API can honour a line quantity, meaning one
+   * call delivers `quantity` units. Defaults to true when unspecified.
+   *
+   * A supplier that cannot must say so: the catalogue is then capped at one
+   * unit per line, because otherwise a buyer pays for two and receives one.
+   * The cap is what enforces it — `create_order` validates the quantity
+   * against the variant's min_qty/max_qty in Postgres.
+   */
+  readonly supportsQuantity?: boolean;
+  /**
    * Whether this supplier can actually accept an order for a game that needs
    * these buyer fields. A game whose fields cannot be passed through must be
    * excluded from the catalogue, not listed and then refunded.

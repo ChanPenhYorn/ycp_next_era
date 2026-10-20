@@ -14,6 +14,7 @@ class CartLine {
     required this.qty,
     required this.maxQty,
     required this.minQty,
+    this.sku = '',
     this.fields = const {},
     this.requiredFields = const [],
   });
@@ -26,6 +27,12 @@ class CartLine {
   final int qty;
   final int maxQty;
   final int minQty;
+
+  /// The catalogue's SKU for this variant. Carried so that a database error
+  /// naming a SKU (`qty_out_of_range` does) can be matched back to the line
+  /// that caused it, instead of guessing. Empty on lines saved by an older
+  /// build.
+  final String sku;
 
   /// Values for the product's `requires_fields` entries, e.g. game id and
   /// server. Merged into a single object at checkout because `create_order`
@@ -41,15 +48,22 @@ class CartLine {
 
   double get lineTotal => unitPriceUsd * qty;
 
-  CartLine copyWith({int? qty, Map<String, String>? fields}) => CartLine(
+  CartLine copyWith({
+    int? qty,
+    int? maxQty,
+    int? minQty,
+    String? sku,
+    Map<String, String>? fields,
+  }) => CartLine(
     variantId: variantId,
     productSlug: productSlug,
     productName: productName,
     variantLabel: variantLabel,
     unitPriceUsd: unitPriceUsd,
     qty: qty ?? this.qty,
-    maxQty: maxQty,
-    minQty: minQty,
+    maxQty: maxQty ?? this.maxQty,
+    minQty: minQty ?? this.minQty,
+    sku: sku ?? this.sku,
     fields: fields ?? this.fields,
     requiredFields: requiredFields,
   );

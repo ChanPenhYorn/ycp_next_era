@@ -6,6 +6,23 @@ import '../data/models.dart';
 import '../features/cart/data/cart_mappers.dart';
 import 'providers.dart';
 
+/// What a cart reconciliation changed, so the pages can say why.
+class CartReconcile {
+  const CartReconcile({this.removed = const [], this.capped = const []});
+
+  static const none = CartReconcile();
+
+  /// Lines the catalogue no longer sells.
+  final List<CartLine> removed;
+
+  /// Lines whose quantity was above what the catalogue now accepts, and was
+  /// lowered to fit.
+  final List<CartLine> capped;
+
+  /// True when nothing the buyer needs to be told about happened.
+  bool get isEmpty => removed.isEmpty && capped.isEmpty;
+}
+
 /// Client-side cart. Nothing here is trusted: `create_order` recomputes every
 /// price and stock check on the server.
 class CartController extends Notifier<List<CartLine>> {
@@ -42,6 +59,7 @@ class CartController extends Notifier<List<CartLine>> {
     required double unitPriceUsd,
     required int minQty,
     required int maxQty,
+    String sku = '',
     int qty = 1,
     Map<String, String> fields = const {},
     List<RequiredField> requiredFields = const [],
@@ -71,6 +89,7 @@ class CartController extends Notifier<List<CartLine>> {
           qty: qty.clamp(minQty, maxQty),
           maxQty: maxQty,
           minQty: minQty,
+          sku: sku,
           fields: fields,
           requiredFields: requiredFields,
         ),
@@ -103,9 +122,100 @@ class CartController extends Notifier<List<CartLine>> {
     await _persist();
   }
 
+  /// Caps a line to one unit, moving its bounds with it.
+  ///
+  /// Used when the database refuses a line quantity, which is what happens to
+  /// a cart saved before a supplier's per-line cap was known: the buyer had
+  /// two of something the supplier only delivers once. Retrying unchanged can
+  /// only fail again, so the line is corrected and the buyer is told, rather
+  /// than being left with an error they cannot act on. `maxQty` follows `qty`
+  /// so the stepper disappears instead of sitting there dead.
+  Future<void> capToOne(int variantId) async {
+    state = [
+      for (final line in state)
+        if (line.variantId == variantId)
+          line.copyWith(qty: line.minQty, maxQty: line.minQty)
+        else
+          line,
+    ];
+    await _persist();
+  }
+
   Future<void> remove(int variantId) async {
     state = state.where((line) => line.variantId != variantId).toList();
     await _persist();
+  }
+
+  /// Drops lines the catalogue no longer sells and returns the lines removed.
+  ///
+  /// The cart outlives the catalogue: it is stored in `shared_preferences`, so a
+  /// line survives staff hiding its product or a supplier sync deactivating its
+  /// SKU. `create_order` refuses those with `product_unavailable` /
+  /// `variant_unavailable`, so the buyer is only told after committing. Reading
+  /// the same rules back lets the cart heal itself and say why.
+  ///
+  /// It also re-reads each line's quantity range and SKU, which go stale the
+  /// same way: a sync that caps a supplier top-up at one unit leaves a saved
+  /// line asking for two, and `create_order` refuses that for ever. Correcting
+  /// it here means the buyer sees a cart that matches what the database will
+  /// actually accept.
+  Future<CartReconcile> reconcileWithCatalogue() async {
+    if (state.isEmpty) return CartReconcile.none;
+
+    final Map<int, LiveVariant> live;
+    try {
+      live = await ref.read(catalogRepositoryProvider).liveVariants([
+        for (final line in state) line.variantId,
+      ]);
+    } catch (_) {
+      // Offline, or the read failed. Nothing is known to be wrong, so the cart
+      // is left alone rather than emptied on a guess: `create_order` remains
+      // the authority on what is sellable.
+      return CartReconcile.none;
+    }
+
+    final removed = <CartLine>[];
+    final capped = <CartLine>[];
+    final next = <CartLine>[];
+    var drifted = false;
+
+    for (final line in state) {
+      final variant = live[line.variantId];
+      // A range the buyer cannot satisfy at all (a cap that arrived as zero)
+      // counts as no longer sellable, not as a quantity to clamp into.
+      if (variant == null || variant.minQty > variant.maxQty) {
+        removed.add(line);
+        continue;
+      }
+
+      final qty = line.qty.clamp(variant.minQty, variant.maxQty);
+      if (qty < line.qty) capped.add(line);
+      if (qty != line.qty ||
+          variant.maxQty != line.maxQty ||
+          variant.minQty != line.minQty ||
+          variant.sku != line.sku) {
+        drifted = true;
+      }
+
+      next.add(
+        line.copyWith(
+          qty: qty,
+          maxQty: variant.maxQty,
+          minQty: variant.minQty,
+          sku: variant.sku,
+        ),
+      );
+    }
+
+    if (removed.isEmpty && capped.isEmpty && !drifted) {
+      return CartReconcile.none;
+    }
+
+    state = next;
+    await _persist();
+    // Silent drift (a renamed SKU, a wider cap) is not worth interrupting the
+    // buyer over, so it is not reported: only a drop or a reduced quantity is.
+    return CartReconcile(removed: removed, capped: capped);
   }
 
   Future<void> clear() async {

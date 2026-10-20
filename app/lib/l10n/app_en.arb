@@ -115,6 +115,7 @@
     }
   },
   "somethingWentWrong": "Something went wrong. Please try again.",
+  "itemUnavailable": "Some items are no longer available. We removed them from your cart.",
   "guestMustSignIn": "Please sign in to continue",
   "walletTitle": "Wallet",
   "walletBalance": "Balance",
@@ -272,6 +273,11 @@
   "trustSupportTitle": "Support",
   "trustSupportBody": "Send us your order number and we will take it from there.",
   "contactSupport": "Contact support",
+  "qtyOnePerOrder": "This top-up is delivered one at a time. Quantity set to 1 - tap buy again to continue.",
+  "tooManyLines": "That is more than 20 items in one order. Please split it into two orders.",
+  "accountBlocked": "Your account is on hold. Contact support and we will sort it out.",
+  "paymentUnreachable": "Could not reach the payment service. Your order is saved, so try again or pay another way.",
+  "orderNotPayable": "This order can no longer be paid. It may already be paid or expired - check its status below.",
   "statusRefundPending": "Refund pending",
   "fieldHelpTooltip": "How to find this",
   "fieldHelpTitle": "Where do I find this?",
@@ -398,6 +404,22 @@
   "adminRoleAdmin": "Admin",
   "adminSetRole": "Set role",
   "adminRoleSaved": "Role updated.",
+  "adminConsole": "Staff console",
+  "adminExitToStore": "Back to the store",
   "adminCannotChangeOwn": "You cannot change your own role.",
-  "adminUserNotFound": "No account with that email. Ask them to sign up first."
+  "adminUserNotFound": "No account with that email. Ask them to sign up first.",
+  "adminConfirmPaymentNote": "This marks the order paid and hands the line to the supplier. It cannot be undone from this screen.",
+  "adminDismissNote": "This drops the buyer's claim. The order stays unpaid.",
+  "adminSetRoleTitle": "Change this role?",
+  "adminSetRoleBody": "The change takes effect immediately. Set another role to undo it.",
+  "adminResolveFailedTitle": "Mark this line failed?",
+  "adminResolveFailedBody": "The buyer is not refunded by this. A failed line needs a separate refund decision.",
+  "adminTicketCloseTitle": "Close this ticket?",
+  "adminTicketCloseBody": "It moves to Closed and drops out of the working list.",
+  "adminShowingCount": "Showing the {count} most recent.",
+  "@adminShowingCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
 }

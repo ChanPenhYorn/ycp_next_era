@@ -252,12 +252,12 @@ started on the other tab):
 |---|---|---|
 | Google | `signInWithOAuth` | one tap, no mail, no rate limit; button appears only when `/auth/v1/settings` says the provider is on |
 | Email + password | `signUp` / `signInWithPassword` | rules are `auth.minimum_password_length` and `auth.password_requirements` in `supabase/config.toml`, mirrored by the hint text in the app |
-| Emailed six-digit code | `signInWithOtp` / `verifyOtp` | the fallback, and the only path that works before custom SMTP exists |
+| Emailed six-digit code | `signInWithOtp` / `verifyOtp` | the fallback; needs a working mailer |
 
 Passwords were added without removing the code path on purpose. Resetting a
-password needs an email, and until custom SMTP is set up the project's mailer
-allows **2 emails per hour for the entire project** — not per user — so the code
-path is what keeps people able to sign in at all.
+password needs an email, and Supabase's built-in mailer allows **2 emails per
+hour for the entire project** — not per user — so the code path is worth keeping
+even after custom SMTP.
 
 The app asks the project `GET /auth/v1/settings` at runtime and renders the
 Google button only when the provider is enabled, so enabling it in the dashboard
@@ -279,8 +279,8 @@ referral yet: the reward is a campaign decision, not a signup side effect.
 | Method | Cost | Limit | Notes |
 |---|---|---|---|
 | Google | free | none | scopes are non-sensitive, so no Google review |
-| Email + custom SMTP | Resend 3k/mo, Brevo 300/day free | generous | set under Authentication → SMTP |
-| Email, built-in | free | **2/hour** | testing only |
+| Email + Resend SMTP | 3k/mo free | generous | configured on the hosted project; see `docs/hosted-deploy.md` |
+| Email, built-in | free | **2/hour** | testing only; local stack still uses Mailpit |
 | Facebook | free | none | dominant in Cambodia |
 | Phone / SMS | per message | provider-dependent | needs Twilio/MessageBird |
 
@@ -315,9 +315,14 @@ container's environment when it creates it (`docker inspect` shows it). A
 `docker restart` changes nothing and `supabase start` on a running stack is a
 no-op, so use `supabase stop && supabase start`.
 
-**Before launch, on the hosted project:** turn off *Confirm email* under
-Authentication → Providers → Email, and add custom SMTP under Authentication →
-Emails.
+**Hosted email:** keep *Confirm email* **on** under Authentication → Providers →
+Email, otherwise `signUp` returns a session immediately and the registration code
+is never sent. Add Resend under Authentication → Emails (host `smtp.resend.com`,
+port `465`, user `resend`, password = API key, sender on a verified Resend
+domain). The local stack keeps confirmations off and uses Mailpit, so
+`supabase/config.toml` deliberately differs from the hosted project here — a
+plain `supabase config push` would turn registration confirmation off. See
+`docs/hosted-deploy.md` for the Resend setup and DNS records.
 
 Then paste the three templates from `supabase/templates/` into
 Authentication → Emails — `magic_link.html` into *Magic Link*, `confirmation.html`
@@ -395,6 +400,26 @@ Both workers carry `verify_jwt = true`, so they need an `Authorization` header
 *and* the job secret. The key is an ordinary JWT — the publishable key is not
 one.
 
+**Nothing calls either worker on a schedule.** A paid auto top-up sits in
+`delivering` until `supplier-fulfil` runs, and that is the whole "why is my
+order stuck" question. Locally `./scripts/dev.sh` starts
+`scripts/supplier-worker.sh`, which posts both workers every 30s:
+
+```bash
+./scripts/supplier-worker.sh --once       # one pass, right now
+./scripts/supplier-worker.sh --stop       # stop the loop dev.sh started
+tail -f .dev/supplier-worker.log          # what it did
+```
+
+Each pass places **real** supplier orders and spends **real** supplier balance
+while `BAY2GAME_API_KEY` is live. On a hosted project the same two calls belong
+in pg_cron — the recipe is in `docs/hosted-deploy.md`.
+
+An `auto_topup` product with no supplier SKU linked to its variants is not
+worker-deliverable at all. `deliver_order` hands those lines straight to staff
+(`manual_waiting`) instead of parking them as `pending`, because a line no
+worker can claim is invisible everywhere else.
+
 ```bash
 # Sync a supplier catalogue into your own products and variants.
 # Start small: a full sweep is 200+ games and 200+ product calls.
@@ -421,6 +446,13 @@ Flutter web renders images through `fetch`. The mirror writes a URL built from
 set `STORAGE_PUBLIC_URL=http://127.0.0.1:54321` in `supabase/functions/.env`,
 which is what the example file does. Without it the sync reports a `warning`
 and the art falls back to the CDN, where it is invisible in a browser.
+
+The mirror stores the supplier's own file, at whatever shape the supplier uses —
+240x240 logos, 1250x1250 posters, 16:9 banners — and the app crops it at render
+time. The cards are 4:3, so a square logo is `cover`-cropped top and bottom and
+fills the tile. That is deliberate: padding the art onto a 4:3 canvas shrank it
+behind blurred letterbox bars and read as a smaller, softer tile, so the mirror
+keeps the source bytes and lets the card crop.
 
 The worker distinguishes three outcomes, and the distinction is the point:
 

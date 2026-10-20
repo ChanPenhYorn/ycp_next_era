@@ -4345,3 +4345,434 @@ do $$ begin raise notice '>>> 20261016110000_supplier_grants.sql'; end $$;
 
 grant select on public.suppliers to authenticated;
 grant select on public.supplier_skus to authenticated;
+
+
+-- ============================================================================
+-- 20261016120000_supplier_catalogue_fit.sql
+-- ============================================================================
+
+do $$ begin raise notice '>>> 20261016120000_supplier_catalogue_fit.sql'; end $$;
+
+-- ============================================================================
+-- Catalogue fit with the supplier: quantity, and SKUs the supplier dropped.
+--
+-- Two ways a synced catalogue could take money it cannot deliver on:
+--
+-- 1. QUANTITY. Sync wrote every variant as min_qty=1, max_qty=50. Bay2Game's
+--    /create_order takes a product_code and buyer fields only — no quantity —
+--    so a line for two would be delivered once. The adapter now declares
+--    `supportsQuantity: false`, the sync passes `max_qty: 1`, and this function
+--    stores it. create_order already validates qty against the variant's
+--    min_qty/max_qty in Postgres, so the cap is enforced server-side even if a
+--    client ignores it, and the quantity stepper disappears on its own.
+--
+-- 2. STALE SKUs. Sync only ever set is_active = true. A product the supplier
+--    removed stayed sellable, so the buyer paid and the order could only be
+--    refunded. A sync is now a snapshot: anything this supplier no longer
+--    lists for the game is deactivated, and a game left with nothing on sale is
+--    hidden instead of shown empty.
+--
+-- An empty product list is deliberately NOT a snapshot. A supplier having a bad
+-- day, a rate limit answered with an empty body, or a game whose packages are
+-- all inactive would otherwise empty the shop in one call. Nothing is
+-- deactivated unless the pull actually returned products.
+--
+-- The body below carries forward the two behaviours earlier migrations added to
+-- this same function — field normalisation (20261015000700) and an unpriced
+-- SKU following the supplier's cost (20261015001300) — because plpgsql bodies
+-- cannot be patched. Dropping either one silently breaks a tested guarantee;
+-- `smoke.sql` checks both.
+-- ============================================================================
+
+create or replace function public.supplier_upsert_catalogue(
+  p_supplier_code   text,
+  p_game_code       text,
+  p_name            text,
+  p_image_url       text,
+  p_summary         text,
+  p_required_fields jsonb,      -- [{ key, label_km, label_en, placeholder }]
+  p_products        jsonb       -- [{ product_code, name, price_usd, sort, max_qty }]
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_supplier public.suppliers;
+  v_product_id bigint;
+  v_slug text;
+  v_item jsonb;
+  v_variant_id bigint;
+  v_fields jsonb;
+  v_upserted integer := 0;
+  v_deactivated integer := 0;
+begin
+  select * into v_supplier from public.suppliers where code = p_supplier_code;
+  if not found then
+    raise exception 'unknown_supplier' using detail = p_supplier_code;
+  end if;
+
+  v_slug := p_supplier_code || '-' || p_game_code;
+  v_fields := public.supplier_field_definitions(p_required_fields);
+
+  insert into public.products (
+    slug, name_km, name_en, summary_km, summary_en, image_url, kind,
+    requires_fields, supplier_id, supplier_game_code, is_active, sort_order
+  ) values (
+    v_slug, p_name, p_name, p_summary, p_summary, p_image_url, 'auto_topup',
+    v_fields, v_supplier.id, p_game_code, true, 1000
+  )
+  on conflict (slug) do update
+    set name_km       = excluded.name_km,
+        name_en       = excluded.name_en,
+        summary_km    = excluded.summary_km,
+        summary_en    = excluded.summary_en,
+        image_url     = coalesce(excluded.image_url, public.products.image_url),
+        requires_fields = excluded.requires_fields,
+        supplier_id   = excluded.supplier_id,
+        supplier_game_code = excluded.supplier_game_code,
+        -- Deliberately NOT is_active = true. A product is activated when it is
+        -- first synced, but from then on the switch belongs to staff: hiding a
+        -- broken game must survive the next sync. A game this sync hides
+        -- because the supplier dropped every package stays hidden too, so
+        -- selling something undeliverable is never the automatic outcome.
+        -- Staff re-enable it with admin_product_set_active once the supplier
+        -- lists it again.
+        updated_at    = now()
+  returning id into v_product_id;
+
+  for v_item in select * from jsonb_array_elements(coalesce(p_products, '[]'::jsonb))
+  loop
+    if coalesce(btrim(v_item ->> 'product_code'), '') = '' then
+      raise exception 'product_missing_code'
+        using detail = left(v_item::text, 200);
+    end if;
+
+    insert into public.product_variants (
+      product_id, sku, label_km, label_en, price_usd, cost_usd,
+      stock_mode, min_qty, max_qty, is_active, sort_order
+    ) values (
+      v_product_id,
+      (v_item ->> 'product_code'),
+      (v_item ->> 'name'),
+      (v_item ->> 'name'),
+      -- The supplier price is cost. Retail is set by staff afterwards; until
+      -- then it is cost, so an unpriced SKU can never be sold at a loss.
+      round((v_item ->> 'price_usd')::numeric, 2),
+      round((v_item ->> 'price_usd')::numeric, 2),
+      'unlimited',
+      -- 50 is the default for a supplier whose API takes a quantity. A
+      -- supplier that cannot is capped at one unit per line by the sync.
+      coalesce((v_item ->> 'min_qty')::int, 1),
+      coalesce((v_item ->> 'max_qty')::int, 50),
+      true,
+      coalesce((v_item ->> 'sort')::int, 0)
+    )
+    on conflict (sku) do update
+      set label_km   = excluded.label_km,
+          label_en   = excluded.label_en,
+          -- Read the OLD cost before it is overwritten below: an unpriced SKU
+          -- (price = old cost) follows the supplier; a staff price does not.
+          price_usd  = case
+                         when public.product_variants.price_usd = public.product_variants.cost_usd
+                           then excluded.cost_usd
+                         else public.product_variants.price_usd
+                       end,
+          cost_usd   = excluded.cost_usd,
+          -- Quantity bounds follow the supplier's capability, so a re-sync
+          -- repairs rows written before the cap existed.
+          min_qty    = excluded.min_qty,
+          max_qty    = excluded.max_qty,
+          sort_order = excluded.sort_order,
+          is_active  = true,
+          product_id = excluded.product_id
+    returning id into v_variant_id;
+
+    insert into public.supplier_skus (
+      supplier_id, variant_id, supplier_sku, cost_usd, is_active, last_synced_at, last_cost_usd
+    ) values (
+      v_supplier.id, v_variant_id, (v_item ->> 'product_code'),
+      round((v_item ->> 'price_usd')::numeric, 2), true, now(),
+      round((v_item ->> 'price_usd')::numeric, 2)
+    )
+    on conflict (supplier_id, variant_id, supplier_sku) do update
+      set cost_usd       = excluded.cost_usd,
+          last_cost_usd  = excluded.last_cost_usd,
+          last_synced_at = now(),
+          is_active      = true;
+
+    v_upserted := v_upserted + 1;
+  end loop;
+
+  -- ------------------------------------------------------------------------
+  -- Reconcile: only when the pull actually returned products.
+  -- ------------------------------------------------------------------------
+  if jsonb_array_length(coalesce(p_products, '[]'::jsonb)) > 0 then
+    -- Variants this supplier no longer lists for the game. Scoped to variants
+    -- this supplier actually fulfils, so a staff-made or locally stocked line
+    -- on the same product is never switched off by a sync.
+    update public.product_variants v
+       set is_active = false
+     where v.product_id = v_product_id
+       and v.is_active
+       and exists (
+         select 1 from public.supplier_skus s
+          where s.variant_id = v.id and s.supplier_id = v_supplier.id
+       )
+       and v.sku not in (
+         select (i ->> 'product_code') from jsonb_array_elements(p_products) i
+       );
+
+    get diagnostics v_deactivated = row_count;
+
+    -- Their SKU links follow. An order already paid for a line whose SKU just
+    -- disappeared becomes a staff problem rather than a silent retry loop: the
+    -- supplier would reject the product_code anyway, so there is nothing left
+    -- to attempt automatically.
+    update public.supplier_skus s
+       set is_active = false
+     where s.supplier_id = v_supplier.id
+       and s.is_active
+       and not exists (
+         select 1 from public.product_variants v
+          where v.id = s.variant_id and v.is_active
+       );
+
+    -- A game with nothing on sale is hidden, not shown as an empty shelf.
+    --
+    -- Swept across this supplier's whole catalogue, not just the game being
+    -- synced: a SKU can also leave a product by moving to another game, since
+    -- the variant upsert reassigns product_id when the supplier reuses a
+    -- product_code. That product is not named anywhere in this call.
+    update public.products p
+       set is_active = false,
+           updated_at    = now()
+     where p.supplier_id = v_supplier.id
+       and p.is_active
+       and not exists (
+         select 1 from public.product_variants v
+          where v.product_id = p.id and v.is_active
+       );
+  end if;
+
+  return jsonb_build_object(
+    'product_id', v_product_id,
+    'slug', v_slug,
+    'variants_synced', v_upserted,
+    'variants_deactivated', v_deactivated
+  );
+end;
+$$;
+
+revoke execute on function public.supplier_upsert_catalogue(text, text, text, text, text, jsonb, jsonb)
+  from public, anon, authenticated;
+
+
+-- ============================================================================
+-- 20261016130000_supplier_manual_fallback.sql
+-- ============================================================================
+
+do $$ begin raise notice '>>> 20261016130000_supplier_manual_fallback.sql'; end $$;
+
+-- ============================================================================
+-- An auto top-up that no supplier can deliver is a staff job, not a pending one.
+--
+-- `private.deliver_order` marks every `auto_topup` line `pending` and leaves it
+-- for the supplier worker. That is right when a supplier is linked. It is wrong
+-- when the variant has no active supplier SKU at all:
+--
+--   * `supplier_pending_items` returns it with a null `supplier_sku`, so the
+--     worker can only defer it and never deliver it;
+--   * the line never records an attempt, and `admin_supplier_queue` lists only
+--     lines that are `manual_waiting` or have `supplier_attempts > 0`;
+--
+-- so the order sits in `delivering` for ever, invisible to the only person who
+-- could finish it. The demo catalogue hits this: `mobile-legends-diamonds` is
+-- `auto_topup` with no supplier link, and every purchase of it parks there.
+--
+-- Two pieces:
+--
+--   private.deliver_order                  auto_topup: linked -> pending
+--                                                      unlinked -> manual_waiting
+--   public.supplier_backfill_unlinked_items()   the same repair for lines that
+--                                          are already stuck, run once here
+--
+-- An unlinked line is not an error state. It means "a person delivers this",
+-- which is exactly what `manual_waiting` says everywhere else in the schema.
+-- ============================================================================
+
+create or replace function private.deliver_order(p_order_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_item      record;
+  v_picked    integer;
+  v_pending   integer;
+  v_waiting   integer;
+  v_all_done  boolean;
+begin
+  update public.orders set status = 'delivering' where id = p_order_id and status = 'paid';
+
+  for v_item in
+    select oi.id, oi.variant_id, oi.qty, p.kind, oi.product_name,
+           -- Whether a worker could ever finish this line: it needs an active
+           -- supplier SKU to order. The supplier row's own `is_active` is
+           -- deliberately not part of this: it is a switch staff flip, sometimes
+           -- off for a day, and `supplier_pending_items` still hands those lines
+           -- to the worker on purpose, which defers them and escalates to staff
+           -- after the attempt limit. What can never be delivered, and so must
+           -- not pretend to wait for a worker, is a line with no SKU behind it.
+           exists (
+             select 1
+               from public.supplier_skus ss
+              where ss.variant_id = v.id
+                and ss.is_active
+           ) as has_supplier
+      from public.order_items oi
+      join public.product_variants v on v.id = oi.variant_id
+      join public.products p on p.id = v.product_id
+     where oi.order_id = p_order_id
+       and oi.delivery_status = 'pending'
+     order by oi.id
+  loop
+    if v_item.kind = 'instant_stock' then
+      -- The one statement that prevents double-selling.
+      update private.stock_items s
+         set status = 'sold', order_id = p_order_id, sold_at = now()
+       where s.id in (
+         select id
+           from private.stock_items
+          where variant_id = v_item.variant_id
+            and status = 'available'
+          order by created_at
+          limit v_item.qty
+          for update skip locked
+       );
+
+      get diagnostics v_picked = row_count;
+
+      if v_picked = v_item.qty then
+        update public.order_items
+           set delivery_status = 'delivered', delivered_at = now()
+         where id = v_item.id;
+
+        update public.products
+           set sold_count = sold_count + v_item.qty
+         where id = (select product_id from public.product_variants where id = v_item.variant_id);
+      else
+        -- Roll back a short pick so nothing is stranded mid-order.
+        if v_picked > 0 then
+          update private.stock_items
+             set status = 'available', order_id = null, sold_at = null
+           where order_id = p_order_id
+             and variant_id = v_item.variant_id
+             and status = 'sold'
+             and id in (select id from private.stock_items
+                         where order_id = p_order_id and variant_id = v_item.variant_id
+                         order by id desc limit v_picked);
+        end if;
+
+        update public.order_items
+           set delivery_status = 'manual_waiting'
+         where id = v_item.id;
+      end if;
+
+    elsif v_item.kind = 'manual_setup' then
+      update public.order_items
+         set delivery_status = 'manual_waiting'
+       where id = v_item.id;
+
+    elsif v_item.has_supplier then
+      -- auto_topup with a supplier: a worker calls their API and flips this row.
+      update public.order_items
+         set delivery_status = 'pending'
+       where id = v_item.id;
+
+    else
+      -- auto_topup with nothing to call: staff deliver it by hand.
+      update public.order_items
+         set delivery_status = 'manual_waiting'
+       where id = v_item.id;
+    end if;
+  end loop;
+
+  select
+    count(*) filter (where delivery_status = 'pending'),
+    count(*) filter (where delivery_status = 'manual_waiting')
+    into v_pending, v_waiting
+    from public.order_items where order_id = p_order_id;
+
+  v_all_done := (v_pending = 0 and v_waiting = 0);
+
+  update public.orders
+     set status = case when v_all_done then 'delivered'::public.order_status else 'delivering'::public.order_status end,
+         delivered_at = case when v_all_done then now() else delivered_at end
+   where id = p_order_id;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- The repair for lines delivered before the rule above existed.
+--
+-- Orders already sitting in `delivering` on an unlinked auto top-up line are
+-- the exact case this migration is about, and nothing would move them: the
+-- worker cannot claim them and staff cannot see them. This flips them to
+-- `manual_waiting`, where `admin_supplier_queue` picks them up.
+--
+-- Only orders that are actually waiting on delivery are touched. A `pending`
+-- line on an expired order is not stuck, it is simply an order that was never
+-- paid, and dragging those into the staff queue would bury the real work.
+--
+-- Kept as a function rather than a bare `update` so it is re-runnable: a later
+-- migration, or a supplier being unlinked by hand, can leave the same debris.
+-- ---------------------------------------------------------------------------
+create or replace function public.supplier_backfill_unlinked_items()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_moved integer;
+begin
+  update public.order_items oi
+     set delivery_status = 'manual_waiting'
+    from public.product_variants v
+    join public.products p on p.id = v.product_id
+   where v.id = oi.variant_id
+     and oi.delivery_status = 'pending'
+     and p.kind = 'auto_topup'
+     and exists (
+       select 1 from public.orders o
+        where o.id = oi.order_id
+          and o.status in ('paid', 'delivering')
+     )
+     and not exists (
+       select 1
+         from public.supplier_skus ss
+        where ss.variant_id = v.id
+          and ss.is_active
+     );
+
+  get diagnostics v_moved = row_count;
+
+  -- The order's own status does not change: it is still 'delivering', because
+  -- the goods are still owed. Only the person responsible changes.
+  return v_moved;
+end;
+$$;
+
+-- Operator/support function, like the other `admin_*` repairs: definer, so it
+-- can read the private tables, and reachable from the SQL editor rather than
+-- from a client.
+revoke execute on function public.supplier_backfill_unlinked_items() from public, anon, authenticated;
+
+do $$
+declare v_moved integer;
+begin
+  select public.supplier_backfill_unlinked_items() into v_moved;
+  raise notice 'supplier_manual_fallback: % stuck auto top-up line(s) handed to staff', v_moved;
+end $$;

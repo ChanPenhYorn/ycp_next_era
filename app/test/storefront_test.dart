@@ -11,6 +11,7 @@ import 'package:ycp_store/src/core/format.dart';
 import 'package:ycp_store/src/data/models.dart';
 import 'package:ycp_store/src/features/orders/data/order_mappers.dart';
 import 'package:ycp_store/src/state/providers.dart';
+import 'package:ycp_store/src/ui/widgets/home_bento.dart';
 import 'package:ycp_store/src/ui/widgets/home_sections.dart';
 import 'package:ycp_store/src/ui/widgets/product_card.dart';
 import 'package:ycp_store/src/ui/widgets/skeleton.dart';
@@ -36,8 +37,8 @@ ProductCard _card({
   totalStock: totalStock,
 );
 
-Widget _wrap(Widget child) => MaterialApp(
-  locale: const Locale('en'),
+Widget _wrap(Widget child, {Locale locale = const Locale('en')}) => MaterialApp(
+  locale: locale,
   supportedLocales: AppL10n.supportedLocales,
   localizationsDelegates: AppL10n.localizationsDelegates,
   home: Scaffold(
@@ -49,12 +50,16 @@ Widget _wrap(Widget child) => MaterialApp(
 );
 
 /// 320 CSS pixels is the narrowest width `implement.md` §5 names.
-Future<void> _at320(WidgetTester tester, Widget child) async {
+Future<void> _at320(
+  WidgetTester tester,
+  Widget child, {
+  Locale locale = const Locale('en'),
+}) async {
   tester.view.physicalSize = const Size(320 * 3, 640 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
 
-  await tester.pumpWidget(_wrap(child));
+  await tester.pumpWidget(_wrap(child, locale: locale));
   await tester.pumpAndSettle();
 }
 
@@ -182,7 +187,7 @@ void main() {
     testWidgets(
       'never advertises a support hours claim the store has not made',
       (tester) async {
-        await _at320(tester, const TrustRow());
+        await _at320(tester, const HomeIntroBand());
 
         expect(find.text('Automatic delivery'), findsOneWidget);
         expect(find.text('Pay with ABA KHQR'), findsOneWidget);
@@ -192,6 +197,52 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  });
+
+  group('home motion', () {
+    // Timed pumps, not pumpAndSettle: the ticker animates on an infinite loop, so
+    // settling never happens. What matters here is that the band lays out at
+    // 320px and paints its copy.
+    testWidgets(
+      'the intro band lays out at 320px with its promise and action',
+      (tester) async {
+        tester.view.physicalSize = const Size(320 * 3, 640 * 3);
+        tester.view.devicePixelRatio = 3;
+        addTearDown(tester.view.reset);
+
+        await tester.pumpWidget(_wrap(const HomeIntroBand()));
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text('Automatic delivery'), findsOneWidget);
+        expect(find.text('Top up your games in seconds'), findsOneWidget);
+        expect(find.text('Browse games'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    // 800px, not 320: the strip is a lazy list, so at phone width the second
+    // rank is simply off-screen and never built.
+    testWidgets('trending ticker ranks the real sellers', (tester) async {
+      tester.view.physicalSize = const Size(800 * 3, 640 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _wrap(
+          TrendingTicker(products: [_card(soldCount: 5), _card(soldCount: 2)]),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Trending now'), findsOneWidget);
+      // Two of each: the strip holds two copies of the list so the drift can
+      // wrap without a visible seam.
+      expect(find.text('#1'), findsNWidgets(2));
+      expect(find.text('#2'), findsNWidgets(2));
+      expect(find.textContaining('· 5'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('product grid', () {

@@ -11,6 +11,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
 import 'widgets/motion.dart';
+import 'widgets/product_art.dart';
 import 'widgets/required_fields_form.dart';
 
 class ProductPage extends ConsumerStatefulWidget {
@@ -172,13 +173,19 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                           },
                         ),
                       ],
-                      const SizedBox(height: 20),
-                      _QuantityRow(
-                        label: l10n.quantity,
-                        variant: selected,
-                        qty: _qty,
-                        onChanged: (value) => setState(() => _qty = value),
-                      ),
+                      // Only when the line can actually be more than one. A
+                      // supplier whose order API takes no quantity runs at
+                      // qty 1, and a single unit left in stock is the same: a
+                      // stepper with both buttons dead is noise, not control.
+                      if (selected.maxQty > selected.minQty) ...[
+                        const SizedBox(height: 20),
+                        _QuantityRow(
+                          label: l10n.quantity,
+                          variant: selected,
+                          qty: _qty,
+                          onChanged: (value) => setState(() => _qty = value),
+                        ),
+                      ],
                       const SizedBox(height: 26),
                       _Reviews(productId: product.card.id, l10n: l10n),
                       const SizedBox(height: 30),
@@ -254,6 +261,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           unitPriceUsd: variant.priceUsd,
           minQty: variant.minQty,
           maxQty: variant.maxQty,
+          sku: variant.sku,
           qty: _qty,
           fields: fields,
           requiredFields: product.requiresFields,
@@ -276,6 +284,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           unitPriceUsd: variant.priceUsd,
           minQty: variant.minQty,
           maxQty: variant.maxQty,
+          sku: variant.sku,
           qty: _qty,
           fields: fields,
           requiredFields: product.requiresFields,
@@ -313,8 +322,9 @@ class _DenominationGridState extends State<_DenominationGrid> {
   Widget build(BuildContext context) {
     final variants = widget.variants;
     final showToggle = variants.length > _collapsedCount;
-    final visible =
-        _expanded || !showToggle ? variants : variants.sublist(0, _collapsedCount);
+    final visible = _expanded || !showToggle
+        ? variants
+        : variants.sublist(0, _collapsedCount);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -336,10 +346,9 @@ class _DenominationGridState extends State<_DenominationGrid> {
                       variant: variant,
                       locale: widget.locale,
                       selected: variant.id == widget.selectedId,
-                      onTap:
-                          variant.isSoldOut
-                              ? null
-                              : () => widget.onPick(variant),
+                      onTap: variant.isSoldOut
+                          ? null
+                          : () => widget.onPick(variant),
                     ),
                   ),
               ],
@@ -348,9 +357,7 @@ class _DenominationGridState extends State<_DenominationGrid> {
               const SizedBox(height: 12),
               TextButton.icon(
                 onPressed: () => setState(() => _expanded = !_expanded),
-                icon: Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                ),
+                icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
                 label: Text(
                   _expanded
                       ? AppL10n.of(context).showLess
@@ -589,23 +596,28 @@ class _Gallery extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.card),
       child: AspectRatio(
         aspectRatio: 16 / 9,
-        child: product.card.imageUrl == null
-            ? const ColoredBox(
-                color: AppColors.ink850,
-                child: Center(
-                  child: Icon(
-                    Icons.sports_esports_outlined,
-                    size: 48,
-                    color: AppColors.ink400,
+        child: ColoredBox(
+          color: AppColors.ink850,
+          child: product.card.imageUrl == null
+              ? ProductArtFallback(
+                  name: product.card.name(
+                    Localizations.localeOf(context).languageCode,
+                  ),
+                )
+              // `contain`, not `cover`: product art is 4:3 and this frame is
+              // 16:9, so covering it would cut the top and bottom off the art.
+              : CachedNetworkImage(
+                  imageUrl: product.card.imageUrl!,
+                  fit: BoxFit.contain,
+                  placeholder: (_, _) =>
+                      const ColoredBox(color: AppColors.ink850),
+                  errorWidget: (_, _, _) => ProductArtFallback(
+                    name: product.card.name(
+                      Localizations.localeOf(context).languageCode,
+                    ),
                   ),
                 ),
-              )
-            : CachedNetworkImage(
-                imageUrl: product.card.imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (_, _) =>
-                    const ColoredBox(color: AppColors.ink850),
-              ),
+        ),
       ),
     );
   }

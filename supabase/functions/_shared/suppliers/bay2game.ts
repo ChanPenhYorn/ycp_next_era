@@ -131,6 +131,22 @@ async function call(
   if (res.status === 429) {
     throw new SupplierError("rate_limited", true, 15);
   }
+  // The live API reports an unfunded wallet as HTTP 402 with the human message
+  // in the body — "Insufficient balance. Required: 0.20, Available: 0.00" — not
+  // as a 200 carrying `status: "FAILED"` the way the docs' example implies.
+  // Treating it as a generic 4xx threw the message away: staff saw `http_402`
+  // and nothing else, and the retry came back in 15 minutes instead of an hour.
+  if (res.status === 402) {
+    const text = await res.text();
+    let message = "insufficient supplier balance";
+    try {
+      const parsed = JSON.parse(text) as { message?: string };
+      if (parsed?.message) message = parsed.message;
+    } catch {
+      // A body we cannot read still means the same thing.
+    }
+    throw new SupplierError(`supplier_out_of_balance: ${message}`, true, 60);
+  }
   if (res.status >= 500) {
     throw new SupplierError(`upstream_${res.status}`, true, 10);
   }
@@ -161,6 +177,14 @@ export const bay2game: SupplierAdapter = {
   code: "bay2game",
 
   configured: () => key().length > 0,
+
+  // /create_order takes product_code, game_user_id, game_zone_id and
+  // reference — there is no quantity parameter, and their API has no notion of
+  // a multi-unit line. `FulfilInput.quantity` is therefore dropped on the way
+  // out (see `fulfil` below, which sends one unit), and the catalogue caps
+  // every synced variant at qty 1 so the storefront never sells what would be
+  // delivered once.
+  supportsQuantity: false,
 
   canFulfil: (fields: string[]) => unsupportedFields(fields).length === 0,
 
@@ -200,6 +224,11 @@ export const bay2game: SupplierAdapter = {
   async fulfil(input: FulfilInput): Promise<FulfilResult> {
     // Stable per order line, so a retry cannot create a second order.
     const reference = `${input.orderNo}-${input.itemId}`;
+    // One unit, always: their API has no quantity parameter, so a line for
+    // more than one cannot be expressed. The catalogue caps quantity at 1 for
+    // this supplier (see `supportsQuantity` above), so a larger line can never
+    // reach here; if one somehow did, delivering one unit is the honest
+    // outcome and the money check is what has to catch it.
     const params: Record<string, string | undefined> = {
       product_code: input.supplierSku,
       reference,
@@ -300,7 +329,13 @@ export async function checkOrder(
   const data = await call("/check_order", { reference });
   const orderStatus = (data.order?.status ?? "").toLowerCase();
   return {
-    delivered: data.status === "SUCCESS" && orderStatus === "success",
+    // `isSuccess`, not a literal: the docs write "SUCCESS" but the live API
+    // answers "success", and this is the guard that decides whether an
+    // ambiguous /create_order already landed. Comparing the raw field here
+    // made it permanently false against the live API, so a timed-out order
+    // was retried instead of recognised — the exact double-spend this
+    // function exists to prevent.
+    delivered: isSuccess(data.status) && orderStatus === "success",
     amountUsd: toUsd(data.order?.amount),
     raw: data,
   };

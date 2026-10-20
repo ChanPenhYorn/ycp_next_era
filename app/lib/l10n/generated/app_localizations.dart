@@ -661,6 +661,12 @@ abstract class AppL10n {
   /// **'Something went wrong. Please try again.'**
   String get somethingWentWrong;
 
+  /// No description provided for @itemUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Some items are no longer available. We removed them from your cart.'**
+  String get itemUnavailable;
+
   /// No description provided for @guestMustSignIn.
   ///
   /// In en, this message translates to:
@@ -1374,6 +1380,36 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Contact support'**
   String get contactSupport;
+
+  /// No description provided for @qtyOnePerOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'This top-up is delivered one at a time. Quantity set to 1 - tap buy again to continue.'**
+  String get qtyOnePerOrder;
+
+  /// No description provided for @tooManyLines.
+  ///
+  /// In en, this message translates to:
+  /// **'That is more than 20 items in one order. Please split it into two orders.'**
+  String get tooManyLines;
+
+  /// No description provided for @accountBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is on hold. Contact support and we will sort it out.'**
+  String get accountBlocked;
+
+  /// No description provided for @paymentUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the payment service. Your order is saved, so try again or pay another way.'**
+  String get paymentUnreachable;
+
+  /// No description provided for @orderNotPayable.
+  ///
+  /// In en, this message translates to:
+  /// **'This order can no longer be paid. It may already be paid or expired - check its status below.'**
+  String get orderNotPayable;
 
   /// No description provided for @statusRefundPending.
   ///
@@ -2131,6 +2167,18 @@ abstract class AppL10n {
   /// **'Role updated.'**
   String get adminRoleSaved;
 
+  /// No description provided for @adminConsole.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff console'**
+  String get adminConsole;
+
+  /// No description provided for @adminExitToStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the store'**
+  String get adminExitToStore;
+
   /// No description provided for @adminCannotChangeOwn.
   ///
   /// In en, this message translates to:
@@ -2142,6 +2190,60 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'No account with that email. Ask them to sign up first.'**
   String get adminUserNotFound;
+
+  /// No description provided for @adminConfirmPaymentNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This marks the order paid and hands the line to the supplier. It cannot be undone from this screen.'**
+  String get adminConfirmPaymentNote;
+
+  /// No description provided for @adminDismissNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This drops the buyer\'s claim. The order stays unpaid.'**
+  String get adminDismissNote;
+
+  /// No description provided for @adminSetRoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change this role?'**
+  String get adminSetRoleTitle;
+
+  /// No description provided for @adminSetRoleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The change takes effect immediately. Set another role to undo it.'**
+  String get adminSetRoleBody;
+
+  /// No description provided for @adminResolveFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this line failed?'**
+  String get adminResolveFailedTitle;
+
+  /// No description provided for @adminResolveFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The buyer is not refunded by this. A failed line needs a separate refund decision.'**
+  String get adminResolveFailedBody;
+
+  /// No description provided for @adminTicketCloseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Close this ticket?'**
+  String get adminTicketCloseTitle;
+
+  /// No description provided for @adminTicketCloseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It moves to Closed and drops out of the working list.'**
+  String get adminTicketCloseBody;
+
+  /// No description provided for @adminShowingCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing the {count} most recent.'**
+  String adminShowingCount(int count);
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

@@ -248,177 +248,200 @@ class TrustAndSupportSection extends StatelessWidget {
   }
 }
 
-/// Top-of-home banner: one clear promise and one clear action.
-class HomeHero extends StatelessWidget {
-  const HomeHero({super.key});
+/// The slim band at the top of home: what the store promises, the one action
+/// that starts the funnel, and the trust claims under it.
+///
+/// This replaced a full-width gradient hero panel. That panel held a pill, a
+/// heading, a subtitle and a button, left-aligned in a box up to 1140px wide, so
+/// roughly 60% of it was bare gradient with a single orb parked off-panel. It was
+/// also stacked directly above the spotlight, which is already a wide product
+/// banner: two big panels, both mostly empty, before the first real game.
+///
+/// The pitch and the action moved here, and the trust claims came up from the row
+/// that used to sit under the hero. The spotlight is now the page's one anchor.
+/// Dropping the old panel also deleted its 7-second orb loop, which repainted two
+/// large radial gradients every frame with no `RepaintBoundary`.
+class HomeIntroBand extends StatelessWidget {
+  const HomeIntroBand({super.key});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
-    final wide = MediaQuery.sizeOf(context).width >= 900;
 
     return Container(
       width: double.infinity,
-      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.hero),
+        border: Border.all(color: AppColors.ink800),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF3B54E0), Color(0xFF241B57), AppColors.ink950],
-          stops: [0, 0.5, 1],
+          colors: [Color(0xFF1F2B63), AppColors.ink900],
         ),
-        boxShadow: AppGlow.of(AppColors.brand, strength: 0.3, blur: 48),
       ),
-      child: Stack(
-        children: [
-          // Two coloured washes so the panel is lit, not just filled.
-          Positioned(
-            right: -60,
-            top: -80,
-            child: _Orb(color: AppColors.violet, size: 260),
-          ),
-          Positioned(
-            left: -50,
-            bottom: -90,
-            child: _Orb(color: AppColors.cyan, size: 220),
-          ),
-          Padding(
-            padding: EdgeInsets.all(wide ? 40 : 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.violet, AppColors.brand],
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.bolt_rounded,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.trustInstant,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.heroTitle,
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    fontSize: wide ? 38 : 26,
-                    height: 1.15,
-                    letterSpacing: wide ? -1.2 : -0.6,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Text(
-                    l10n.heroSubtitle,
-                    style: TextStyle(
-                      fontSize: wide ? 15 : 13.5,
-                      color: Colors.white.withValues(alpha: 0.8),
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                FilledButton.icon(
-                  onPressed: () => context.go('/products'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.brandDark,
-                    minimumSize: const Size(0, 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
-                  ),
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                  label: Text(l10n.heroCta),
-                ),
-              ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final heading = Text(
+            l10n.heroTitle,
+            style: Theme.of(context).textTheme.headlineSmall,
+          );
+
+          final action = FilledButton.icon(
+            onPressed: () => context.go('/products'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 44),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
             ),
-          ),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            label: Text(l10n.heroCta),
+          );
+
+          // Side by side while there is room; stacked on a phone, where the
+          // action would otherwise squeeze the heading to one word per line.
+          // The action sitting opposite the heading is also what keeps the band
+          // from having the hero's empty right half.
+          final sideBySide = constraints.maxWidth >= 520;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (sideBySide)
+                Row(
+                  children: [
+                    Expanded(child: heading),
+                    const SizedBox(width: AppSpace.lg),
+                    action,
+                  ],
+                )
+              else ...[
+                heading,
+                const SizedBox(height: AppSpace.md),
+                action,
+              ],
+              const SizedBox(height: AppSpace.sm),
+              Text(l10n.heroSubtitle, style: AppType.bodySmall(context)),
+              const SizedBox(height: AppSpace.md),
+              Wrap(
+                spacing: AppSpace.sm,
+                runSpacing: AppSpace.sm,
+                children: [
+                  for (final claim in <String>[
+                    l10n.trustInstant,
+                    l10n.trustPayment,
+                    l10n.trustSupport,
+                  ])
+                    _TrustPill(label: claim),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// One trust claim. Private because the band is the only place these appear, and
+/// the claims are deliberately not repeated anywhere else on the page.
+class _TrustPill extends StatelessWidget {
+  const _TrustPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.ink900,
+        border: Border.all(color: AppColors.ink800),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle, size: 14, color: AppColors.accent),
+          const SizedBox(width: 6),
+          // Flexible, or a claim longer than the available line overflows: the
+          // Row cannot shrink a bare Text below its intrinsic width. Loose fit
+          // keeps short labels snug and lets a long one wrap (or a Khmer label,
+          // where every claim is longer, wrap rather than clip).
+          Flexible(child: Text(label, style: AppType.caption(context))),
         ],
       ),
     );
   }
 }
 
-/// A soft round light. Tints a panel without a hard edge.
-class _Orb extends StatelessWidget {
-  const _Orb({required this.color, required this.size});
+/// One category in the scroll row. Lifts the home chips off plain ActionChip
+/// styling: neon border and a tight glow under the pointer, a physical press
+/// on touch, and a real button semantic for screen readers.
+class CategoryPill extends StatefulWidget {
+  const CategoryPill({required this.category, super.key});
 
-  final Color color;
-  final double size;
+  final Category category;
+
+  @override
+  State<CategoryPill> createState() => _CategoryPillState();
+}
+
+class _CategoryPillState extends State<CategoryPill> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: 0.45), color.withValues(alpha: 0)],
+    final label = widget.category.name(
+      Localizations.localeOf(context).languageCode,
+    );
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: () => context.go(
+            '/products?category=${Uri.encodeComponent(widget.category.slug)}',
+          ),
+          child: AnimatedScale(
+            scale: _hovered ? 1.05 : 1,
+            duration: AppMotion.fast,
+            curve: AppMotion.ease,
+            child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.ease,
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: _hovered ? AppColors.ink850 : AppColors.ink900,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(
+                  color: _hovered
+                      ? AppColors.brand.withValues(alpha: 0.6)
+                      : AppColors.ink700,
+                ),
+                boxShadow: _hovered ? AppGlow.tight(AppColors.brand) : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: _hovered ? Colors.white : AppColors.ink200,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class TrustRow extends StatelessWidget {
-  const TrustRow({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppL10n.of(context);
-    final items = [l10n.trustInstant, l10n.trustPayment, l10n.trustSupport];
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final item in items)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: AppColors.ink900,
-              border: Border.all(color: AppColors.ink800),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.check_circle,
-                  size: 14,
-                  color: AppColors.accent,
-                ),
-                const SizedBox(width: 6),
-                Text(item, style: const TextStyle(fontSize: 11.5)),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

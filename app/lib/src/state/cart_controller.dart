@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,9 +29,36 @@ class CartReconcile {
 class CartController extends Notifier<List<CartLine>> {
   static const _key = 'cart_v1';
 
+  /// Who the saved cart belongs to. A user id, or empty for a guest.
+  ///
+  /// The cart lives in `shared_preferences`, which is per browser/device, not
+  /// per account. Without this stamp the next person to sign in on the same
+  /// device inherited the previous buyer's lines.
+  static const _ownerKey = 'cart_v1_owner';
+
   @override
   List<CartLine> build() {
-    final raw = ref.read(sharedPreferencesProvider).getString(_key);
+    final preferences = ref.read(sharedPreferencesProvider);
+    final owner = preferences.getString(_ownerKey);
+    final userId = ref.watch(currentUserIdProvider);
+
+    // The saved cart belongs to the account that added it. Restoring a
+    // session for a different account must never show it to the next person
+    // on this device.
+    //
+    // A guest cart (no owner) is deliberately kept through the first sign-in:
+    // adding items before logging in is how checkout starts. Sign-in itself is
+    // not a reason to discard; a sign-out clears the cart explicitly in the
+    // account screen.
+    if (owner != null &&
+        owner.isNotEmpty &&
+        userId != null &&
+        owner != userId) {
+      unawaited(_discard());
+      return const [];
+    }
+
+    final raw = preferences.getString(_key);
     if (raw == null || raw.isEmpty) return const [];
 
     try {
@@ -43,11 +71,22 @@ class CartController extends Notifier<List<CartLine>> {
     }
   }
 
+  /// Drops the stored cart without touching state; safe to call from build.
+  Future<void> _discard() async {
+    final preferences = ref.read(sharedPreferencesProvider);
+    await preferences.remove(_key);
+    await preferences.remove(_ownerKey);
+  }
+
   Future<void> _persist() async {
+    final prefs = ref.read(sharedPreferencesProvider);
     final encoded = jsonEncode([
       for (final line in state) cartLineToJson(line),
     ]);
-    await ref.read(sharedPreferencesProvider).setString(_key, encoded);
+    await prefs.setString(_key, encoded);
+    // Who owns it, so a different account never reads these lines. Empty means
+    // guest: a cart built before sign-in belongs to whoever logs in first.
+    await prefs.setString(_ownerKey, ref.read(currentUserIdProvider) ?? '');
   }
 
   /// Adds a variant, merging with an existing line and clamping to maxQty.
@@ -220,6 +259,6 @@ class CartController extends Notifier<List<CartLine>> {
 
   Future<void> clear() async {
     state = const [];
-    await _persist();
+    await _discard();
   }
 }

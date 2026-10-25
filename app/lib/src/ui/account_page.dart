@@ -146,6 +146,9 @@ class AccountPage extends ConsumerWidget {
         const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: () async {
+            // The cart is stored per device, not per account. Leaving it here
+            // showed the signed-out buyer's lines to whoever signed in next.
+            await ref.read(cartControllerProvider.notifier).clear();
             await ref.read(authRepositoryProvider).signOut();
             if (context.mounted) context.go('/');
           },

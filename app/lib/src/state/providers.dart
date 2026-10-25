@@ -176,6 +176,12 @@ final currentUserProvider = Provider<AppUser?>((ref) {
   return ref.watch(authRepositoryProvider).currentUser;
 });
 
+/// Only the id, so a token refresh (same user, new session) does not read as a
+/// different account to anything watching.
+final currentUserIdProvider = Provider<String?>(
+  (ref) => ref.watch(currentUserProvider)?.id,
+);
+
 final settingsProvider = FutureProvider<PublicSettings>(
   (ref) => ref.watch(catalogRepositoryProvider).settings(),
 );

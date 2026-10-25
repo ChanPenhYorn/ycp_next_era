@@ -19,6 +19,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(preferences),
+        // The cart now watches who is signed in; without this the test reaches
+        // for Supabase.instance, which is not initialized in a unit test.
+        currentUserIdProvider.overrideWithValue('buyer'),
         if (catalogue != null)
           catalogRepositoryProvider.overrideWithValue(catalogue),
       ],

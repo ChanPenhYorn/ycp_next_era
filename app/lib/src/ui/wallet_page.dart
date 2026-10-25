@@ -11,6 +11,7 @@ import '../features/payments/domain/payment_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/card_sheet.dart';
 import 'widgets/empty_state.dart';
 import 'widgets/khqr_sheet.dart';
 import 'widgets/skeleton.dart';
@@ -213,18 +214,41 @@ class _WalletPageState extends ConsumerState<WalletPage> {
             email: ref.read(currentUserProvider)?.email,
           );
 
-      final payment = await ref
-          .read(paymentRepositoryProvider)
-          .initKhqr(order.orderId);
+      final settings = ref.read(settingsProvider).valueOrNull;
+      final card = settings?.dodoEnabled ?? false;
+      final khqr = settings?.khqrEnabled ?? true;
 
-      if (!mounted) return;
-      setState(() => _busy = false);
+      if (!card && !khqr) {
+        if (!mounted) return;
+        setState(() => _busy = false);
+        _toast(l10n.paymentUnavailable);
+        return;
+      }
 
-      final paid = await KhqrSheet.show(
-        context,
-        orderId: order.orderId,
-        payment: payment,
-      );
+      final bool paid;
+      if (card) {
+        final checkout = await ref
+            .read(paymentRepositoryProvider)
+            .initCard(order.orderId);
+        if (!mounted) return;
+        setState(() => _busy = false);
+        paid = await CardSheet.show(
+          context,
+          orderId: order.orderId,
+          checkout: checkout,
+        );
+      } else {
+        final payment = await ref
+            .read(paymentRepositoryProvider)
+            .initKhqr(order.orderId);
+        if (!mounted) return;
+        setState(() => _busy = false);
+        paid = await KhqrSheet.show(
+          context,
+          orderId: order.orderId,
+          payment: payment,
+        );
+      }
 
       if (!mounted) return;
 
@@ -246,6 +270,8 @@ class _WalletPageState extends ConsumerState<WalletPage> {
       _toast(
         error.code == 'payway_not_configured'
             ? l10n.paywayNotConfigured
+            : error.code == 'dodo_not_configured'
+            ? l10n.cardNotConfigured
             : l10n.somethingWentWrong,
       );
     } catch (_) {

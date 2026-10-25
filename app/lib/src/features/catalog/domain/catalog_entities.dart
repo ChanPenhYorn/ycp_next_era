@@ -202,6 +202,7 @@ class PublicSettings {
     this.khqrMerchantName,
     this.manualGraceMinutes = 1440,
     this.dodoEnabled = false,
+    this.khqrEnabled = true,
   });
 
   final String siteName;
@@ -225,6 +226,10 @@ class PublicSettings {
   /// hidden otherwise: a fresh project has no Dodo keys, and a payment option
   /// that always fails is worse than no option.
   final bool dodoEnabled;
+
+  /// False once staff retire ABA KHQR in favour of the card rail. The QR tile,
+  /// the wallet's QR top-up, and the manual transfer fallback all disappear.
+  final bool khqrEnabled;
 
   /// True only when there is an account to pay into and something to call it.
   bool get hasTransferAccount =>

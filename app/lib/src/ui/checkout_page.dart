@@ -140,8 +140,13 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     final lines = ref.watch(cartControllerProvider);
     final subtotal = ref.watch(cartSubtotalProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
-    final cardEnabled =
-        ref.watch(settingsProvider).valueOrNull?.dodoEnabled ?? false;
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final cardEnabled = settings?.dodoEnabled ?? false;
+    final khqrEnabled = settings?.khqrEnabled ?? true;
+    // A method that staff switched off must not stay selected invisibly.
+    final method = !khqrEnabled && _method == _PayMethod.khqr
+        ? (cardEnabled ? _PayMethod.card : _PayMethod.wallet)
+        : _method;
     final total = (subtotal - (_couponDiscount ?? 0)).clamp(0, double.infinity);
     final wide = MediaQuery.sizeOf(context).width >= 900;
 
@@ -242,20 +247,22 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         title: l10n.paymentMethod,
         child: Column(
           children: [
-            _MethodTile(
-              icon: Icons.qr_code_2,
-              title: l10n.payWithKhqr,
-              subtitle: l10n.scanQr,
-              selected: _method == _PayMethod.khqr,
-              onTap: () => setState(() => _method = _PayMethod.khqr),
-            ),
-            const SizedBox(height: 8),
+            if (khqrEnabled) ...[
+              _MethodTile(
+                icon: Icons.qr_code_2,
+                title: l10n.payWithKhqr,
+                subtitle: l10n.scanQr,
+                selected: method == _PayMethod.khqr,
+                onTap: () => setState(() => _method = _PayMethod.khqr),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (cardEnabled) ...[
               _MethodTile(
                 icon: Icons.credit_card,
                 title: l10n.payByCard,
                 subtitle: l10n.payByCardSubtitle,
-                selected: _method == _PayMethod.card,
+                selected: method == _PayMethod.card,
                 onTap: () => setState(() => _method = _PayMethod.card),
               ),
               const SizedBox(height: 8),
@@ -266,7 +273,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               subtitle: balance == null
                   ? l10n.loading
                   : '${l10n.walletBalance} · ${money(balance)}',
-              selected: _method == _PayMethod.wallet,
+              selected: method == _PayMethod.wallet,
               onTap: () => setState(() => _method = _PayMethod.wallet),
             ),
           ],
@@ -306,7 +313,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             ),
           _row(l10n.total, money(total), bold: true),
           const SizedBox(height: 16),
-          _payButton(l10n, total, balance),
+          _payButton(l10n, total, balance, method),
           if (_busy) ...[
             const SizedBox(height: 14),
             const Center(
@@ -380,11 +387,16 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
   /// One button, whose action follows the selected method. Wallet short on
   /// balance becomes a top-up link instead of a dead-end disabled button.
-  Widget _payButton(AppL10n l10n, num total, double? balance) {
-    final wallet = _method == _PayMethod.wallet;
+  Widget _payButton(
+    AppL10n l10n,
+    num total,
+    double? balance,
+    _PayMethod method,
+  ) {
+    final wallet = method == _PayMethod.wallet;
     final walletEnough = balance != null && balance >= total;
 
-    if (_method == _PayMethod.card) {
+    if (method == _PayMethod.card) {
       return FilledButton.icon(
         onPressed: _busy ? null : _payWithCard,
         icon: const Icon(Icons.credit_card, size: 20),

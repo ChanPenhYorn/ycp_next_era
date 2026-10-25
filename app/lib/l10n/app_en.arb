@@ -85,6 +85,7 @@
   "cardExpired": "This checkout expired. Start a new order.",
   "cardNotConfigured": "Card payments are not switched on yet. Please use another method.",
   "cardOpenFailed": "Could not open the checkout page. Check your browser's pop-up blocker and try again.",
+  "paymentUnavailable": "No payment method is available right now. Please try again later.",
   "openAbaMobile": "Open ABA Mobile",
   "waitingPayment": "Waiting for payment...",
   "khqrExpired": "This QR has expired",

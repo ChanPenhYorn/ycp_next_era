@@ -231,6 +231,10 @@ class AppL10nEn extends AppL10n {
       'Could not open the checkout page. Check your browser\'s pop-up blocker and try again.';
 
   @override
+  String get paymentUnavailable =>
+      'No payment method is available right now. Please try again later.';
+
+  @override
   String get openAbaMobile => 'Open ABA Mobile';
 
   @override

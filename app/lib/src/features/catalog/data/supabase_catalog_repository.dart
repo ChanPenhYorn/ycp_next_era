@@ -31,7 +31,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
         .select(
           'site_name, support_telegram, support_email, usd_to_khr, order_ttl_minutes, '
           'topup_min_usd, topup_max_usd, khqr_account_id, khqr_merchant_name, '
-          'manual_grace_minutes, dodo_enabled',
+          'manual_grace_minutes, dodo_enabled, khqr_enabled',
         )
         .maybeSingle();
 
@@ -50,6 +50,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       manualGraceMinutes:
           (row['manual_grace_minutes'] as num?)?.toInt() ?? 1440,
       dodoEnabled: row['dodo_enabled'] as bool? ?? false,
+      khqrEnabled: row['khqr_enabled'] as bool? ?? true,
     );
   }
 

@@ -44,6 +44,8 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         .maybeWhen(data: (ids) => ids, orElse: () => const <int>{});
     final cardEnabled =
         ref.watch(settingsProvider).valueOrNull?.dodoEnabled ?? false;
+    final khqrEnabled =
+        ref.watch(settingsProvider).valueOrNull?.khqrEnabled ?? true;
 
     return AsyncValueView(
       value: order,
@@ -109,23 +111,26 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             ),
             const SizedBox(height: 16),
             if (value.isPending) ...[
-              FilledButton.icon(
-                onPressed: _busy ? null : () => _resumePayment(value),
-                icon: const Icon(Icons.qr_code_2, size: 20),
-                label: Text(l10n.payWithKhqr),
-              ),
-              if (cardEnabled) ...[
-                const SizedBox(height: 8),
+              if (khqrEnabled) ...[
+                FilledButton.icon(
+                  onPressed: _busy ? null : () => _resumePayment(value),
+                  icon: const Icon(Icons.qr_code_2, size: 20),
+                  label: Text(l10n.payWithKhqr),
+                ),
+                if (cardEnabled) const SizedBox(height: 8),
+              ],
+              if (cardEnabled)
                 OutlinedButton.icon(
                   onPressed: _busy ? null : () => _resumeCardPayment(value),
                   icon: const Icon(Icons.credit_card, size: 20),
                   label: Text(l10n.payByCard),
                 ),
+              if (khqrEnabled) ...[
+                const SizedBox(height: 8),
+                // The fallback, under the QR rather than instead of it. Renders
+                // only when settings carry an account to transfer to.
+                ManualPaymentPanel(order: value),
               ],
-              const SizedBox(height: 8),
-              // The fallback, under the QR rather than instead of it. Renders
-              // only when settings carry an account to transfer to.
-              ManualPaymentPanel(order: value),
             ],
             if (value.isPaid) ...[
               OutlinedButton.icon(

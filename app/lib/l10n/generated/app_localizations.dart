@@ -523,6 +523,12 @@ abstract class AppL10n {
   /// **'Could not open the checkout page. Check your browser\'s pop-up blocker and try again.'**
   String get cardOpenFailed;
 
+  /// No description provided for @paymentUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No payment method is available right now. Please try again later.'**
+  String get paymentUnavailable;
+
   /// No description provided for @openAbaMobile.
   ///
   /// In en, this message translates to:

@@ -233,6 +233,10 @@ class AppL10nKm extends AppL10n {
       'មិនអាចបើកទំព័រទូទាត់បានទេ។ សូមពិនិត្យកម្មវិធីទប់ស្កាត់ផ្ទាំងលេចឡើងរបស់កម្មវិធីរុករក ហើយព្យាយាមម្ដងទៀត។';
 
   @override
+  String get paymentUnavailable =>
+      'មិនមានវិធីបង់ប្រាក់ដែលអាចប្រើបាននៅពេលនេះទេ។ សូមព្យាយាមម្ដងទៀតនៅពេលក្រោយ។';
+
+  @override
   String get openAbaMobile => 'បើក ABA Mobile';
 
   @override

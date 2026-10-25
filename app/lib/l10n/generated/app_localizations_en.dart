@@ -194,6 +194,43 @@ class AppL10nEn extends AppL10n {
   String get scanQr => 'Scan with any banking app';
 
   @override
+  String get payByCard => 'Pay by card';
+
+  @override
+  String get payByCardSubtitle => 'Visa, Mastercard · Dodo';
+
+  @override
+  String get cardSheetTitle => 'Card payment';
+
+  @override
+  String get cardSheetIntro =>
+      'Finish on Dodo\'s secure checkout. Keep this window open — it updates by itself when the payment lands.';
+
+  @override
+  String get cardOpenCheckout => 'Open secure checkout';
+
+  @override
+  String get cardWaiting => 'Waiting for the payment…';
+
+  @override
+  String get cardPaid => 'Payment received. Opening your order…';
+
+  @override
+  String get cardDeclined =>
+      'The card payment did not go through. Try again or pick another method.';
+
+  @override
+  String get cardExpired => 'This checkout expired. Start a new order.';
+
+  @override
+  String get cardNotConfigured =>
+      'Card payments are not switched on yet. Please use another method.';
+
+  @override
+  String get cardOpenFailed =>
+      'Could not open the checkout page. Check your browser\'s pop-up blocker and try again.';
+
+  @override
   String get openAbaMobile => 'Open ABA Mobile';
 
   @override

@@ -186,5 +186,16 @@ verify_jwt = true
 [functions.game-banner]
 verify_jwt = true
 
+# Card checkout through Dodo Payments. The two app-facing functions keep the
+# JWT; the webhook cannot have one, and proves itself with the Dodo signature.
+[functions.dodo-checkout]
+verify_jwt = true
+
+[functions.dodo-verify]
+verify_jwt = true
+
+[functions.dodo-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = false

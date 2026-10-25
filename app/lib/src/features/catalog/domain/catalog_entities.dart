@@ -201,6 +201,7 @@ class PublicSettings {
     this.khqrAccountId,
     this.khqrMerchantName,
     this.manualGraceMinutes = 1440,
+    this.dodoEnabled = false,
   });
 
   final String siteName;
@@ -219,6 +220,11 @@ class PublicSettings {
 
   /// How long an order stays payable after the buyer asks to pay by transfer.
   final int manualGraceMinutes;
+
+  /// True when the store has switched the Dodo card rail on. The tile is
+  /// hidden otherwise: a fresh project has no Dodo keys, and a payment option
+  /// that always fails is worse than no option.
+  final bool dodoEnabled;
 
   /// True only when there is an account to pay into and something to call it.
   bool get hasTransferAccount =>

@@ -1,6 +1,6 @@
 # Chanpenh
 
-Khmer-first digital storefront: game top-ups and gift cards, paid with **ABA KHQR**, delivered instantly.
+Khmer-first digital storefront: game top-ups and gift cards, paid with **ABA KHQR** or **card through Dodo**, delivered instantly.
 
 Flutter (web + Android + iOS) on a Supabase backend. No separate app server.
 
@@ -25,6 +25,7 @@ Three rules shape the whole design. Breaking any of them is how these stores los
 1. **Every price, stock check and coupon rule is resolved in Postgres.** `create_order` recomputes totals from the catalogue; the client's numbers are only ever a preview. A tampered app cannot buy a $10 code for $0.01.
 2. **The PayWay API key never leaves the server.** It lives in Supabase Edge Function secrets. The app receives a QR string and a status, nothing else. `payway-init` builds the hash and calls ABA; `payway-verify` polls and settles.
 3. **ABA is asked, never believed.** The `return_url` pushback is unsigned, so `payway-callback` only uses it to learn *which* order to look at. The decision to deliver comes from `check-transaction`, plus an amount check so an underpayment never ships goods.
+4. **A browser redirect is never proof of payment — on either rail.** Dodo's `return_url` only tells the app where to wait. Settlement comes from a signature-verified `dodo-webhook`, or from `dodo-verify` asking Dodo for the payment and checking amount and currency server-side.
 
 Stock delivery is a single atomic statement, so two buyers can never be sold the same code:
 
@@ -132,6 +133,58 @@ The underpayment knob matters more than convenience: it is the guard that stops
 delivery on a short payment. `./scripts/verify-sandbox.sh --check-payway` proves
 both branches and reports the shortfall it refused.
 
+### 2b. Card payments (Dodo)
+
+Optional. PayWay is enough for ABA; this adds a card rail for buyers who cannot
+scan a KHQR. Dodo is the Merchant of Record, so it handles tax and disputes.
+
+1. Create a **Pay What You Want**, one-time, **USD** product in the Dodo
+   dashboard. Set its minimum at or below the cheapest item you sell.
+2. Put `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`, `DODO_PRODUCT_ID`
+   and `DODO_PAYMENTS_ENVIRONMENT=test_mode` in `supabase/functions/.env` for
+   local runs, and in `.env.local` for the hosted project
+   (`supabase secrets set --env-file`). The environment defaults to
+   `test_mode`; a missing or misspelled value can never charge a live card.
+3. Register the webhook in Dodo (**Developer → Webhooks**) for at least
+   `payment.succeeded`:
+
+   ```
+   https://<project-ref>.supabase.co/functions/v1/dodo-webhook
+   ```
+
+   `dodo-webhook` runs with `verify_jwt = false`; it proves itself with the
+   Dodo signature instead. It answers `401` to anything unsigned.
+4. Switch the option on in the store. It is off by default, because a tile
+   that always fails is worse than no tile:
+
+   ```sql
+   update public.settings set dodo_enabled = true;
+   ```
+
+One product serves the whole catalogue. `dodo-checkout` passes the exact
+`orders.total_usd` as the session amount (in cents), so a new SKU needs no Dodo
+setup. Coupon discounts are already inside that total; the session disables
+Dodo's own discount field so the buyer cannot discount a second time and make
+the amount check refuse a legitimate payment.
+
+`STORE_APP_URL` builds the `return_url`. Locally it may be unset: the function
+falls back to the request's `Origin` header, which is how the Flutter web dev
+server gets back to its own order page.
+
+Refunds are **not** wired to Dodo yet. `admin_order_mark_refunded` is for money
+reversed outside the app; a Dodo refund must be issued in the Dodo dashboard,
+then recorded there. Do not assume the two reconcile.
+
+Verification without credentials:
+
+```bash
+deno test --allow-env supabase/tests/dodo/   # signature, replay, status mapping
+```
+
+Test cards and decline scenarios are Dodo's dashboard test mode; the account
+also needs the webhook pointed at the local stack (`dodo wh listen` or a
+tunnel) if you want the push path exercised rather than the poll.
+
 ### Two restart rules, because they differ
 
 | Changed | Do this | Why |
@@ -216,6 +269,7 @@ It creates a throwaway Postgres 16, applies the migrations, seeds a catalogue an
 | 5 | **Native KHQR sheet**: render QR, deep-link to ABA Mobile, poll and settle | `[~]` |
 | 5a | Manual transfer fallback: buyer asks, staff confirm against the bank, one settlement path | `[x]` |
 | 5b | Staff operations at `/admin`: overview, orders, refunds, support | `[x]` |
+| 5c | Card payments through Dodo: one Pay What You Want product, hosted session, signed webhook, server-side verify and amount check | `[~]` |
 | 6 | Orders: history, detail, reveal codes | `[~]` |
 | 7 | Auth: Google, email + password, emailed code fallback, password reset | `[~]` |
 | 8 | Wallet top-up (RPC + settlement path) | `[x]` |
@@ -616,6 +670,36 @@ The panel renders only when settings carry both `khqr_account_id` and
 `khqr_merchant_name`; a store that has not filled them in shows nothing rather
 than an instruction the buyer cannot act on. The demo seed's `chanpenh@aclb` / `CHANPENH`
 are placeholders and must be replaced before taking real money.
+
+## Card payments (Dodo)
+
+Dodo is the second rail, not a replacement. Same order, same `mark_order_paid`,
+same delivery: only the way money arrives differs.
+
+| Function | Who calls it | What it decides |
+|---|---|---|
+| `dodo-checkout` | the app, signed in | Creates a hosted session for `orders.total_usd`, records a pending attempt |
+| `dodo-verify` | the app, while the sheet is open | Asks Dodo for the session/payment, checks amount and currency, settles |
+| `dodo-webhook` | Dodo | Verifies the signature on the raw body, settles on `payment.succeeded` |
+
+Three choices are deliberate:
+
+1. **One Pay What You Want product.** The catalogue already lives in Postgres;
+   mirroring every variant into Dodo would create a second catalogue that drifts.
+   The session carries the exact total in cents instead.
+2. **The app polls, the webhook decides.** The poll makes the sheet close as
+   soon as the payment lands and recovers a missed webhook. The webhook is the
+   primary signal, and both call the same settlement helper so they cannot
+   disagree.
+3. **Amount and currency are checked server-side.** `total_amount` must cover
+   the order in USD. Dodo may add tax on top (the check is `>=`); it can never be
+   below. An underpaid event is acknowledged and refused, not retried for ever.
+
+The enum value `dodo` was added in its own migration: Postgres refuses to use a
+new enum value in the transaction that adds it. `provider_session_id` carries
+the `cks_...` id the app polls; `provider_ref` carries the `pay_...` id that
+settles, so the existing `(provider, provider_ref)` unique index still makes
+settlement idempotent.
 
 ## Staff operations (`/admin`)
 

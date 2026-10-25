@@ -12,6 +12,7 @@ import '../features/orders/domain/order_exception.dart';
 import '../features/payments/domain/payment_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
+import 'widgets/card_sheet.dart';
 import 'widgets/khqr_sheet.dart';
 import 'widgets/required_fields_form.dart';
 
@@ -139,6 +140,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     final lines = ref.watch(cartControllerProvider);
     final subtotal = ref.watch(cartSubtotalProvider);
     final profile = ref.watch(profileProvider).valueOrNull;
+    final cardEnabled =
+        ref.watch(settingsProvider).valueOrNull?.dodoEnabled ?? false;
     final total = (subtotal - (_couponDiscount ?? 0)).clamp(0, double.infinity);
     final wide = MediaQuery.sizeOf(context).width >= 900;
 
@@ -247,6 +250,16 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               onTap: () => setState(() => _method = _PayMethod.khqr),
             ),
             const SizedBox(height: 8),
+            if (cardEnabled) ...[
+              _MethodTile(
+                icon: Icons.credit_card,
+                title: l10n.payByCard,
+                subtitle: l10n.payByCardSubtitle,
+                selected: _method == _PayMethod.card,
+                onTap: () => setState(() => _method = _PayMethod.card),
+              ),
+              const SizedBox(height: 8),
+            ],
             _MethodTile(
               icon: Icons.account_balance_wallet_outlined,
               title: l10n.payWithWallet,
@@ -371,6 +384,14 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     final wallet = _method == _PayMethod.wallet;
     final walletEnough = balance != null && balance >= total;
 
+    if (_method == _PayMethod.card) {
+      return FilledButton.icon(
+        onPressed: _busy ? null : _payWithCard,
+        icon: const Icon(Icons.credit_card, size: 20),
+        label: Text('${l10n.payByCard} · ${money(total)}'),
+      );
+    }
+
     if (!wallet) {
       return FilledButton.icon(
         onPressed: _busy ? null : _payWithKhqr,
@@ -492,6 +513,46 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       // wrong" would leave the buyer staring at a QR that never opened with no
       // idea that their order is sitting there payable, so say what happened
       // and where to go next.
+      if (mounted) setState(() => _busy = false);
+      _toast(l10n.paymentUnreachable);
+      if (mounted) context.go('/orders/${order.orderId}');
+    }
+  }
+
+  Future<void> _payWithCard() async {
+    final l10n = AppL10n.of(context);
+    final order = await _createOrder();
+    if (order == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final checkout = await ref
+          .read(paymentRepositoryProvider)
+          .initCard(order.orderId);
+
+      if (!mounted) return;
+      setState(() => _busy = false);
+
+      final paid = await CardSheet.show(
+        context,
+        orderId: order.orderId,
+        checkout: checkout,
+      );
+
+      if (!mounted) return;
+      if (paid) {
+        ref.invalidate(ordersProvider);
+        ref.invalidate(profileProvider);
+        if (!mounted) return;
+        context.go('/orders/${order.orderId}');
+      } else {
+        context.go('/orders/${order.orderId}');
+      }
+    } on PaymentException catch (error) {
+      if (mounted) setState(() => _busy = false);
+      _toast(_humanise(error.code, l10n));
+      if (mounted) context.go('/orders/${order.orderId}');
+    } catch (_) {
       if (mounted) setState(() => _busy = false);
       _toast(l10n.paymentUnreachable);
       if (mounted) context.go('/orders/${order.orderId}');
@@ -720,6 +781,13 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     // wrong, and it is the first thing hit on a fresh environment.
     'payway_not_configured' => l10n.paywayNotConfigured,
     'payway_rejected' => l10n.paywayRejected,
+    'dodo_not_configured' => l10n.cardNotConfigured,
+    'store_url_not_configured' => l10n.paymentUnreachable,
+    'checkout_url_missing' => l10n.paymentUnreachable,
+    'payment_record_failed' => l10n.paymentUnreachable,
+    'dodo_unreachable' => l10n.paymentUnreachable,
+    'dodo_http_400' => l10n.paymentUnreachable,
+    'dodo_http_422' => l10n.paymentUnreachable,
     // Transport failures on the QR step. The order exists by then, so the
     // message points at the transfer fallback instead of just failing.
     'network_error' => l10n.paymentUnreachable,
@@ -735,7 +803,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   }
 }
 
-enum _PayMethod { khqr, wallet }
+enum _PayMethod { khqr, card, wallet }
 
 class _MethodTile extends StatelessWidget {
   const _MethodTile({

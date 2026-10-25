@@ -58,6 +58,8 @@ Sandbox verification (runs against a live local stack):
   local Edge Functions.** Gitignored.
 - `supabase/functions/.env` — what the **local** function runtime reads. Set
   `PAYWAY_*`, `DEV_OTP`, `BAY2GAME_API_KEY`, `SUPPLIER_JOB_SECRET`,
+  `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `DODO_*` (API key, webhook key,
+  environment, product id),
   `STORAGE_PUBLIC_URL` here for local runs.
 
 Putting a credential only in `.env.local` is the classic mistake: the function
@@ -84,6 +86,12 @@ answers `*_not_configured` while the key looks present.
 6. Two refund paths are deliberately separate: the automatic supplier-line refund credits
    the **wallet**; `admin_order_set_refund_pending` → `admin_order_mark_refunded` move no
    money (external reversals). Keep them apart so a refund is never paid twice.
+7. The card rail is Dodo Payments (Merchant of Record). `dodo-checkout` passes the exact
+   `orders.total_usd` to one Pay What You Want product; `dodo-webhook` verifies the
+   Standard Webhooks signature on the **raw** body and `dodo-verify` asks Dodo directly.
+   The `return_url` is a UI hint, never proof. `settings.dodo_enabled` keeps the tile
+   hidden until the keys and product exist. Dodo refunds are not wired —
+   `admin_order_mark_refunded` still means an external reversal.
 
 ## Supabase
 

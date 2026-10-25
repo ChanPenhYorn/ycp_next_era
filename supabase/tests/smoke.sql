@@ -1354,3 +1354,83 @@ begin
 
   raise notice 'PASS [backfill_unlinked]: stuck lines repaired, linked and unpaid left alone';
 end $$;
+
+\echo '### 56. Dodo card settlement reuses the same money path'
+set role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
+
+select public.create_wallet_topup(5, 'dodo@example.test') as dodo_topup;
+select id as dodo_order from public.orders order by created_at desc limit 1 \gset
+select set_config('harness.dodo_order', :'dodo_order', false);
+reset role;
+
+do $$
+declare
+  v_order    uuid := current_setting('harness.dodo_order')::uuid;
+  v_before   numeric := (select wallet_balance from public.profiles
+                          where id = '22222222-2222-2222-2222-222222222222');
+  v_after    numeric;
+  v_status   text;
+  v_count    integer;
+begin
+  perform public.mark_order_paid(v_order, 'dodo', 'pay_test_dodo_1', 'card',
+                                 jsonb_build_object('source', 'test'), null);
+
+  select status into v_status from public.orders where id = v_order;
+  if v_status <> 'delivered' then
+    raise exception 'FAIL [dodo_settle]: order is %, expected delivered', v_status;
+  end if;
+
+  select count(*) into v_count from public.payments
+   where order_id = v_order and provider = 'dodo'
+     and provider_ref = 'pay_test_dodo_1' and status = 'succeeded';
+  if v_count <> 1 then
+    raise exception 'FAIL [dodo_settle]: % settled payment rows, expected 1', v_count;
+  end if;
+
+  select wallet_balance into v_after from public.profiles
+   where id = '22222222-2222-2222-2222-222222222222';
+  if v_after <> v_before + 5 then
+    raise exception 'FAIL [dodo_settle]: wallet moved % -> %, expected +5',
+      v_before, v_after;
+  end if;
+
+  -- The same payment id delivered twice must not credit the wallet twice.
+  perform public.mark_order_paid(v_order, 'dodo', 'pay_test_dodo_1', 'card',
+                                 jsonb_build_object('source', 'replay'), null);
+  select wallet_balance into v_after from public.profiles
+   where id = '22222222-2222-2222-2222-222222222222';
+  if v_after <> v_before + 5 then
+    raise exception 'FAIL [dodo_replay]: replay credited the wallet again';
+  end if;
+
+  raise notice 'PASS [dodo_settle]: card payment settled once, replay ignored';
+end $$;
+
+do $$
+declare
+  v_id uuid;
+begin
+  begin
+    insert into public.payments (order_id, provider, status, amount_usd, provider_session_id)
+    values (current_setting('harness.dodo_order')::uuid, 'dodo', 'pending', 1, 'cks_dup');
+    v_id := gen_random_uuid();
+  end;
+
+  begin
+    insert into public.payments (order_id, provider, status, amount_usd, provider_session_id)
+    values (current_setting('harness.dodo_order')::uuid, 'dodo', 'pending', 1, 'cks_dup');
+    raise exception 'FAIL [dodo_session_unique]: duplicate session id accepted';
+  exception
+    when unique_violation then
+      raise notice 'PASS [dodo_session_unique]: one payment row per checkout session';
+  end;
+end $$;
+
+do $$
+begin
+  if (select dodo_enabled from public.public_settings) then
+    raise exception 'FAIL [dodo_flag]: card option is on by default';
+  end if;
+  raise notice 'PASS [dodo_flag]: card option is opt-in';
+end $$;

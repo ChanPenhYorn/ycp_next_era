@@ -7,9 +7,11 @@ import '../core/theme.dart';
 import '../data/models.dart';
 import '../features/orders/domain/order_entities.dart';
 import '../features/orders/domain/order_exception.dart';
+import '../features/payments/domain/payment_exception.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../state/providers.dart';
 import 'widgets/async_value_view.dart';
+import 'widgets/card_sheet.dart';
 import 'widgets/confetti.dart';
 import 'widgets/khqr_sheet.dart';
 import 'widgets/manual_payment_panel.dart';
@@ -40,6 +42,8 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     final reviewed = ref
         .watch(reviewedProductsProvider(widget.orderId))
         .maybeWhen(data: (ids) => ids, orElse: () => const <int>{});
+    final cardEnabled =
+        ref.watch(settingsProvider).valueOrNull?.dodoEnabled ?? false;
 
     return AsyncValueView(
       value: order,
@@ -110,6 +114,14 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 icon: const Icon(Icons.qr_code_2, size: 20),
                 label: Text(l10n.payWithKhqr),
               ),
+              if (cardEnabled) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : () => _resumeCardPayment(value),
+                  icon: const Icon(Icons.credit_card, size: 20),
+                  label: Text(l10n.payByCard),
+                ),
+              ],
               const SizedBox(height: 8),
               // The fallback, under the QR rather than instead of it. Renders
               // only when settings carry an account to transfer to.
@@ -182,6 +194,56 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
 
     if (submitted && mounted) {
       ref.invalidate(reviewedProductsProvider(order.id));
+    }
+  }
+
+  Future<void> _resumeCardPayment(Order order) async {
+    if (order.expiresAt.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppL10n.of(context).statusExpired)),
+      );
+      return;
+    }
+
+    final l10n = AppL10n.of(context);
+    setState(() => _busy = true);
+    try {
+      final checkout = await ref
+          .read(paymentRepositoryProvider)
+          .initCard(order.id);
+      if (!mounted) return;
+      setState(() => _busy = false);
+
+      final paid = await CardSheet.show(
+        context,
+        orderId: order.id,
+        checkout: checkout,
+      );
+
+      if (!mounted) return;
+      if (paid) {
+        ref.invalidate(orderProvider(order.id));
+        ref.invalidate(ordersProvider);
+        await _reveal(order);
+      }
+    } on PaymentException catch (error) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.code == 'dodo_not_configured'
+                ? l10n.cardNotConfigured
+                : l10n.paymentUnreachable,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.paymentUnreachable)));
     }
   }
 

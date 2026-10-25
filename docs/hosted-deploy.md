@@ -59,7 +59,7 @@ Each prod write is a separate confirmed step.
 1. **Create project** (fresh option): org `iwjbwmosishxazcefvpq`, region
    `ap-southeast-1`. Set DB password. Record ref here.
 2. **Link:** `supabase link --project-ref <ref>`.
-3. **Dry run:** `supabase db push --linked --dry-run`. Expect 13 migrations.
+3. **Dry run:** `supabase db push --linked --dry-run`. Expect 22 migrations.
 4. **Push schema:** `supabase db push --linked`.
 5. **Auth config and email templates:** `supabase config push`. Templates live in
    `supabase/templates/`; they must print `{{ .Token }}` (six-digit code, not a link).
@@ -69,14 +69,19 @@ Each prod write is a separate confirmed step.
 6. **Secrets (prod only):** `supabase secrets set --env-file <tmp file>` with only:
    `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_DISPATCH_SECRET`,
    `PAYWAY_*`, `BAY2GAME_API_KEY`, `SUPPLIER_JOB_SECRET`, `STORE_APP_URL`,
-   `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`.
+   `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, and — only when the card rail is
+   live — `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`,
+   `DODO_PAYMENTS_ENVIRONMENT=live_mode`, `DODO_PRODUCT_ID`.
    **Never** `DEV_OTP`. Delete the temp file afterwards.
 7. **Deploy functions:** `telegram-webhook`, `telegram-dispatch`, `payway-init`,
    `payway-verify`, `payway-callback`, `supplier-sync`, `supplier-fulfil`,
-   `game-banner`.
+   `game-banner`, `dodo-checkout`, `dodo-verify`, `dodo-webhook`.
    **Skip** `dev-signin`.
 8. **Settings and catalog:** prod settings row (site name, KHQR account, `telegram_bot_username`,
    `support_telegram_chat_id`). Catalog created by staff, not `seed/demo.sql`.
+   Card payments stay hidden until `update public.settings set dodo_enabled = true;`
+   — do that only after step 6 and after registering the Dodo webhook for
+   `payment.succeeded` at `https://<ref>.supabase.co/functions/v1/dodo-webhook`.
 9. **Smoke:** `./scripts/verify-sandbox.sh` against hosted is **not** applicable (it assumes
    local). Check by hand: sign in with real email OTP, create order, Telegram `/help`.
 10. **Webhook switch:**

@@ -2,6 +2,9 @@
 
 Date: 2026-10-15
 Status: **M1, M2, M3, M4 and M5a implemented and verified.** M5b, M5c, M6–M8 proposed, not started.
+A card rail through Dodo Payments was added on 2026-10-25 (hosted checkout, signed
+webhook, server-side verify); it compiles and its tests pass, but it has not been
+exercised against a live Dodo test account yet.
 
 ---
 

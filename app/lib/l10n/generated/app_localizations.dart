@@ -457,6 +457,72 @@ abstract class AppL10n {
   /// **'Scan with any banking app'**
   String get scanQr;
 
+  /// No description provided for @payByCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay by card'**
+  String get payByCard;
+
+  /// No description provided for @payByCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Visa, Mastercard · Dodo'**
+  String get payByCardSubtitle;
+
+  /// No description provided for @cardSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Card payment'**
+  String get cardSheetTitle;
+
+  /// No description provided for @cardSheetIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish on Dodo\'s secure checkout. Keep this window open — it updates by itself when the payment lands.'**
+  String get cardSheetIntro;
+
+  /// No description provided for @cardOpenCheckout.
+  ///
+  /// In en, this message translates to:
+  /// **'Open secure checkout'**
+  String get cardOpenCheckout;
+
+  /// No description provided for @cardWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the payment…'**
+  String get cardWaiting;
+
+  /// No description provided for @cardPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received. Opening your order…'**
+  String get cardPaid;
+
+  /// No description provided for @cardDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'The card payment did not go through. Try again or pick another method.'**
+  String get cardDeclined;
+
+  /// No description provided for @cardExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This checkout expired. Start a new order.'**
+  String get cardExpired;
+
+  /// No description provided for @cardNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Card payments are not switched on yet. Please use another method.'**
+  String get cardNotConfigured;
+
+  /// No description provided for @cardOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the checkout page. Check your browser\'s pop-up blocker and try again.'**
+  String get cardOpenFailed;
+
   /// No description provided for @openAbaMobile.
   ///
   /// In en, this message translates to:

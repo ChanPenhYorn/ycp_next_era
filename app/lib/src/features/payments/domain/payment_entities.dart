@@ -20,6 +20,26 @@ class KhqrPayment {
   final String? checkoutQrUrl;
 }
 
+/// The hosted card checkout, as `dodo-checkout` returns it.
+///
+/// It carries a URL, never a secret: the buyer finishes on Dodo's page and the
+/// app only learns the outcome from the server.
+class CardCheckout {
+  const CardCheckout({
+    required this.sessionId,
+    required this.checkoutUrl,
+    required this.totalUsd,
+    required this.expiresAt,
+  });
+
+  final String sessionId;
+  final String checkoutUrl;
+  final double totalUsd;
+  final DateTime expiresAt;
+
+  Uri get uri => Uri.parse(checkoutUrl);
+}
+
 class SettleResult {
   const SettleResult({
     required this.ok,

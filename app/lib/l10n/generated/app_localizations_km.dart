@@ -195,6 +195,44 @@ class AppL10nKm extends AppL10n {
   String get scanQr => 'ស្កេនដោយកម្មវិធីធនាគារណាមួយ';
 
   @override
+  String get payByCard => 'បង់ដោយកាត';
+
+  @override
+  String get payByCardSubtitle => 'Visa, Mastercard · Dodo';
+
+  @override
+  String get cardSheetTitle => 'ការបង់ប្រាក់ដោយកាត';
+
+  @override
+  String get cardSheetIntro =>
+      'បញ្ចប់នៅទំព័រទូទាត់សុវត្ថិភាពរបស់ Dodo។ សូមទុកផ្ទាំងនេះបើកទុក វានឹងធ្វើបច្ចុប្បន្នភាពដោយខ្លួនឯងពេលការទូទាត់ចូល។';
+
+  @override
+  String get cardOpenCheckout => 'បើកទំព័រទូទាត់សុវត្ថិភាព';
+
+  @override
+  String get cardWaiting => 'កំពុងរង់ចាំការទូទាត់…';
+
+  @override
+  String get cardPaid => 'បានទទួលប្រាក់ហើយ។ កំពុងបើកការបញ្ជាទិញរបស់អ្នក…';
+
+  @override
+  String get cardDeclined =>
+      'ការទូទាត់ដោយកាតមិនបានជោគជ័យទេ។ សូមព្យាយាមម្ដងទៀត ឬជ្រើសវិធីផ្សេង។';
+
+  @override
+  String get cardExpired =>
+      'ការទូទាត់នេះផុតកំណត់ហើយ។ សូមចាប់ផ្ដើមការបញ្ជាទិញថ្មី។';
+
+  @override
+  String get cardNotConfigured =>
+      'ការបង់ប្រាក់ដោយកាតមិនទាន់បើកនៅឡើយទេ។ សូមប្រើវិធីផ្សេង។';
+
+  @override
+  String get cardOpenFailed =>
+      'មិនអាចបើកទំព័រទូទាត់បានទេ។ សូមពិនិត្យកម្មវិធីទប់ស្កាត់ផ្ទាំងលេចឡើងរបស់កម្មវិធីរុករក ហើយព្យាយាមម្ដងទៀត។';
+
+  @override
   String get openAbaMobile => 'បើក ABA Mobile';
 
   @override

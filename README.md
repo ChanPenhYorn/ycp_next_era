@@ -167,9 +167,10 @@ setup. Coupon discounts are already inside that total; the session disables
 Dodo's own discount field so the buyer cannot discount a second time and make
 the amount check refuse a legitimate payment.
 
-`STORE_APP_URL` builds the `return_url`. Locally it may be unset: the function
-falls back to the request's `Origin` header, which is how the Flutter web dev
-server gets back to its own order page.
+`STORE_APP_URL` builds the `return_url`. On a local stack that value points at the
+hosted store, so `dodo-checkout` uses the request's `Origin` instead and returns
+the tester to the local app after a test card; with no `Origin` (native builds)
+it still uses `STORE_APP_URL`.
 
 Refunds are **not** wired to Dodo yet. `admin_order_mark_refunded` is for money
 reversed outside the app; a Dodo refund must be issued in the Dodo dashboard,

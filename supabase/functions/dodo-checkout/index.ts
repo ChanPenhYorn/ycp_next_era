@@ -12,6 +12,7 @@
  * -> { session_id, checkout_url, total_usd, expires_at }
  */
 import { adminClient, json, preflight, requireUser } from "../_shared/supabase.ts";
+import { isLocalRuntime } from "../_shared/payway.ts";
 import {
   createCheckoutSession,
   dodoConfigured,
@@ -20,13 +21,20 @@ import {
 
 /** The app's own origin, so a return lands back where the buyer started. */
 function returnBase(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  const browserOrigin = origin && /^https?:\/\//.test(origin)
+    ? origin.replace(/\/+$/, "")
+    : null;
+
+  // On a local stack the app runs on localhost, while STORE_APP_URL points at
+  // the hosted store. Following it would send a local tester to production
+  // after paying a test card.
+  if (isLocalRuntime() && browserOrigin) return browserOrigin;
+
   const configured = (Deno.env.get("STORE_APP_URL") ?? "").trim();
   if (configured) return configured.replace(/\/+$/, "");
 
-  const origin = req.headers.get("origin");
-  if (origin && /^https?:\/\//.test(origin)) return origin.replace(/\/+$/, "");
-
-  return null;
+  return browserOrigin;
 }
 
 Deno.serve(async (req) => {

@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../orders/data/order_mappers.dart';
+import '../../orders/domain/order_exception.dart';
 import '../domain/admin_entities.dart';
 import '../domain/admin_repository.dart';
 import 'admin_mappers.dart';
@@ -205,6 +206,33 @@ class SupabaseAdminRepository implements AdminRepository {
       'p_variant_id': variantId,
       'p_price_usd': priceUsd,
     });
+  }
+
+  @override
+  Future<String?> resolveBanner({
+    required int productId,
+    String? url,
+    bool force = false,
+  }) async {
+    final response = await _client.functions.invoke(
+      'game-banner',
+      body: {
+        'productId': productId,
+        if (url != null && url.isNotEmpty) 'url': url,
+        if (force) 'force': true,
+      },
+    );
+
+    final data = (response.data as Map?)?.cast<String, dynamic>() ?? const {};
+    if (response.status < 200 ||
+        response.status >= 300 ||
+        data['error'] != null) {
+      throw OrderException(
+        data['error'] as String? ?? 'http_${response.status}',
+        detail: data['detail'] as String?,
+      );
+    }
+    return data['banner_url'] as String?;
   }
 
   @override

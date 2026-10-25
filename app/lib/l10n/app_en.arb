@@ -421,5 +421,13 @@
     "placeholders": {
       "count": { "type": "int" }
     }
-  }
+  },
+  "adminBannerTitle": "Banner art",
+  "adminBannerUrlLabel": "Image URL (blank searches IGDB)",
+  "adminBannerHint": "A wide image works best: 16:9 or wider.",
+  "adminBannerFind": "Find banner",
+  "adminBannerSaved": "Banner saved.",
+  "adminBannerNone": "No matching banner found.",
+  "adminBannerNotConfigured": "The banner source is not configured.",
+  "adminBannerFailed": "Could not load a banner."
 }

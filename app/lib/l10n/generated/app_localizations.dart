@@ -2244,6 +2244,54 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Showing the {count} most recent.'**
   String adminShowingCount(int count);
+
+  /// No description provided for @adminBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Banner art'**
+  String get adminBannerTitle;
+
+  /// No description provided for @adminBannerUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Image URL (blank searches IGDB)'**
+  String get adminBannerUrlLabel;
+
+  /// No description provided for @adminBannerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A wide image works best: 16:9 or wider.'**
+  String get adminBannerHint;
+
+  /// No description provided for @adminBannerFind.
+  ///
+  /// In en, this message translates to:
+  /// **'Find banner'**
+  String get adminBannerFind;
+
+  /// No description provided for @adminBannerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Banner saved.'**
+  String get adminBannerSaved;
+
+  /// No description provided for @adminBannerNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching banner found.'**
+  String get adminBannerNone;
+
+  /// No description provided for @adminBannerNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'The banner source is not configured.'**
+  String get adminBannerNotConfigured;
+
+  /// No description provided for @adminBannerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load a banner.'**
+  String get adminBannerFailed;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

@@ -124,6 +124,19 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
             ].join(' · '),
             style: const TextStyle(fontSize: 11, color: AppColors.ink400),
           ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _busy ? null : _editBanner,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 36),
+              ),
+              icon: const Icon(Icons.image_outlined, size: 16),
+              label: Text(l10n.adminBannerFind),
+            ),
+          ),
           const SizedBox(height: 8),
           for (final variant in product.variants)
             _VariantRow(
@@ -207,6 +220,49 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
       if (!mounted) return;
       setState(() => _busy = false);
       _toast(l10n.somethingWentWrong);
+    }
+  }
+
+  Future<void> _editBanner() async {
+    final l10n = AppL10n.of(context);
+    final input = await askAdminText(
+      context,
+      title: l10n.adminBannerTitle,
+      label: l10n.adminBannerUrlLabel,
+      helper: l10n.adminBannerHint,
+      confirmLabel: l10n.adminBannerFind,
+    );
+    if (input == null) return;
+
+    setState(() => _busy = true);
+    try {
+      // A blank field means "search IGDB"; a URL means "use this one".
+      // `force` re-resolves even when a banner is already set, which is what a
+      // staff member pressing the button expects.
+      await ref
+          .read(adminRepositoryProvider)
+          .resolveBanner(
+            productId: widget.product.id,
+            url: input.trim().isEmpty ? null : input.trim(),
+            force: true,
+          );
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _toast(l10n.adminBannerSaved);
+      widget.onDone();
+    } on OrderException catch (error) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _toast(switch (error.code) {
+        'no_banner_found' => l10n.adminBannerNone,
+        'igdb_not_configured' => l10n.adminBannerNotConfigured,
+        'not_authorized' => l10n.adminOnly,
+        _ => l10n.adminBannerFailed,
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      _toast(l10n.adminBannerFailed);
     }
   }
 

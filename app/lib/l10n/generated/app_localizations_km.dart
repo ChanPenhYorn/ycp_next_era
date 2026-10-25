@@ -1164,4 +1164,28 @@ class AppL10nKm extends AppL10n {
   String adminShowingCount(int count) {
     return 'បង្ហាញ $count ចុងក្រោយបំផុត។';
   }
+
+  @override
+  String get adminBannerTitle => 'រូបភាពបដា';
+
+  @override
+  String get adminBannerUrlLabel => 'តំណរូបភាព (ទទេ = ស្វែងរកតាម IGDB)';
+
+  @override
+  String get adminBannerHint => 'រូបភាពទទឹងល្អបំផុត៖ 16:9 ឬធំជាង។';
+
+  @override
+  String get adminBannerFind => 'ស្វែងរកបដា';
+
+  @override
+  String get adminBannerSaved => 'បានរក្សាទុកបដា។';
+
+  @override
+  String get adminBannerNone => 'រកមិនឃើញបដាដែលត្រូវគ្នាទេ។';
+
+  @override
+  String get adminBannerNotConfigured => 'ប្រភពរូបភាពបដាមិនបានកំណត់ទេ។';
+
+  @override
+  String get adminBannerFailed => 'មិនអាចផ្ទុកបដាបានទេ។';
 }

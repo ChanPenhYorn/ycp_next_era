@@ -68,10 +68,12 @@ Each prod write is a separate confirmed step.
    default), which silently skips the registration code.
 6. **Secrets (prod only):** `supabase secrets set --env-file <tmp file>` with only:
    `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_DISPATCH_SECRET`,
-   `PAYWAY_*`, `BAY2GAME_API_KEY`, `SUPPLIER_JOB_SECRET`, `STORE_APP_URL`.
+   `PAYWAY_*`, `BAY2GAME_API_KEY`, `SUPPLIER_JOB_SECRET`, `STORE_APP_URL`,
+   `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`.
    **Never** `DEV_OTP`. Delete the temp file afterwards.
 7. **Deploy functions:** `telegram-webhook`, `telegram-dispatch`, `payway-init`,
-   `payway-verify`, `payway-callback`, `supplier-sync`, `supplier-fulfil`.
+   `payway-verify`, `payway-callback`, `supplier-sync`, `supplier-fulfil`,
+   `game-banner`.
    **Skip** `dev-signin`.
 8. **Settings and catalog:** prod settings row (site name, KHQR account, `telegram_bot_username`,
    `support_telegram_chat_id`). Catalog created by staff, not `seed/demo.sql`.

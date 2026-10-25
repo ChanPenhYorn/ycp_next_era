@@ -16,92 +16,13 @@
  */
 import { adminClient, json, preflight } from "../_shared/supabase.ts";
 import type { SupplierAdapter } from "../_shared/suppliers/types.ts";
-import { fetchWithTimeout, SupplierError } from "../_shared/suppliers/types.ts";
+import { SupplierError } from "../_shared/suppliers/types.ts";
 import { bay2game } from "../_shared/suppliers/bay2game.ts";
+import { mirrorImage, publicStorageBase } from "../_shared/storage.ts";
 
 const ADAPTERS: Record<string, SupplierAdapter> = {
   bay2game,
 };
-
-/**
- * The origin a BROWSER uses to reach Storage, or null when there is not one.
- *
- * Inside the local stack `SUPABASE_URL` is `http://kong:8000`, the
- * compose-network name. `storage.getPublicUrl()` prefixes with exactly that, so
- * the mirrored art was stored as a URL Chrome cannot resolve: the product page
- * stayed blank while the sync reported success.
- *
- * `STORAGE_PUBLIC_URL` overrides it. The name deliberately does not start with
- * `SUPABASE_`, because the CLI drops those keys from the function env file and
- * the override would never arrive. Returning null rather than the internal
- * origin keeps the failure visible: the caller warns instead of writing a URL
- * that cannot load.
- */
-export function publicStorageBase(): string | null {
-  const explicit = Deno.env.get("STORAGE_PUBLIC_URL");
-  if (explicit) return explicit.replace(/\/+$/, "");
-
-  const url = Deno.env.get("SUPABASE_URL") ?? "";
-  if (!url || /\/\/kong(:|\/|$)/.test(url)) return null;
-  return url.replace(/\/+$/, "");
-}
-
-/**
- * Mirrors a supplier image into our own Storage bucket.
- *
- * Not a nicety. Bay2Game serves product art from cdn.camrapidsecure.com, which
- * sends no Access-Control-Allow-Origin header. Flutter web (CanvasKit) loads
- * images with fetch, so those images render fine on Android and iOS but are
- * invisible in a browser. Mirroring also removes the hotlink dependency: the
- * supplier can rename or delete their CDN paths without breaking our catalogue.
- *
- * Returns the public URL, or null to fall back to the original.
- */
-export async function mirrorImage(
-  admin: ReturnType<typeof adminClient>,
-  supplierCode: string,
-  gameCode: string,
-  sourceUrl: string | null
-): Promise<string | null> {
-  if (!sourceUrl) return null;
-
-  try {
-    const res = await fetchWithTimeout(sourceUrl, {}, 20000);
-    if (!res.ok) return null;
-
-    const contentType = res.headers.get("content-type") ?? "image/webp";
-    if (!contentType.startsWith("image/")) return null;
-
-    const extension = contentType.includes("png")
-      ? "png"
-      : contentType.includes("jpeg") || contentType.includes("jpg")
-        ? "jpg"
-        : contentType.includes("avif")
-          ? "avif"
-          : "webp";
-
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (bytes.byteLength === 0) return null;
-
-    const path = `suppliers/${supplierCode}/${gameCode}.${extension}`;
-    const { error } = await admin.storage
-      .from("product-images")
-      .upload(path, bytes, { contentType, upsert: true });
-
-    if (error) return null;
-
-    // Built by hand rather than via getPublicUrl(): that helper prefixes with
-    // SUPABASE_URL, which is the internal origin locally. The object path below
-    // is the documented public-object route.
-    const base = publicStorageBase();
-    if (!base) return null;
-
-    return `${base}/storage/v1/object/public/product-images/${path}`;
-  } catch {
-    // A missing image must never fail a catalogue sync.
-    return null;
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();

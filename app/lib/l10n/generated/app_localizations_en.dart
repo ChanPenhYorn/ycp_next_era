@@ -1165,4 +1165,28 @@ class AppL10nEn extends AppL10n {
   String adminShowingCount(int count) {
     return 'Showing the $count most recent.';
   }
+
+  @override
+  String get adminBannerTitle => 'Banner art';
+
+  @override
+  String get adminBannerUrlLabel => 'Image URL (blank searches IGDB)';
+
+  @override
+  String get adminBannerHint => 'A wide image works best: 16:9 or wider.';
+
+  @override
+  String get adminBannerFind => 'Find banner';
+
+  @override
+  String get adminBannerSaved => 'Banner saved.';
+
+  @override
+  String get adminBannerNone => 'No matching banner found.';
+
+  @override
+  String get adminBannerNotConfigured => 'The banner source is not configured.';
+
+  @override
+  String get adminBannerFailed => 'Could not load a banner.';
 }

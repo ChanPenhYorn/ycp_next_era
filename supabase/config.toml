@@ -181,5 +181,10 @@ verify_jwt = true
 [functions.supplier-fulfil]
 verify_jwt = true
 
+# Resolves wide banner art for the spotlight from IGDB and mirrors it. Staff
+# only: the function checks `is_staff()` itself after the JWT is verified.
+[functions.game-banner]
+verify_jwt = true
+
 [analytics]
 enabled = false

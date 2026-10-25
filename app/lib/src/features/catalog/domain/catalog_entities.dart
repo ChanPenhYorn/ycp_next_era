@@ -118,6 +118,7 @@ class ProductCard {
     required this.nameKm,
     required this.nameEn,
     required this.imageUrl,
+    this.bannerUrl,
     required this.kind,
     required this.ratingAvg,
     required this.ratingCount,
@@ -134,6 +135,12 @@ class ProductCard {
   final String nameKm;
   final String nameEn;
   final String? imageUrl;
+
+  /// Wide spotlight art (IGDB key art mirrored by `game-banner`), when staff
+  /// have resolved one. Null on most cards: the spotlight then falls back to
+  /// [imageUrl] on a blurred backdrop.
+  final String? bannerUrl;
+
   final ProductKind kind;
   final double ratingAvg;
   final int ratingCount;

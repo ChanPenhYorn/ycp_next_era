@@ -364,5 +364,13 @@
   "adminResolveFailedBody": "អតិថិជនមិនត្រូវបានសងប្រាក់វិញដោយការនេះទេ។ បន្ទាត់ដែលបរាជ័យត្រូវការការសម្រេចចិត្តសងប្រាក់ដោយឡែក។",
   "adminTicketCloseTitle": "បិទសំណើនេះ?",
   "adminTicketCloseBody": "វានឹងផ្លាស់ទៅស្ថានភាពបិទ ហើយចេញពីបញ្ជីការងារ។",
-  "adminShowingCount": "បង្ហាញ {count} ចុងក្រោយបំផុត។"
+  "adminShowingCount": "បង្ហាញ {count} ចុងក្រោយបំផុត។",
+  "adminBannerTitle": "រូបភាពបដា",
+  "adminBannerUrlLabel": "តំណរូបភាព (ទទេ = ស្វែងរកតាម IGDB)",
+  "adminBannerHint": "រូបភាពទទឹងល្អបំផុត៖ 16:9 ឬធំជាង។",
+  "adminBannerFind": "ស្វែងរកបដា",
+  "adminBannerSaved": "បានរក្សាទុកបដា។",
+  "adminBannerNone": "រកមិនឃើញបដាដែលត្រូវគ្នាទេ។",
+  "adminBannerNotConfigured": "ប្រភពរូបភាពបដាមិនបានកំណត់ទេ។",
+  "adminBannerFailed": "មិនអាចផ្ទុកបដាបានទេ។"
 }

@@ -76,7 +76,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
     var query = _client
         .from('products')
         .select(
-          'id, slug, name_km, name_en, image_url, kind, rating_avg, rating_count, '
+          'id, slug, name_km, name_en, image_url, banner_url, kind, rating_avg, rating_count, '
           'sold_count, category:categories ( $categoryColumns ), '
           'variants:product_variants ( $variantColumns )',
         );
@@ -117,7 +117,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
         .from('products')
         .select(
           'id, slug, name_km, name_en, summary_km, summary_en, description_km, '
-          'description_en, image_url, kind, requires_fields, rating_avg, '
+          'description_en, image_url, banner_url, kind, requires_fields, rating_avg, '
           'rating_count, sold_count, '
           'category:categories ( $categoryColumns ), '
           'variants:product_variants ( $variantColumns )',
@@ -276,6 +276,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       nameKm: row['name_km'] as String? ?? '',
       nameEn: row['name_en'] as String? ?? '',
       imageUrl: row['image_url'] as String?,
+      bannerUrl: row['banner_url'] as String?,
       kind: productKindFrom(row['kind'] as String? ?? 'manual_setup'),
       ratingAvg: (row['rating_avg'] as num?)?.toDouble() ?? 0,
       ratingCount: (row['rating_count'] as num?)?.toInt() ?? 0,

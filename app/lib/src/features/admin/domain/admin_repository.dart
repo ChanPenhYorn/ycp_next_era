@@ -54,6 +54,15 @@ abstract class AdminRepository {
 
   Future<void> setProductActive({required int productId, required bool active});
 
+  /// Resolves wide banner art through the `game-banner` function and returns
+  /// the mirrored URL, or null when the banner was cleared. Pass [url] to use a
+  /// specific image instead of asking IGDB.
+  Future<String?> resolveBanner({
+    required int productId,
+    String? url,
+    bool force,
+  });
+
   /// Refused in the database when the price is below the supplier cost.
   Future<void> setVariantPrice({
     required int variantId,

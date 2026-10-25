@@ -66,32 +66,49 @@ class SpotlightTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Backdrop: the game's own art, blown up and blurred, so the
-              // panel is a colour field drawn from the game itself. Without it
-              // the uncropped art sat as a rectangle on one side of a flat
-              // panel, with a hard vertical seam and dead space beside it.
-              _SpotlightBackdrop(url: product.imageUrl),
-              // The art itself, uncropped, anchored right. Its left edge is
-              // masked into the scrim, so the panel reads as one surface
-              // instead of a photo pasted onto a card.
-              if (product.imageUrl != null)
-                ShaderMask(
-                  blendMode: BlendMode.dstIn,
-                  shaderCallback: (rect) => const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Colors.transparent, Colors.white],
-                    stops: [0.38, 0.62],
-                  ).createShader(rect),
-                  child: CachedNetworkImage(
-                    imageUrl: product.imageUrl!,
-                    fit: BoxFit.contain,
-                    alignment: Alignment.centerRight,
-                    filterQuality: FilterQuality.medium,
-                    placeholder: (_, _) => const SizedBox.shrink(),
-                    errorWidget: (_, _, _) => const SizedBox.shrink(),
+              // A real banner (IGDB key art, mirrored by `game-banner`) is
+              // already the right shape: show it sharp, full-bleed. The square
+              // supplier art needs the blurred backdrop and a contained copy.
+              if (product.bannerUrl != null)
+                CachedNetworkImage(
+                  imageUrl: product.bannerUrl!,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                  filterQuality: FilterQuality.medium,
+                  placeholder: (_, _) =>
+                      _SpotlightBackdrop(url: product.imageUrl),
+                  errorWidget: (_, _, _) =>
+                      _SpotlightBackdrop(url: product.imageUrl),
+                )
+              else ...[
+                // Backdrop: the game's own art, blown up and blurred, so the
+                // panel is a colour field drawn from the game itself. Without
+                // it the uncropped art sat as a rectangle on one side of a
+                // flat panel, with a hard vertical seam and dead space beside
+                // it.
+                _SpotlightBackdrop(url: product.imageUrl),
+                // The art itself, uncropped, anchored right. Its left edge is
+                // masked into the scrim, so the panel reads as one surface
+                // instead of a photo pasted onto a card.
+                if (product.imageUrl != null)
+                  ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.transparent, Colors.white],
+                      stops: [0.38, 0.62],
+                    ).createShader(rect),
+                    child: CachedNetworkImage(
+                      imageUrl: product.imageUrl!,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.centerRight,
+                      filterQuality: FilterQuality.medium,
+                      placeholder: (_, _) => const SizedBox.shrink(),
+                      errorWidget: (_, _, _) => const SizedBox.shrink(),
+                    ),
                   ),
-                ),
+              ],
               // Darkens the left half so the copy always clears the art.
               DecoratedBox(
                 decoration: BoxDecoration(

@@ -471,13 +471,13 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
       if (!mounted) return;
       if (paid) {
-        await ref.read(cartControllerProvider.notifier).clear();
         ref.invalidate(ordersProvider);
         ref.invalidate(profileProvider);
         if (!mounted) return;
         context.go('/orders/${order.orderId}');
       } else {
-        // Keep the order so the buyer can retry without rebuilding the cart.
+        // The cart was emptied when the order was created. Retrying happens on
+        // the order page, which already holds the lines and the payment state.
         context.go('/orders/${order.orderId}');
       }
     } on PaymentException catch (error) {
@@ -513,7 +513,6 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       setState(() => _busy = false);
 
       if (result.ok) {
-        await ref.read(cartControllerProvider.notifier).clear();
         ref.invalidate(ordersProvider);
         ref.invalidate(profileProvider);
         if (!mounted) return;
@@ -592,6 +591,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
     setState(() => _busy = true);
 
+    // Read the notifier before the request so the clear below still works if
+    // the buyer leaves the page while `create_order` is in flight.
+    final cart = ref.read(cartControllerProvider.notifier);
+
     try {
       final order = await ref
           .read(orderRepositoryProvider)
@@ -606,6 +609,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
             note: _note.text.trim().isEmpty ? null : _note.text.trim(),
           );
       if (mounted) setState(() => _busy = false);
+      // The order now owns the lines, fields and prices. Leaving the cart
+      // populated after a successful checkout made it look as though nothing
+      // had been bought, and a second checkout would create a duplicate order.
+      // Payment that is still pending, failed or expired is resumed from the
+      // order page, not by rebuilding the cart.
+      await cart.clear();
       return order;
     } on OrderException catch (error) {
       if (error.code == 'missing_fields' || error.code == 'invalid_fields') {

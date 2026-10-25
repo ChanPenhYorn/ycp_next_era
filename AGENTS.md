@@ -111,6 +111,13 @@ is square or portrait, the cards `cover`-crop it, and padded copies shrink the a
 letterbox bars. The demo products in `supabase/seed/demo.sql` have no art on purpose; the
 app draws their name instead (`ProductArtFallback`).
 
+The home spotlight wants a wide image, which the supplier does not have. The `game-banner`
+Edge Function resolves key art from IGDB (`IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`), mirrors
+it to `product-images/banners/`, and writes `products.banner_url`; staff trigger it with
+**Find banner** in the admin catalogue, and can paste a URL instead. It is staff-only and
+verified inside the function (`is_staff()`), not just by the JWT. A weak name match answers
+`no_banner_found` rather than showing the wrong game.
+
 ## Config / auth
 
 - Flutter envs: `app/config/dev.json` (local, fixed `DEV_OTP`, nothing emailed) and

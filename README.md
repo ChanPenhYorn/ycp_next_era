@@ -454,6 +454,28 @@ fills the tile. That is deliberate: padding the art onto a 4:3 canvas shrank it
 behind blurred letterbox bars and read as a smaller, softer tile, so the mirror
 keeps the source bytes and lets the card crop.
 
+### Banner art for the spotlight
+
+A card wants a square image; the panel at the top of home does not. Cropped, a
+square loses its logo; contained, it leaves dead space. `game-banner` resolves
+wide key art instead and writes it to `products.banner_url`.
+
+- Source: IGDB (the game database behind Twitch), which carries the publisher's
+  own artwork. Configure `IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET` from a free
+  Twitch application. Unset is not fatal: the function answers
+  `igdb_not_configured` and staff can still pass an explicit image URL.
+- Match: IGDB search is fuzzy, so the function scores the result against the
+  catalogue name and refuses a weak match (`no_banner_found`) rather than
+  putting the wrong game on the front page. `matched_name` comes back in the
+  response so a person can check it.
+- Mirror: the chosen image is copied into `product-images/banners/<slug>` and
+  `banner_url` records the public URL. IGDB would allow hotlinking; the mirror
+  keeps us independent of their paths and of their CORS policy.
+- Trigger: staff press **Find banner** on a product in the admin catalogue
+  (blank field = search IGDB, a URL = override). The spotlight uses
+  `banner_url` full-bleed when present, and otherwise falls back to the square
+  art on a blurred backdrop.
+
 The worker distinguishes three outcomes, and the distinction is the point:
 
 | Outcome | Effect | Why |
